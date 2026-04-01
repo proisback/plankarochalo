@@ -138,9 +138,11 @@ export function DestinationStage({
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="font-heading text-lg font-semibold">Where should we go?</h2>
+        <h2 className="font-heading text-lg font-semibold">
+          {currentMember.name}, where to?
+        </h2>
         <p className="text-text-secondary text-sm">
-          Add options and vote. Tap to vote for your pick.
+          Pick your top spot. Add a new one if it's missing. One vote each.
         </p>
       </div>
 

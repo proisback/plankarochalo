@@ -6,9 +6,11 @@ import type { Trip, Member } from "@/lib/types";
 export function ReadyStage({
   trip,
   members,
+  currentMember,
 }: {
   trip: Trip;
   members: Member[];
+  currentMember?: Member;
 }) {
   const [copied, setCopied] = useState(false);
   const confirmedIn = members.filter((m) => m.status === "confirmed_in");
@@ -46,7 +48,12 @@ export function ReadyStage({
     <div className="space-y-4">
       <div className="text-center py-4">
         <span className="text-5xl block mb-3">🎉</span>
-        <h2 className="font-heading text-xl font-bold">Trip is a go!</h2>
+        <h2 className="font-heading text-xl font-bold">
+          {currentMember?.name ? `${currentMember.name}, it's happening!` : "Trip is a go!"}
+        </h2>
+        <p className="text-text-secondary text-sm mt-1">
+          No more &quot;let&apos;s plan later.&quot; This one&apos;s real.
+        </p>
       </div>
 
       {/* Trip summary card */}

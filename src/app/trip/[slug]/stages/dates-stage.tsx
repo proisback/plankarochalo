@@ -146,13 +146,15 @@ export function DatesStage({
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="font-heading text-lg font-semibold">When are you free?</h2>
+        <h2 className="font-heading text-lg font-semibold">
+          {currentMember.name}, when works for you?
+        </h2>
         <p className="text-text-secondary text-sm">
           {!startDate
-            ? `Tap your start date — looking for a ${trip.trip_days}-day window`
+            ? `Drop your available dates — we're hunting for a ${trip.trip_days}-day window.`
             : !endDate
-              ? "Now tap your end date"
-              : "Your dates are set — waiting for others"}
+              ? "Now tap your end date."
+              : "Locked in. Now we wait for the crew."}
         </p>
       </div>
 

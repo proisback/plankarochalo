@@ -235,7 +235,7 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
           />
         )}
         {trip.status === "ready" && (
-          <ReadyStage trip={trip} members={members} />
+          <ReadyStage trip={trip} members={members} currentMember={currentMember!} />
         )}
       </div>
     </main>

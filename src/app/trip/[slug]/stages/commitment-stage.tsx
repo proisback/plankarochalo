@@ -60,9 +60,11 @@ export function CommitmentStage({
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="font-heading text-lg font-semibold">Are you in?</h2>
+        <h2 className="font-heading text-lg font-semibold">
+          {currentMember.name}, you in or nah?
+        </h2>
         <p className="text-text-secondary text-sm">
-          {confirmedIn.length} of {members.length} confirmed
+          {trip.locked_destination} · {confirmedIn.length} of {members.length} have committed. Your move.
         </p>
       </div>
 
