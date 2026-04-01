@@ -43,6 +43,14 @@ const STATUS_CONFIG: Record<
 
 type BadgeConfig = { icon: string; label: string; bg: string; text: string };
 
+/** Single source of truth: has this member responded for the current stage? */
+function hasResponded(m: Member, tripStatus?: TripStatus): boolean {
+  if (m.status === "confirmed_in" || m.status === "confirmed_out") return true;
+  if (tripStatus === "destination_open") return !!m.destination_vote;
+  if (tripStatus === "commitment") return false; // not confirmed yet
+  return m.status !== "invited" && m.status !== "no_response";
+}
+
 function getBadge(m: Member, tripStatus?: TripStatus): BadgeConfig {
   // Commitment / ready stages — use status directly
   if (m.status === "confirmed_in" || m.status === "confirmed_out") {
@@ -332,12 +340,7 @@ export function MemberList({
   const [committingMemberId, setCommittingMemberId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  // Stage-aware responded/waiting counts
-  const responded = members.filter((m) => {
-    if (tripStatus === "destination_open") return !!m.destination_vote;
-    if (tripStatus === "commitment") return m.status === "confirmed_in" || m.status === "confirmed_out";
-    return m.status !== "invited" && m.status !== "no_response";
-  });
+  const responded = members.filter((m) => hasResponded(m, tripStatus));
   const waiting = members.length - responded.length;
 
   function handleEditSaved() {
@@ -443,6 +446,11 @@ export function MemberList({
                       {subtitle}
                     </p>
                   )}
+                  {m.constraint_note && (
+                    <p className="text-[11px] text-status-waiting leading-tight">
+                      ⚠ {m.constraint_note}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -531,11 +539,7 @@ export function MemberList({
 
 /* -- WaitingBanner -- */
 export function WaitingBanner({ members, tripStatus }: { members: Member[]; tripStatus?: TripStatus }) {
-  const waiting = members.filter((m) => {
-    if (tripStatus === "destination_open") return !m.destination_vote;
-    if (tripStatus === "commitment") return m.status !== "confirmed_in" && m.status !== "confirmed_out";
-    return m.status === "invited" || m.status === "no_response";
-  });
+  const waiting = members.filter((m) => !hasResponded(m, tripStatus));
   if (waiting.length === 0) return null;
 
   return (
