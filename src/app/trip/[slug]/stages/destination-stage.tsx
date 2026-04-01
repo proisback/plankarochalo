@@ -282,7 +282,7 @@ export function DestinationStage({
 
       {error && <p className="text-status-out text-sm">{error}</p>}
 
-      <WaitingBanner members={members} />
+      <WaitingBanner members={members} tripStatus={trip.status} />
       <MemberList
         members={members}
         isOrganizer={isOrganizer}

@@ -120,7 +120,7 @@ export function CommitmentStage({
         </div>
       )}
 
-      <WaitingBanner members={members} />
+      <WaitingBanner members={members} tripStatus={trip.status} />
       <MemberList members={members} isOrganizer={isOrganizer} onMembersUpdated={onMembersUpdated} tripStatus={trip.status} onProxyCommit={isOrganizer ? handleProxyCommit : undefined} />
 
       {isOrganizer && confirmedIn.length > 0 && (

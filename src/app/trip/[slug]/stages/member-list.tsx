@@ -332,9 +332,12 @@ export function MemberList({
   const [committingMemberId, setCommittingMemberId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  const responded = members.filter(
-    (m) => m.status !== "invited" && m.status !== "no_response"
-  );
+  // Stage-aware responded/waiting counts
+  const responded = members.filter((m) => {
+    if (tripStatus === "destination_open") return !!m.destination_vote;
+    if (tripStatus === "commitment") return m.status === "confirmed_in" || m.status === "confirmed_out";
+    return m.status !== "invited" && m.status !== "no_response";
+  });
   const waiting = members.length - responded.length;
 
   function handleEditSaved() {
@@ -527,10 +530,12 @@ export function MemberList({
 }
 
 /* -- WaitingBanner -- */
-export function WaitingBanner({ members }: { members: Member[] }) {
-  const waiting = members.filter(
-    (m) => m.status === "invited" || m.status === "no_response"
-  );
+export function WaitingBanner({ members, tripStatus }: { members: Member[]; tripStatus?: TripStatus }) {
+  const waiting = members.filter((m) => {
+    if (tripStatus === "destination_open") return !m.destination_vote;
+    if (tripStatus === "commitment") return m.status !== "confirmed_in" && m.status !== "confirmed_out";
+    return m.status === "invited" || m.status === "no_response";
+  });
   if (waiting.length === 0) return null;
 
   return (
