@@ -22,6 +22,7 @@ export function DatesStage({
   const [startDate, setStartDate] = useState(currentMember.availability_start || "");
   const [endDate, setEndDate] = useState(currentMember.availability_end || "");
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
   const hasSubmitted = !!currentMember.availability_start;
 
   const { best, dateMap } = useMemo(
@@ -32,8 +33,9 @@ export function DatesStage({
   async function handleSave() {
     if (!startDate || !endDate) return;
     setSaving(true);
+    setError("");
 
-    await supabase
+    const { error: saveError } = await supabase
       .from("members")
       .update({
         availability_start: startDate,
@@ -42,6 +44,7 @@ export function DatesStage({
       })
       .eq("id", currentMember.id);
 
+    if (saveError) setError(saveError.message);
     setSaving(false);
   }
 
@@ -146,6 +149,7 @@ export function DatesStage({
             />
           </div>
         </div>
+        {error && <p className="text-status-out text-sm">{error}</p>}
         <button
           onClick={handleSave}
           disabled={saving || !startDate || !endDate}

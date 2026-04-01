@@ -25,6 +25,7 @@ export function DestinationStage({
   const [showAdd, setShowAdd] = useState(false);
   const [adding, setAdding] = useState(false);
   const [voting, setVoting] = useState(false);
+  const [error, setError] = useState("");
 
   const loadOptions = useCallback(async () => {
     const { data } = await supabase
@@ -53,8 +54,9 @@ export function DestinationStage({
   async function handleAddOption(e: React.FormEvent) {
     e.preventDefault();
     setAdding(true);
+    setError("");
 
-    await supabase.from("destination_options").insert({
+    const { error: insertError } = await supabase.from("destination_options").insert({
       trip_id: trip.id,
       name: newName.trim(),
       note: newNote.trim() || null,
@@ -62,23 +64,28 @@ export function DestinationStage({
       added_by: currentMember.id,
     });
 
-    setNewName("");
-    setNewNote("");
-    setNewEmoji("📍");
-    setShowAdd(false);
+    if (insertError) {
+      setError(insertError.message);
+    } else {
+      setNewName("");
+      setNewNote("");
+      setNewEmoji("📍");
+      setShowAdd(false);
+    }
     setAdding(false);
   }
 
   async function handleVote(optionId: string) {
     setVoting(true);
-    // Toggle vote: if already voted for this, remove vote
+    setError("");
     const newVote = currentMember.destination_vote === optionId ? null : optionId;
 
-    await supabase
+    const { error: voteError } = await supabase
       .from("members")
       .update({ destination_vote: newVote })
       .eq("id", currentMember.id);
 
+    if (voteError) setError(voteError.message);
     setVoting(false);
   }
 
@@ -217,6 +224,8 @@ export function DestinationStage({
           </div>
         </form>
       )}
+
+      {error && <p className="text-status-out text-sm">{error}</p>}
 
       <WaitingBanner members={members} />
       <MemberList members={members} />

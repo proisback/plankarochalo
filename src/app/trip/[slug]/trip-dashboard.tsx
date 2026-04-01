@@ -11,7 +11,6 @@ import { DestinationStage } from "./stages/destination-stage";
 import { CommitmentStage } from "./stages/commitment-stage";
 import { ReadyStage } from "./stages/ready-stage";
 
-const STAGES = ["dates_open", "destination_open", "commitment", "ready"] as const;
 
 export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
   const supabase = createClient();
@@ -23,7 +22,6 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
   const [loading, setLoading] = useState(true);
 
   const isOrganizer = currentMember?.is_organizer ?? false;
-  const stageIndex = STAGES.indexOf(trip.status);
 
   const loadMembers = useCallback(async () => {
     const { data } = await supabase
@@ -31,8 +29,15 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
       .select("*")
       .eq("trip_id", trip.id)
       .order("created_at", { ascending: true });
-    if (data) setMembers(data);
-  }, [supabase, trip.id]);
+    if (data) {
+      setMembers(data);
+      // Keep currentMember in sync so stages see fresh data
+      if (userId) {
+        const updated = data.find((m) => m.user_id === userId);
+        if (updated) setCurrentMember(updated);
+      }
+    }
+  }, [supabase, trip.id, userId]);
 
   // Auth + initial data load
   useEffect(() => {
@@ -148,7 +153,7 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
         </div>
 
         <ProgressBar currentStage={trip.status} />
-        <ShareLink slug={trip.slug} />
+        {trip.status !== "ready" && <ShareLink slug={trip.slug} />}
 
         {/* Locked decisions banner */}
         {trip.locked_dates_start && trip.locked_dates_end && (

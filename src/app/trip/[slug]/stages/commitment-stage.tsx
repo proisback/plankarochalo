@@ -19,6 +19,7 @@ export function CommitmentStage({
 }) {
   const supabase = createClient();
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   const confirmedIn = members.filter((m) => m.status === "confirmed_in");
   const confirmedOut = members.filter((m) => m.status === "confirmed_out");
@@ -26,10 +27,12 @@ export function CommitmentStage({
 
   async function handleCommit(status: "confirmed_in" | "confirmed_out") {
     setSaving(true);
-    await supabase
+    setError("");
+    const { error: commitError } = await supabase
       .from("members")
       .update({ status })
       .eq("id", currentMember.id);
+    if (commitError) setError(commitError.message);
     setSaving(false);
   }
 
@@ -84,6 +87,8 @@ export function CommitmentStage({
           <span className="text-sm font-medium">I&apos;m out</span>
         </button>
       </div>
+
+      {error && <p className="text-status-out text-sm">{error}</p>}
 
       {/* Summary */}
       <div className="bg-surface border border-gray-100 rounded-xl p-4 space-y-2">
