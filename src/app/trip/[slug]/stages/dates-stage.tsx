@@ -6,6 +6,7 @@ import type { Trip, Member } from "@/lib/types";
 import { findBestOverlap } from "@/lib/overlap";
 import { MemberList, WaitingBanner } from "./member-list";
 import { LockButton } from "./lock-button";
+import Calendar from "./calendar";
 
 export function DatesStage({
   trip,
@@ -29,6 +30,22 @@ export function DatesStage({
     () => findBestOverlap(members, trip.trip_days),
     [members, trip.trip_days]
   );
+
+  function handleCalendarSelect(dateKey: string) {
+    if (!startDate || (startDate && endDate)) {
+      // First click or reset: set start
+      setStartDate(dateKey);
+      setEndDate("");
+    } else {
+      // Second click: set end (swap if needed)
+      if (dateKey < startDate) {
+        setEndDate(startDate);
+        setStartDate(dateKey);
+      } else {
+        setEndDate(dateKey);
+      }
+    }
+  }
 
   async function handleSave() {
     if (!startDate || !endDate) return;
@@ -61,72 +78,48 @@ export function DatesStage({
       .eq("id", trip.id);
   }
 
-  // Build a simple heatmap for the next 60 days
-  const today = new Date();
-  const calendarDays: { date: string; count: number }[] = [];
-  for (let i = 0; i < 60; i++) {
-    const d = new Date(today);
-    d.setDate(d.getDate() + i);
-    const key = d.toISOString().split("T")[0];
-    calendarDays.push({ date: key, count: (dateMap.get(key) || []).length });
-  }
-
   return (
     <div className="space-y-4">
       <div>
         <h2 className="font-heading text-lg font-semibold">When are you free?</h2>
         <p className="text-text-secondary text-sm">
-          Pick the dates you&apos;re available for a {trip.trip_days}-day trip.
+          {!startDate
+            ? `Tap your start date — looking for a ${trip.trip_days}-day window`
+            : !endDate
+              ? "Now tap your end date"
+              : "Your dates are set — waiting for others"}
         </p>
       </div>
 
-      {/* Availability heatmap */}
-      {dateMap.size > 0 && (
-        <div className="bg-surface border border-gray-100 rounded-xl p-4">
-          <p className="text-xs text-text-secondary mb-2">Group availability</p>
-          <div className="flex flex-wrap gap-1">
-            {calendarDays.map(({ date, count }) => {
-              const d = new Date(date);
-              const isWeekend = d.getDay() === 0 || d.getDay() === 6;
-              return (
-                <div
-                  key={date}
-                  title={`${date}: ${count} available`}
-                  className={`w-7 h-7 rounded text-[9px] flex items-center justify-center ${
-                    count === 0
-                      ? isWeekend
-                        ? "bg-gray-100 text-text-secondary"
-                        : "bg-gray-50 text-text-secondary"
-                      : count === 1
-                        ? "bg-orange-100 text-orange-700"
-                        : count <= 3
-                          ? "bg-emerald-100 text-emerald-700"
-                          : "bg-emerald-200 text-emerald-800 font-medium"
-                  }`}
-                >
-                  {d.getDate()}
-                </div>
-              );
-            })}
+      {/* Selected range display */}
+      {startDate && (
+        <div className="flex items-center gap-2 bg-primary-light rounded-xl px-3 py-2">
+          <span className="text-base">📅</span>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-text">
+              {endDate
+                ? `${new Date(startDate).toLocaleDateString("en-IN", { month: "short", day: "numeric" })} – ${new Date(endDate).toLocaleDateString("en-IN", { month: "short", day: "numeric" })}`
+                : `${new Date(startDate).toLocaleDateString("en-IN", { month: "short", day: "numeric" })} → pick end date`}
+            </p>
           </div>
-          <div className="flex items-center gap-3 mt-2 text-[9px] text-text-secondary">
-            <span className="flex items-center gap-1">
-              <span className="w-3 h-3 rounded bg-gray-50" /> 0
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-3 h-3 rounded bg-orange-100" /> 1
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-3 h-3 rounded bg-emerald-100" /> 2-3
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-3 h-3 rounded bg-emerald-200" /> 4+
-            </span>
-          </div>
+          <button
+            onClick={() => { setStartDate(""); setEndDate(""); }}
+            className="text-text-secondary hover:text-text text-base"
+          >
+            ✕
+          </button>
         </div>
       )}
 
-      {/* Date inputs */}
+      {/* Calendar */}
+      <Calendar
+        startDate={startDate}
+        endDate={endDate}
+        onSelect={handleCalendarSelect}
+        dateMap={dateMap}
+      />
+
+      {/* From / To inputs + submit */}
       <div className="bg-surface border border-gray-100 rounded-xl p-4 space-y-3">
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -153,7 +146,7 @@ export function DatesStage({
         <button
           onClick={handleSave}
           disabled={saving || !startDate || !endDate}
-          className="w-full bg-primary text-white rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+          className="w-full bg-primary text-white rounded-xl px-4 py-3 text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50"
         >
           {saving ? "Saving..." : hasSubmitted ? "Update dates" : "Submit dates"}
         </button>
@@ -161,16 +154,16 @@ export function DatesStage({
 
       {/* Best overlap result */}
       {best && (
-        <div className="bg-primary-light border border-primary/20 rounded-xl p-4">
-          <p className="text-sm font-medium text-primary">
-            Best {trip.trip_days}-day window
+        <div className="bg-emerald-50 border border-accent/20 rounded-xl p-4">
+          <p className="text-[11px] font-bold text-accent uppercase tracking-wide mb-1">
+            Best {trip.trip_days}-day window found
           </p>
-          <p className="text-sm mt-1">
-            {best.start.toLocaleDateString("en-IN", { month: "short", day: "numeric" })} —{" "}
+          <p className="font-heading text-lg font-bold text-text">
+            {best.start.toLocaleDateString("en-IN", { month: "short", day: "numeric" })} –{" "}
             {best.end.toLocaleDateString("en-IN", { month: "short", day: "numeric" })}
           </p>
-          <p className="text-xs text-text-secondary mt-1">
-            {best.minCount} people can make all days: {best.memberNames.join(", ")}
+          <p className="text-text-secondary text-sm mt-1">
+            {best.minCount} of {members.filter(m => m.availability_start).length} people available all days: {best.memberNames.join(", ")}
           </p>
         </div>
       )}
@@ -180,8 +173,8 @@ export function DatesStage({
 
       {isOrganizer && best && (
         <LockButton
-          label="Lock these dates"
-          confirmMessage={`Lock dates to ${best.start.toLocaleDateString("en-IN", { month: "short", day: "numeric" })} — ${best.end.toLocaleDateString("en-IN", { month: "short", day: "numeric" })}? This will notify the group and open destination voting.`}
+          label={`Lock Dates → ${best.start.toLocaleDateString("en-IN", { month: "short", day: "numeric" })} – ${best.end.toLocaleDateString("en-IN", { month: "short", day: "numeric" })}`}
+          confirmMessage={`Lock dates to ${best.start.toLocaleDateString("en-IN", { month: "short", day: "numeric" })} – ${best.end.toLocaleDateString("en-IN", { month: "short", day: "numeric" })}? This will notify the group and open destination voting.`}
           onLock={handleLockDates}
         />
       )}

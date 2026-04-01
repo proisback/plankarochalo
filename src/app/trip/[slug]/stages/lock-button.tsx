@@ -16,40 +16,63 @@ export function LockButton({
 
   async function handleConfirm() {
     setLoading(true);
-    await onLock();
-    setLoading(false);
-    setShowConfirm(false);
-  }
-
-  if (!showConfirm) {
-    return (
-      <button
-        onClick={() => setShowConfirm(true)}
-        className="w-full bg-accent text-white rounded-xl px-4 py-3.5 text-sm font-semibold hover:bg-accent/90 transition-colors"
-      >
-        {label}
-      </button>
-    );
+    try {
+      await onLock();
+    } finally {
+      setLoading(false);
+      setShowConfirm(false);
+    }
   }
 
   return (
-    <div className="bg-surface border border-gray-200 rounded-xl p-4 space-y-3">
-      <p className="text-sm text-text">{confirmMessage}</p>
-      <div className="flex gap-2">
-        <button
+    <>
+      {/* trigger button */}
+      <button
+        onClick={() => setShowConfirm(true)}
+        className="w-full bg-[#E86A33] text-white rounded-xl px-4 py-3.5 text-sm font-bold font-[family-name:var(--font-outfit)] hover:bg-[#E86A33]/90 transition-colors shadow-sm"
+      >
+        {label}
+      </button>
+
+      {/* full-screen modal overlay */}
+      {showConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
           onClick={() => setShowConfirm(false)}
-          className="flex-1 border border-gray-200 rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-gray-50 transition-colors"
         >
-          Wait, not yet
-        </button>
-        <button
-          onClick={handleConfirm}
-          disabled={loading}
-          className="flex-1 bg-accent text-white rounded-lg px-4 py-2.5 text-sm font-semibold hover:bg-accent/90 transition-colors disabled:opacity-50"
-        >
-          {loading ? "Locking..." : "Lock it"}
-        </button>
-      </div>
-    </div>
+          <div
+            className="max-w-sm w-full mx-4 bg-white rounded-2xl p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* title */}
+            <h3 className="text-[16px] font-bold text-text leading-snug">
+              Are you sure?
+            </h3>
+
+            {/* description */}
+            <p className="text-[13px] text-text-secondary mt-2 leading-relaxed">
+              {confirmMessage}
+            </p>
+
+            {/* actions */}
+            <div className="flex gap-3 mt-5">
+              <button
+                onClick={handleConfirm}
+                disabled={loading}
+                className="flex-1 bg-[#E86A33] text-white rounded-xl px-4 py-2.5 text-sm font-bold hover:bg-[#E86A33]/90 transition-colors disabled:opacity-50"
+              >
+                {loading ? "Locking..." : "Lock it"}
+              </button>
+              <button
+                onClick={() => setShowConfirm(false)}
+                className="flex-1 bg-gray-100 text-text-secondary rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-gray-200 transition-colors"
+              >
+                Wait, not yet
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
