@@ -13,11 +13,13 @@ export function DatesStage({
   members,
   currentMember,
   isOrganizer,
+  onMembersUpdated,
 }: {
   trip: Trip;
   members: Member[];
   currentMember: Member;
   isOrganizer: boolean;
+  onMembersUpdated?: () => Promise<void>;
 }) {
   const supabase = createClient();
   const [startDate, setStartDate] = useState(currentMember.availability_start || "");
@@ -26,18 +28,56 @@ export function DatesStage({
   const [error, setError] = useState("");
   const hasSubmitted = !!currentMember.availability_start;
 
+  // Mark-available state
+  const [markChecked, setMarkChecked] = useState<Record<string, boolean>>({});
+  const [markingAvailable, setMarkingAvailable] = useState(false);
+
   const { best, dateMap } = useMemo(
     () => findBestOverlap(members, trip.trip_days),
     [members, trip.trip_days]
   );
 
+  // Waiting members eligible for mark-available (no constraint conflict with best window)
+  const waitingMembers = useMemo(() => {
+    if (!best) return [];
+    const windowStart = best.start.toISOString().split("T")[0];
+    const windowEnd = best.end.toISOString().split("T")[0];
+
+    return members
+      .filter((m) => m.status === "invited" || m.status === "no_response")
+      .map((m) => {
+        let hasConflict = false;
+        if (m.constraint_start && m.constraint_end) {
+          hasConflict =
+            m.constraint_start <= windowEnd && m.constraint_end >= windowStart;
+        }
+        return { member: m, hasConflict };
+      });
+  }, [best, members]);
+
+  // Initialize checkbox state for eligible members (auto-check non-conflicting)
+  useMemo(() => {
+    const initial: Record<string, boolean> = {};
+    for (const { member, hasConflict } of waitingMembers) {
+      // Only set defaults for members not already in the checked state
+      if (markChecked[member.id] === undefined) {
+        initial[member.id] = !hasConflict;
+      }
+    }
+    if (Object.keys(initial).length > 0) {
+      setMarkChecked((prev) => ({ ...prev, ...initial }));
+    }
+  }, [waitingMembers]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const checkedCount = waitingMembers.filter(
+    ({ member }) => markChecked[member.id]
+  ).length;
+
   function handleCalendarSelect(dateKey: string) {
     if (!startDate || (startDate && endDate)) {
-      // First click or reset: set start
       setStartDate(dateKey);
       setEndDate("");
     } else {
-      // Second click: set end (swap if needed)
       if (dateKey < startDate) {
         setEndDate(startDate);
         setStartDate(dateKey);
@@ -65,6 +105,31 @@ export function DatesStage({
     setSaving(false);
   }
 
+  async function handleMarkAvailable() {
+    if (!best || checkedCount === 0) return;
+    setMarkingAvailable(true);
+    setError("");
+
+    const windowStart = best.start.toISOString().split("T")[0];
+    const windowEnd = best.end.toISOString().split("T")[0];
+    const memberIds = waitingMembers
+      .filter(({ member }) => markChecked[member.id])
+      .map(({ member }) => member.id);
+
+    const { error: updateError } = await supabase
+      .from("members")
+      .update({
+        availability_start: windowStart,
+        availability_end: windowEnd,
+        status: "responded",
+      })
+      .in("id", memberIds);
+
+    if (updateError) setError(updateError.message);
+    await onMembersUpdated?.();
+    setMarkingAvailable(false);
+  }
+
   async function handleLockDates() {
     if (!best) return;
 
@@ -84,10 +149,10 @@ export function DatesStage({
         <h2 className="font-heading text-lg font-semibold">When are you free?</h2>
         <p className="text-text-secondary text-sm">
           {!startDate
-            ? `Tap your start date — looking for a ${trip.trip_days}-day window`
+            ? `Tap your start date \u2014 looking for a ${trip.trip_days}-day window`
             : !endDate
               ? "Now tap your end date"
-              : "Your dates are set — waiting for others"}
+              : "Your dates are set \u2014 waiting for others"}
         </p>
       </div>
 
@@ -98,15 +163,15 @@ export function DatesStage({
           <div className="flex-1">
             <p className="text-sm font-semibold text-text">
               {endDate
-                ? `${new Date(startDate).toLocaleDateString("en-IN", { month: "short", day: "numeric" })} – ${new Date(endDate).toLocaleDateString("en-IN", { month: "short", day: "numeric" })}`
-                : `${new Date(startDate).toLocaleDateString("en-IN", { month: "short", day: "numeric" })} → pick end date`}
+                ? `${new Date(startDate).toLocaleDateString("en-IN", { month: "short", day: "numeric" })} \u2013 ${new Date(endDate).toLocaleDateString("en-IN", { month: "short", day: "numeric" })}`
+                : `${new Date(startDate).toLocaleDateString("en-IN", { month: "short", day: "numeric" })} \u2192 pick end date`}
             </p>
           </div>
           <button
             onClick={() => { setStartDate(""); setEndDate(""); }}
             className="text-text-secondary hover:text-text text-base"
           >
-            ✕
+            \u2715
           </button>
         </div>
       )}
@@ -159,7 +224,7 @@ export function DatesStage({
             Best {trip.trip_days}-day window found
           </p>
           <p className="font-heading text-lg font-bold text-text">
-            {best.start.toLocaleDateString("en-IN", { month: "short", day: "numeric" })} –{" "}
+            {best.start.toLocaleDateString("en-IN", { month: "short", day: "numeric" })} \u2013{" "}
             {best.end.toLocaleDateString("en-IN", { month: "short", day: "numeric" })}
           </p>
           <p className="text-text-secondary text-sm mt-1">
@@ -168,13 +233,66 @@ export function DatesStage({
         </div>
       )}
 
+      {/* Mark waiting members as available (organizer only) */}
+      {isOrganizer && best && waitingMembers.length > 0 && (
+        <div className="bg-surface border border-gray-100 rounded-xl p-4 space-y-3">
+          <p className="text-sm font-medium">Mark waiting members as available</p>
+          <div className="space-y-2">
+            {waitingMembers.map(({ member, hasConflict }) => (
+              <label
+                key={member.id}
+                className="flex items-center gap-3 py-1 cursor-pointer"
+              >
+                <input
+                  type="checkbox"
+                  checked={markChecked[member.id] ?? !hasConflict}
+                  onChange={(e) =>
+                    setMarkChecked((prev) => ({
+                      ...prev,
+                      [member.id]: e.target.checked,
+                    }))
+                  }
+                  className="w-4 h-4 rounded border-gray-300 text-accent focus:ring-accent/30"
+                />
+                <span className="text-sm flex-1">{member.name}</span>
+                {hasConflict && (
+                  <span className="text-xs text-status-waiting">
+                    \u26A0 conflict{" "}
+                    {member.constraint_start &&
+                      new Date(member.constraint_start).toLocaleDateString(
+                        "en-IN",
+                        { day: "numeric", month: "short" }
+                      )}
+                    {"\u2013"}
+                    {member.constraint_end &&
+                      new Date(member.constraint_end).toLocaleDateString(
+                        "en-IN",
+                        { day: "numeric", month: "short" }
+                      )}
+                  </span>
+                )}
+              </label>
+            ))}
+          </div>
+          <button
+            onClick={handleMarkAvailable}
+            disabled={markingAvailable || checkedCount === 0}
+            className="w-full bg-accent text-white rounded-xl px-4 py-3 text-sm font-semibold hover:bg-accent/90 transition-colors disabled:opacity-50"
+          >
+            {markingAvailable
+              ? "Marking..."
+              : `Mark ${checkedCount} ${checkedCount === 1 ? "member" : "members"} as available`}
+          </button>
+        </div>
+      )}
+
       <WaitingBanner members={members} />
-      <MemberList members={members} />
+      <MemberList members={members} isOrganizer={isOrganizer} onMembersUpdated={onMembersUpdated} />
 
       {isOrganizer && best && (
         <LockButton
-          label={`Lock Dates → ${best.start.toLocaleDateString("en-IN", { month: "short", day: "numeric" })} – ${best.end.toLocaleDateString("en-IN", { month: "short", day: "numeric" })}`}
-          confirmMessage={`Lock dates to ${best.start.toLocaleDateString("en-IN", { month: "short", day: "numeric" })} – ${best.end.toLocaleDateString("en-IN", { month: "short", day: "numeric" })}? This will notify the group and open destination voting.`}
+          label={`Lock Dates \u2192 ${best.start.toLocaleDateString("en-IN", { month: "short", day: "numeric" })} \u2013 ${best.end.toLocaleDateString("en-IN", { month: "short", day: "numeric" })}`}
+          confirmMessage={`Lock dates to ${best.start.toLocaleDateString("en-IN", { month: "short", day: "numeric" })} \u2013 ${best.end.toLocaleDateString("en-IN", { month: "short", day: "numeric" })}? This will notify the group and open destination voting.`}
           onLock={handleLockDates}
         />
       )}

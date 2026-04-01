@@ -11,11 +11,13 @@ export function CommitmentStage({
   members,
   currentMember,
   isOrganizer,
+  onMembersUpdated,
 }: {
   trip: Trip;
   members: Member[];
   currentMember: Member;
   isOrganizer: boolean;
+  onMembersUpdated?: () => Promise<void>;
 }) {
   const supabase = createClient();
   const [saving, setSaving] = useState(false);
@@ -132,7 +134,7 @@ export function CommitmentStage({
       )}
 
       <WaitingBanner members={members} />
-      <MemberList members={members} />
+      <MemberList members={members} isOrganizer={isOrganizer} onMembersUpdated={onMembersUpdated} />
 
       {isOrganizer && confirmedIn.length > 0 && (
         <LockButton

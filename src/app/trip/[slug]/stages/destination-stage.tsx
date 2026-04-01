@@ -11,11 +11,13 @@ export function DestinationStage({
   members,
   currentMember,
   isOrganizer,
+  onMembersUpdated,
 }: {
   trip: Trip;
   members: Member[];
   currentMember: Member;
   isOrganizer: boolean;
+  onMembersUpdated?: () => Promise<void>;
 }) {
   const supabase = createClient();
   const [options, setOptions] = useState<DestinationOption[]>([]);
@@ -228,7 +230,7 @@ export function DestinationStage({
       {error && <p className="text-status-out text-sm">{error}</p>}
 
       <WaitingBanner members={members} />
-      <MemberList members={members} />
+      <MemberList members={members} isOrganizer={isOrganizer} onMembersUpdated={onMembersUpdated} />
 
       {isOrganizer && options.length > 0 && (
         <LockButton

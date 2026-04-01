@@ -207,6 +207,7 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
             members={members}
             currentMember={currentMember!}
             isOrganizer={isOrganizer}
+            onMembersUpdated={loadMembers}
           />
         )}
         {trip.status === "destination_open" && (
@@ -215,6 +216,7 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
             members={members}
             currentMember={currentMember!}
             isOrganizer={isOrganizer}
+            onMembersUpdated={loadMembers}
           />
         )}
         {trip.status === "commitment" && (
@@ -223,6 +225,7 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
             members={members}
             currentMember={currentMember!}
             isOrganizer={isOrganizer}
+            onMembersUpdated={loadMembers}
           />
         )}
         {trip.status === "ready" && (
