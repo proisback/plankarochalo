@@ -306,6 +306,60 @@ The MVP MUST be:
 
 ---
 
+## Iterations Made to the Initial Product
+
+### Session: April 1–2, 2026
+
+**Infrastructure & Auth:**
+- Scaffolded Next.js 15 (App Router) + Tailwind CSS v4 + TypeScript manually (directory had existing docs, couldn't use create-next-app)
+- Supabase client setup: browser (`createBrowserClient`), server (`createServerClient`), and middleware session refresh via `@supabase/ssr`
+- SQL schema: 3 tables (trips, members, destination_options) with RLS, vote count trigger, realtime publication
+- Simplified `trip_status` enum from 6 values to 4: `dates_open`, `destination_open`, `commitment`, `ready` — removed redundant intermediate "locked" states
+- Fixed RLS infinite recursion on `members_select` policy by extracting membership check into `is_member_of_trip()` security definer function
+- Fixed 404 on shared links: added `anon` role to `trips_select` policy so server component can fetch trip before client-side anonymous auth
+- Fixed member join RLS failure: created `join_trip()` security definer function to bypass RLS for the insert — direct INSERT was blocked for anonymous users despite valid session
+- Fixed Supabase Site URL config (magic link was redirecting to localhost:3000)
+
+**Core Flow (all 4 stages built):**
+- Landing page with Google OAuth + magic link sign-in (organizer)
+- Trip creation form: name, duration (2/3/4/5/7 days), budget, voting deadline, proxy constraints
+- Shared trip page at `/trip/[slug]` with anonymous auth on load + name prompt for members
+- Dates stage: calendar picker, availability heatmap, overlap algorithm (sliding window), lock with confirmation
+- Destination stage: add options with emoji, tap-to-vote toggle, real-time vote counts, lock
+- Commitment stage: "I'm In" / "I'm Out" with live tally, organizer finalizes
+- Ready stage: trip summary card + WhatsApp-formatted copy button
+
+**Bug Fixes:**
+- Fixed `currentMember` state going stale — `loadMembers()` now syncs `currentMember` from the updated members array. Previously it was set once at init and never updated, breaking vote toggles, date submission feedback, and commitment button highlights
+- Fixed duplicate member handling — `join_trip()` function returns existing member if already joined instead of erroring
+- Used `maybeSingle()` instead of `single()` in member lookup to distinguish "no row" from "query error"
+- Fixed unicode escape sequences (`\u2013`, `\u26A0`, etc.) rendering as literal text in JSX — replaced with actual Unicode characters
+
+**UI Matching Prototype:**
+- Rebuilt calendar: proper 7-column monthly grid with ◂ ▸ month navigation, Su–Sa headers, heatmap coloring by member count, tap-to-select range, legend
+- Rebuilt progress bar: numbered circles (1–4) connected by lines, ✓ on completed stages, ring shadow on current step, labels ("Pick Dates", "Choose Place", "Confirm", "Ready!")
+- Rebuilt member list: avatar initials (colored by role), "Organizer" label, collapsible with "GROUP · N" header, status badges with icons (✓ Confirmed, ● Dates set, ⏳ Waiting, ✕ Out)
+- Rebuilt lock confirmation: full-screen modal overlay with backdrop blur instead of inline card
+- Commitment buttons: asymmetric layout matching prototype — "I'm In ✓" (2/3 width, green) + "I'm Out" (1/3, outlined red). Shows confirmation state after voting with "Changed your mind?" recovery option
+- Share link hidden on Ready stage (per spec)
+- Added "← New" nav button for organizers to create another trip
+
+**Proxy Member Features:**
+- Proxy constraints on create form: organizer adds member names + unavailable date ranges during trip creation. Inserted as `is_proxy: true` members with `constraint_start/end`
+- Organizer edit (✎) for proxy members: inline form in member list to edit name, constraint dates, and set availability on their behalf
+- Mark available with checkboxes: when best overlap window is found, organizer sees a checklist of waiting members. Members with constraint conflicts show ⚠ and are unchecked by default. Bulk "Mark N members as available" button sets their dates to the window
+
+**Destination Stage Improvements:**
+- Context-aware member badges: "Dates set" on dates page, "Voted"/"Waiting" on destination page, "Confirmed"/"Out" on commitment page
+- Stage-aware member subtitle: shows voted destination (e.g. "🏔️ Coorg") under member name on destination page instead of dates
+- Proxy voting: organizer can vote on behalf of proxy members via 🗳 ballot icon → inline destination picker
+- Honest tie-handling: LEADING badge on clear winner, TIED badges when multiple options share top votes. Ties show "It's a tie! Pick the winner:" with buttons for each tied option. Lock button hidden when 0 votes
+- Voter names displayed under each destination option card
+
+**Deployed:** Live at plankarochalo.vercel.app, connected to Supabase with anonymous sign-ins enabled.
+
+---
+
 ## Closing Principle
 
 > Every design decision traces back to one belief: **the trip should be harder to cancel than to confirm.**
