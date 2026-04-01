@@ -356,6 +356,54 @@ The MVP MUST be:
 - Honest tie-handling: LEADING badge on clear winner, TIED badges when multiple options share top votes. Ties show "It's a tie! Pick the winner:" with buttons for each tied option. Lock button hidden when 0 votes
 - Voter names displayed under each destination option card
 
+**Stage-Aware Edit Form (✎):**
+- Edit form for proxy members is now fully context-aware per stage:
+  - Dates stage: name + unavailable dates + available dates
+  - Destination stage: name + destination vote picker
+  - Commitment stage: name + "I'm In ✓" / "I'm Out ✕" buttons
+- Previously showed date fields on every stage regardless of context
+
+**Proxy Commitment:**
+- Organizer can mark proxy members as "In" or "Out" on the commitment page via ✋ button → inline "In ✓" / "Out ✕" picker
+- Uses `members_update_organizer` RLS policy
+
+**Commitment Re-selection:**
+- Both "I'm In" and "I'm Out" buttons are always visible and tappable for non-proxy members
+- Selected state highlighted (filled bg), unselected outlined — members can switch at any time without needing a "Changed your mind?" link
+
+**Navigation:**
+- "← Back" button uses `window.history.back()` for proper browser history navigation (not hard link to /)
+- Visible for both organizers and members on all trip pages
+- "+ New trip" link for organizers (top-right)
+
+**Personalized Stage Copy (Alex/Mosey style):**
+- Each stage addresses the member by name with punchy, action-oriented copy:
+  - Dates: "Prateek, when works for you?" / "Drop your available dates — we're hunting for a 5-day window."
+  - Destination: "Prateek, where to?" / "Pick your top spot. Add a new one if it's missing."
+  - Commitment: "Prateek, you in or nah?" / "🏖️ Goa · 2 of 5 have committed. Your move."
+  - Ready: "Prateek, it's happening!" / "No more 'let's plan later.' This one's real."
+
+**Unified Stage-Aware Counting:**
+- Extracted `hasResponded()` as single source of truth used by badges, header counts ("N responded · N waiting"), and WaitingBanner
+- Eliminates mismatches like member showing "✓ Voted" badge but appearing in waiting banner
+- Dates: responded = has availability dates. Destination: responded = has destination_vote. Commitment: responded = confirmed_in or confirmed_out
+
+**Constraint Notes Visibility:**
+- Members with `constraint_note` (e.g. late joiner who said "I can't make these dates") show ⚠ warning under their name on all stages
+- Organizer can immediately see who has scheduling conflicts
+
+**Late Joiner Date Confirmation Gate:**
+- When a new member joins a trip that's past the dates stage, they see a 2-step flow:
+  1. Enter name → "Next"
+  2. "The group locked in Apr 17–20. Do these dates work for you?"
+     - "These work! Count me in" → joins with availability set to locked dates, status "responded"
+     - "I can't make these dates" → joins with constraint_note, organizer sees ⚠ warning
+- If trip is still at dates_open, normal single-step join flow (unchanged)
+- No stage unlocking, no group disruption — preserves momentum per core design principle
+
+**Duplicate Banner Fix:**
+- Removed duplicate "Dates locked" / "Destination locked" banners from commitment stage — dashboard already shows these above all stages
+
 **Deployed:** Live at plankarochalo.vercel.app, connected to Supabase with anonymous sign-ins enabled.
 
 ---
