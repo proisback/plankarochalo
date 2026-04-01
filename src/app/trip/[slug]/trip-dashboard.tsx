@@ -147,7 +147,7 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
               <p className="text-text-secondary text-sm mt-1">{trip.budget}</p>
             )}
           </div>
-          <JoinPrompt tripId={trip.id} userId={userId!} onJoined={handleJoined} />
+          <JoinPrompt tripId={trip.id} onJoined={handleJoined} />
         </div>
       </main>
     );

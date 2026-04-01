@@ -6,11 +6,9 @@ import type { Member } from "@/lib/types";
 
 export function JoinPrompt({
   tripId,
-  userId,
   onJoined,
 }: {
   tripId: string;
-  userId: string;
   onJoined: (member: Member) => void;
 }) {
   const [name, setName] = useState("");
@@ -23,10 +21,9 @@ export function JoinPrompt({
     setLoading(true);
     setError("");
 
-    // Verify we have an active session before attempting insert
+    // Ensure we have an authenticated session
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
-      // Re-attempt anonymous sign-in
       const { error: anonError } = await supabase.auth.signInAnonymously();
       if (anonError) {
         setError("Could not connect. Please refresh and try again.");
@@ -35,36 +32,14 @@ export function JoinPrompt({
       }
     }
 
-    // Try insert; if duplicate, fetch the existing record instead
-    const { data, error: insertError } = await supabase
-      .from("members")
-      .insert({
-        trip_id: tripId,
-        user_id: userId,
-        name: name.trim(),
-        is_organizer: false,
-        is_proxy: false,
-        status: "invited",
-      })
-      .select()
-      .single();
+    // Use security definer function to bypass RLS
+    const { data, error: rpcError } = await supabase.rpc("join_trip", {
+      p_trip_id: tripId,
+      p_name: name.trim(),
+    });
 
-    if (insertError) {
-      // Duplicate key = member already exists (e.g. organizer visiting their own trip)
-      if (insertError.code === "23505") {
-        const { data: existing } = await supabase
-          .from("members")
-          .select("*")
-          .eq("trip_id", tripId)
-          .eq("user_id", userId)
-          .single();
-
-        if (existing) {
-          onJoined(existing as Member);
-          return;
-        }
-      }
-      setError(insertError.message);
+    if (rpcError) {
+      setError(rpcError.message);
       setLoading(false);
       return;
     }
