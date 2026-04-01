@@ -68,40 +68,31 @@ export function CommitmentStage({
 
       {error && <p className="text-status-out text-sm">{error}</p>}
 
-      {/* Commitment buttons — asymmetric: I'm In (2/3) + I'm Out (1/3) */}
-      {!userIn && !userOut ? (
-        <div className="flex gap-3">
-          <button
-            onClick={() => handleCommit("confirmed_in")}
-            disabled={saving}
-            className="flex-[2] bg-accent text-white rounded-xl py-3.5 text-base font-bold font-heading hover:bg-accent/90 transition-colors disabled:opacity-50 shadow-sm"
-          >
-            I&apos;m In ✓
-          </button>
-          <button
-            onClick={() => handleCommit("confirmed_out")}
-            disabled={saving}
-            className="flex-1 bg-surface text-status-out border-2 border-status-out rounded-xl py-3.5 text-sm font-semibold font-heading hover:bg-status-out-bg transition-colors disabled:opacity-50"
-          >
-            I&apos;m Out
-          </button>
-        </div>
-      ) : userIn ? (
-        <div className="text-center py-3.5 bg-status-confirmed-bg rounded-xl">
-          <p className="text-sm font-semibold text-status-confirmed">✓ You&apos;re confirmed!</p>
-        </div>
-      ) : (
-        <div className="text-center py-3.5 bg-status-out-bg rounded-xl">
-          <p className="text-sm font-semibold text-status-out">You&apos;re sitting this one out</p>
-          <button
-            onClick={() => handleCommit("confirmed_in")}
-            disabled={saving}
-            className="text-xs text-primary underline mt-1"
-          >
-            Changed your mind?
-          </button>
-        </div>
-      )}
+      {/* Commitment buttons — always visible, selected one highlighted */}
+      <div className="flex gap-3">
+        <button
+          onClick={() => handleCommit("confirmed_in")}
+          disabled={saving}
+          className={`flex-[2] rounded-xl py-3.5 text-base font-bold font-heading transition-colors disabled:opacity-50 ${
+            userIn
+              ? "bg-accent text-white shadow-sm"
+              : "bg-accent/10 text-accent border-2 border-accent/30 hover:bg-accent hover:text-white"
+          }`}
+        >
+          I&apos;m In ✓
+        </button>
+        <button
+          onClick={() => handleCommit("confirmed_out")}
+          disabled={saving}
+          className={`flex-1 rounded-xl py-3.5 text-sm font-semibold font-heading transition-colors disabled:opacity-50 ${
+            userOut
+              ? "bg-status-out text-white"
+              : "bg-surface text-status-out border-2 border-status-out/30 hover:bg-status-out hover:text-white"
+          }`}
+        >
+          I&apos;m Out
+        </button>
+      </div>
 
       {/* Summary */}
       {(confirmedIn.length > 0 || confirmedOut.length > 0) && (
