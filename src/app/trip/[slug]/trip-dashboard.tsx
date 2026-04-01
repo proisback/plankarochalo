@@ -157,16 +157,22 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
     <main className="min-h-screen pb-20">
       <div className="max-w-lg mx-auto p-4 space-y-4">
         {/* Nav */}
-        {isOrganizer && (
-          <div className="flex items-center justify-end">
+        <div className="flex items-center justify-between">
+          <a
+            href="/"
+            className="text-xs text-text-secondary border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors"
+          >
+            ← Back
+          </a>
+          {isOrganizer && (
             <a
               href="/create"
               className="text-xs text-text-secondary border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors"
             >
-              ← New
+              + New trip
             </a>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Header */}
         <div className="flex items-start justify-between">

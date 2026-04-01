@@ -236,6 +236,7 @@ export function MemberList({
   tripStatus,
   destinationOptions,
   onProxyVote,
+  onProxyCommit,
 }: {
   members: Member[];
   isOrganizer?: boolean;
@@ -243,9 +244,11 @@ export function MemberList({
   tripStatus?: TripStatus;
   destinationOptions?: { id: string; name: string; emoji: string }[];
   onProxyVote?: (memberId: string, optionId: string) => void;
+  onProxyCommit?: (memberId: string, status: "confirmed_in" | "confirmed_out") => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [votingForMemberId, setVotingForMemberId] = useState<string | null>(null);
+  const [committingMemberId, setCommittingMemberId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const responded = members.filter(
@@ -300,17 +303,21 @@ export function MemberList({
 
           const config = getBadge(m, tripStatus);
 
-          // Stage-aware subtitle
+          // Stage-aware subtitle — only show info relevant to the current stage
           let subtitle: string | null = null;
-          if (tripStatus === "destination_open" && m.destination_vote && destinationOptions) {
-            const voted = destinationOptions.find((o) => o.id === m.destination_vote);
-            if (voted) subtitle = `${voted.emoji} ${voted.name}`;
-          }
-          if (!subtitle) {
+          if (tripStatus === "dates_open") {
             subtitle = formatDateRange(
               m.availability_start ?? m.constraint_start,
               m.availability_end ?? m.constraint_end
             );
+          } else if (tripStatus === "destination_open") {
+            if (m.destination_vote && destinationOptions) {
+              const voted = destinationOptions.find((o) => o.id === m.destination_vote);
+              if (voted) subtitle = `${voted.emoji} ${voted.name}`;
+            }
+          } else if (tripStatus === "commitment") {
+            if (m.status === "confirmed_in") subtitle = "Going!";
+            else if (m.status === "confirmed_out") subtitle = "Not going";
           }
 
           return (
@@ -362,11 +369,21 @@ export function MemberList({
                 {/* Proxy vote button on destination stage */}
                 {isOrganizer && m.is_proxy && tripStatus === "destination_open" && onProxyVote && destinationOptions && (
                   <button
-                    onClick={() => setVotingForMemberId(votingForMemberId === m.id ? null : m.id)}
+                    onClick={() => { setVotingForMemberId(votingForMemberId === m.id ? null : m.id); setCommittingMemberId(null); }}
                     className="w-7 h-7 flex items-center justify-center rounded-lg text-text-secondary hover:bg-gray-100 transition-colors text-xs"
                     aria-label={`Vote for ${m.name}`}
                   >
                     🗳
+                  </button>
+                )}
+                {/* Proxy commit button on commitment stage */}
+                {isOrganizer && m.is_proxy && tripStatus === "commitment" && onProxyCommit && m.status !== "confirmed_in" && m.status !== "confirmed_out" && (
+                  <button
+                    onClick={() => { setCommittingMemberId(committingMemberId === m.id ? null : m.id); setVotingForMemberId(null); }}
+                    className="w-7 h-7 flex items-center justify-center rounded-lg text-text-secondary hover:bg-gray-100 transition-colors text-xs"
+                    aria-label={`Confirm ${m.name}`}
+                  >
+                    ✋
                   </button>
                 )}
                 {isOrganizer && m.is_proxy && (
@@ -383,7 +400,7 @@ export function MemberList({
 
             {/* Inline vote picker for proxy member */}
             {votingForMemberId === m.id && destinationOptions && onProxyVote && (
-              <div className="border-t border-gray-100 px-4 py-2 flex flex-wrap gap-1.5">
+              <div className="px-4 py-2 flex flex-wrap gap-1.5">
                 {destinationOptions.map((opt) => (
                   <button
                     key={opt.id}
@@ -397,6 +414,24 @@ export function MemberList({
                     {opt.name}
                   </button>
                 ))}
+              </div>
+            )}
+
+            {/* Inline commitment picker for proxy member */}
+            {committingMemberId === m.id && onProxyCommit && (
+              <div className="px-4 py-2 flex gap-2">
+                <button
+                  onClick={() => { onProxyCommit(m.id, "confirmed_in"); setCommittingMemberId(null); }}
+                  className="flex-1 bg-accent text-white rounded-lg py-2 text-xs font-semibold hover:bg-accent/90 transition-colors"
+                >
+                  In ✓
+                </button>
+                <button
+                  onClick={() => { onProxyCommit(m.id, "confirmed_out"); setCommittingMemberId(null); }}
+                  className="flex-1 bg-surface text-status-out border border-status-out rounded-lg py-2 text-xs font-semibold hover:bg-status-out-bg transition-colors"
+                >
+                  Out ✕
+                </button>
               </div>
             )}
           </div>

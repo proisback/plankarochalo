@@ -40,6 +40,16 @@ export function CommitmentStage({
     setSaving(false);
   }
 
+  async function handleProxyCommit(memberId: string, status: "confirmed_in" | "confirmed_out") {
+    setError("");
+    const { error: commitError } = await supabase
+      .from("members")
+      .update({ status })
+      .eq("id", memberId);
+    if (commitError) setError(commitError.message);
+    await onMembersUpdated?.();
+  }
+
   async function handleLock() {
     await supabase
       .from("trips")
@@ -118,7 +128,7 @@ export function CommitmentStage({
       )}
 
       <WaitingBanner members={members} />
-      <MemberList members={members} isOrganizer={isOrganizer} onMembersUpdated={onMembersUpdated} tripStatus={trip.status} />
+      <MemberList members={members} isOrganizer={isOrganizer} onMembersUpdated={onMembersUpdated} tripStatus={trip.status} onProxyCommit={isOrganizer ? handleProxyCommit : undefined} />
 
       {isOrganizer && confirmedIn.length > 0 && (
         <LockButton
