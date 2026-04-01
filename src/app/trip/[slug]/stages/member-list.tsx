@@ -89,10 +89,18 @@ function EditProxyForm({
   member,
   onSave,
   onCancel,
+  tripStatus,
+  destinationOptions,
+  onProxyVote,
+  onProxyCommit,
 }: {
   member: Member;
   onSave: () => void;
   onCancel: () => void;
+  tripStatus?: TripStatus;
+  destinationOptions?: { id: string; name: string; emoji: string }[];
+  onProxyVote?: (memberId: string, optionId: string) => void;
+  onProxyCommit?: (memberId: string, status: "confirmed_in" | "confirmed_out") => void;
 }) {
   const supabase = createClient();
   const [name, setName] = useState(member.name);
@@ -113,20 +121,22 @@ function EditProxyForm({
     setSaving(true);
     setError("");
 
-    const updates: Record<string, unknown> = {
-      name: name.trim(),
-      constraint_start: constraintStart || null,
-      constraint_end: constraintEnd || null,
-      constraint_note:
+    const updates: Record<string, unknown> = { name: name.trim() };
+
+    // Only include date fields when on dates stage
+    if (tripStatus === "dates_open") {
+      updates.constraint_start = constraintStart || null;
+      updates.constraint_end = constraintEnd || null;
+      updates.constraint_note =
         constraintStart && constraintEnd
           ? `${new Date(constraintStart).toLocaleDateString("en-IN", { month: "short", day: "numeric" })} – ${new Date(constraintEnd).toLocaleDateString("en-IN", { month: "short", day: "numeric" })} unavailable`
-          : null,
-    };
+          : null;
 
-    if (availStart && availEnd) {
-      updates.availability_start = availStart;
-      updates.availability_end = availEnd;
-      updates.status = "responded";
+      if (availStart && availEnd) {
+        updates.availability_start = availStart;
+        updates.availability_end = availEnd;
+        updates.status = "responded";
+      }
     }
 
     const { error: saveError } = await supabase
@@ -149,7 +159,7 @@ function EditProxyForm({
 
   return (
     <div className="border-t border-gray-100 px-4 py-3 space-y-3">
-      {/* Name */}
+      {/* Name — always editable */}
       <div>
         <label className="block text-[11px] font-medium text-text-secondary mb-1">
           Name
@@ -163,49 +173,120 @@ function EditProxyForm({
         />
       </div>
 
-      {/* Constraint dates */}
-      <div>
-        <label className="block text-[11px] font-medium text-text-secondary mb-1">
-          Unavailable dates
-        </label>
-        <div className="grid grid-cols-2 gap-2">
-          <input
-            type="date"
-            value={constraintStart}
-            onChange={(e) => setConstraintStart(e.target.value)}
-            className={inputClass}
-          />
-          <input
-            type="date"
-            value={constraintEnd}
-            onChange={(e) => setConstraintEnd(e.target.value)}
-            min={constraintStart}
-            className={inputClass}
-          />
-        </div>
-      </div>
+      {/* Dates stage: constraint + availability dates */}
+      {tripStatus === "dates_open" && (
+        <>
+          <div>
+            <label className="block text-[11px] font-medium text-text-secondary mb-1">
+              Unavailable dates
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                type="date"
+                value={constraintStart}
+                onChange={(e) => setConstraintStart(e.target.value)}
+                className={inputClass}
+              />
+              <input
+                type="date"
+                value={constraintEnd}
+                onChange={(e) => setConstraintEnd(e.target.value)}
+                min={constraintStart}
+                className={inputClass}
+              />
+            </div>
+          </div>
 
-      {/* Availability dates */}
-      <div className="bg-accent/5 rounded-lg p-2.5">
-        <label className="block text-[11px] font-medium text-accent mb-1">
-          Available dates (submit on their behalf)
-        </label>
-        <div className="grid grid-cols-2 gap-2">
-          <input
-            type="date"
-            value={availStart}
-            onChange={(e) => setAvailStart(e.target.value)}
-            className={inputClass}
-          />
-          <input
-            type="date"
-            value={availEnd}
-            onChange={(e) => setAvailEnd(e.target.value)}
-            min={availStart}
-            className={inputClass}
-          />
+          <div className="bg-accent/5 rounded-lg p-2.5">
+            <label className="block text-[11px] font-medium text-accent mb-1">
+              Available dates (submit on their behalf)
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                type="date"
+                value={availStart}
+                onChange={(e) => setAvailStart(e.target.value)}
+                className={inputClass}
+              />
+              <input
+                type="date"
+                value={availEnd}
+                onChange={(e) => setAvailEnd(e.target.value)}
+                min={availStart}
+                className={inputClass}
+              />
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Destination stage: vote picker */}
+      {tripStatus === "destination_open" && destinationOptions && onProxyVote && (
+        <div>
+          <label className="block text-[11px] font-medium text-text-secondary mb-1.5">
+            Vote for destination
+          </label>
+          <div className="flex flex-wrap gap-1.5">
+            {destinationOptions.map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => {
+                  onProxyVote(member.id, opt.id);
+                  onSave();
+                }}
+                className={`flex items-center gap-1.5 border rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                  member.destination_vote === opt.id
+                    ? "bg-primary-light border-primary/30 text-primary"
+                    : "bg-gray-50 border-gray-200 hover:bg-primary-light hover:border-primary/30"
+                }`}
+              >
+                <span>{opt.emoji}</span>
+                {opt.name}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Commitment stage: in/out picker */}
+      {tripStatus === "commitment" && onProxyCommit && (
+        <div>
+          <label className="block text-[11px] font-medium text-text-secondary mb-1.5">
+            Confirm attendance
+          </label>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                onProxyCommit(member.id, "confirmed_in");
+                onSave();
+              }}
+              className={`flex-1 rounded-lg py-2.5 text-sm font-semibold transition-colors ${
+                member.status === "confirmed_in"
+                  ? "bg-accent text-white"
+                  : "bg-accent/10 text-accent border border-accent/30 hover:bg-accent hover:text-white"
+              }`}
+            >
+              I&apos;m In ✓
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onProxyCommit(member.id, "confirmed_out");
+                onSave();
+              }}
+              className={`flex-1 rounded-lg py-2.5 text-sm font-semibold transition-colors ${
+                member.status === "confirmed_out"
+                  ? "bg-status-out text-white"
+                  : "bg-status-out-bg text-status-out border border-status-out/30 hover:bg-status-out hover:text-white"
+              }`}
+            >
+              I&apos;m Out ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       {error && <p className="text-red-600 text-xs">{error}</p>}
 
@@ -297,6 +378,10 @@ export function MemberList({
                 member={m}
                 onSave={handleEditSaved}
                 onCancel={() => setEditingId(null)}
+                tripStatus={tripStatus}
+                destinationOptions={destinationOptions}
+                onProxyVote={onProxyVote}
+                onProxyCommit={onProxyCommit}
               />
             );
           }
