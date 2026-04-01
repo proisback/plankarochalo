@@ -234,11 +234,13 @@ export function MemberList({
   isOrganizer,
   onMembersUpdated,
   tripStatus,
+  destinationOptions,
 }: {
   members: Member[];
   isOrganizer?: boolean;
   onMembersUpdated?: () => Promise<void>;
   tripStatus?: TripStatus;
+  destinationOptions?: { id: string; name: string; emoji: string }[];
 }) {
   const [expanded, setExpanded] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -294,10 +296,19 @@ export function MemberList({
           }
 
           const config = getBadge(m, tripStatus);
-          const dateRange = formatDateRange(
-            m.availability_start ?? m.constraint_start,
-            m.availability_end ?? m.constraint_end
-          );
+
+          // Stage-aware subtitle
+          let subtitle: string | null = null;
+          if (tripStatus === "destination_open" && m.destination_vote && destinationOptions) {
+            const voted = destinationOptions.find((o) => o.id === m.destination_vote);
+            if (voted) subtitle = `${voted.emoji} ${voted.name}`;
+          }
+          if (!subtitle) {
+            subtitle = formatDateRange(
+              m.availability_start ?? m.constraint_start,
+              m.availability_end ?? m.constraint_end
+            );
+          }
 
           return (
             <div
@@ -329,9 +340,9 @@ export function MemberList({
                       Added by organizer
                     </p>
                   )}
-                  {dateRange && (
+                  {subtitle && (
                     <p className="text-[11px] text-text-secondary leading-tight">
-                      {dateRange}
+                      {subtitle}
                     </p>
                   )}
                 </div>

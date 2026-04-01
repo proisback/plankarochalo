@@ -230,7 +230,7 @@ export function DestinationStage({
       {error && <p className="text-status-out text-sm">{error}</p>}
 
       <WaitingBanner members={members} />
-      <MemberList members={members} isOrganizer={isOrganizer} onMembersUpdated={onMembersUpdated} tripStatus={trip.status} />
+      <MemberList members={members} isOrganizer={isOrganizer} onMembersUpdated={onMembersUpdated} tripStatus={trip.status} destinationOptions={options} />
 
       {isOrganizer && options.length > 0 && (
         <LockButton
