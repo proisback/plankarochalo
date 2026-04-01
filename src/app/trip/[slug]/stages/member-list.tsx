@@ -235,14 +235,17 @@ export function MemberList({
   onMembersUpdated,
   tripStatus,
   destinationOptions,
+  onProxyVote,
 }: {
   members: Member[];
   isOrganizer?: boolean;
   onMembersUpdated?: () => Promise<void>;
   tripStatus?: TripStatus;
   destinationOptions?: { id: string; name: string; emoji: string }[];
+  onProxyVote?: (memberId: string, optionId: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [votingForMemberId, setVotingForMemberId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const responded = members.filter(
@@ -311,9 +314,9 @@ export function MemberList({
           }
 
           return (
+            <div key={m.id} className="border-t border-gray-100">
             <div
-              key={m.id}
-              className="flex items-center justify-between px-4 py-1.5 border-t border-gray-100"
+              className="flex items-center justify-between px-4 py-1.5"
             >
               {/* left: avatar + info */}
               <div className="flex items-center gap-2.5 min-w-0">
@@ -348,7 +351,7 @@ export function MemberList({
                 </div>
               </div>
 
-              {/* right: badge + edit button */}
+              {/* right: badge + actions */}
               <div className="flex items-center gap-1.5 shrink-0 ml-2">
                 <span
                   className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full ${config.bg} ${config.text}`}
@@ -356,6 +359,16 @@ export function MemberList({
                   <span>{config.icon}</span>
                   {config.label}
                 </span>
+                {/* Proxy vote button on destination stage */}
+                {isOrganizer && m.is_proxy && tripStatus === "destination_open" && !m.destination_vote && onProxyVote && destinationOptions && (
+                  <button
+                    onClick={() => setVotingForMemberId(votingForMemberId === m.id ? null : m.id)}
+                    className="w-7 h-7 flex items-center justify-center rounded-lg text-text-secondary hover:bg-gray-100 transition-colors text-xs"
+                    aria-label={`Vote for ${m.name}`}
+                  >
+                    🗳
+                  </button>
+                )}
                 {isOrganizer && m.is_proxy && (
                   <button
                     onClick={() => setEditingId(m.id)}
@@ -367,6 +380,26 @@ export function MemberList({
                 )}
               </div>
             </div>
+
+            {/* Inline vote picker for proxy member */}
+            {votingForMemberId === m.id && destinationOptions && onProxyVote && (
+              <div className="border-t border-gray-100 px-4 py-2 flex flex-wrap gap-1.5">
+                {destinationOptions.map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => {
+                      onProxyVote(m.id, opt.id);
+                      setVotingForMemberId(null);
+                    }}
+                    className="flex items-center gap-1.5 bg-gray-50 hover:bg-primary-light hover:border-primary/30 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors"
+                  >
+                    <span>{opt.emoji}</span>
+                    {opt.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           );
         })}
     </div>

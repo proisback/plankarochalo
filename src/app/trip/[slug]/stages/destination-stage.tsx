@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Trip, Member, DestinationOption } from "@/lib/types";
 import { MemberList, WaitingBanner } from "./member-list";
@@ -53,6 +53,26 @@ export function DestinationStage({
     return () => { supabase.removeChannel(channel); };
   }, [supabase, trip.id, loadOptions]);
 
+  // Tie / winner detection
+  const { totalVotes, topVotes, tiedOptions, hasWinner, hasTie, leader } = useMemo(() => {
+    const total = options.reduce((s, o) => s + o.vote_count, 0);
+    const top = options.length > 0 ? options[0].vote_count : 0;
+    const tied = options.filter((o) => o.vote_count === top && top > 0);
+    return {
+      totalVotes: total,
+      topVotes: top,
+      tiedOptions: tied,
+      hasWinner: tied.length === 1 && top > 0,
+      hasTie: tied.length > 1,
+      leader: tied.length === 1 && top > 0 ? options[0] : null,
+    };
+  }, [options]);
+
+  // Who voted for each option (for avatars)
+  function votersForOption(optionId: string): Member[] {
+    return members.filter((m) => m.destination_vote === optionId);
+  }
+
   async function handleAddOption(e: React.FormEvent) {
     e.preventDefault();
     setAdding(true);
@@ -91,15 +111,24 @@ export function DestinationStage({
     setVoting(false);
   }
 
-  async function handleLock() {
-    if (options.length === 0) return;
-    const winner = options[0]; // Already sorted by vote_count desc
+  // Organizer votes on behalf of a proxy member
+  async function handleProxyVote(memberId: string, optionId: string) {
+    setError("");
+    const { error: voteError } = await supabase
+      .from("members")
+      .update({ destination_vote: optionId })
+      .eq("id", memberId);
 
+    if (voteError) setError(voteError.message);
+    await onMembersUpdated?.();
+  }
+
+  async function handleLockOption(option: DestinationOption) {
     await supabase
       .from("trips")
       .update({
         status: "commitment",
-        locked_destination: `${winner.emoji} ${winner.name}`,
+        locked_destination: `${option.emoji} ${option.name}`,
       })
       .eq("id", trip.id);
   }
@@ -119,17 +148,33 @@ export function DestinationStage({
       <div className="space-y-2">
         {options.map((opt) => {
           const isVoted = currentMember.destination_vote === opt.id;
+          const voters = votersForOption(opt.id);
+          const isLeading = hasWinner && leader?.id === opt.id;
+          const isTied = hasTie && opt.vote_count === topVotes;
+
           return (
             <button
               key={opt.id}
               onClick={() => handleVote(opt.id)}
               disabled={voting}
-              className={`w-full text-left rounded-xl p-4 border transition-colors ${
+              className={`w-full text-left rounded-xl p-4 border transition-colors relative ${
                 isVoted
                   ? "bg-primary-light border-primary/30"
                   : "bg-surface border-gray-100 hover:border-gray-200"
               }`}
             >
+              {/* LEADING / TIED badge */}
+              {isLeading && (
+                <span className="absolute -top-2 right-3 bg-accent text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                  LEADING
+                </span>
+              )}
+              {isTied && (
+                <span className="absolute -top-2 right-3 bg-status-waiting text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                  TIED
+                </span>
+              )}
+
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <span className="text-2xl">{opt.emoji}</span>
@@ -137,6 +182,12 @@ export function DestinationStage({
                     <p className="text-sm font-medium">{opt.name}</p>
                     {opt.note && (
                       <p className="text-xs text-text-secondary">{opt.note}</p>
+                    )}
+                    {/* Voter names */}
+                    {voters.length > 0 && (
+                      <p className="text-[10px] text-text-secondary mt-0.5">
+                        {voters.map((v) => v.name).join(", ")}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -230,14 +281,46 @@ export function DestinationStage({
       {error && <p className="text-status-out text-sm">{error}</p>}
 
       <WaitingBanner members={members} />
-      <MemberList members={members} isOrganizer={isOrganizer} onMembersUpdated={onMembersUpdated} tripStatus={trip.status} destinationOptions={options} />
+      <MemberList
+        members={members}
+        isOrganizer={isOrganizer}
+        onMembersUpdated={onMembersUpdated}
+        tripStatus={trip.status}
+        destinationOptions={options}
+        onProxyVote={isOrganizer ? handleProxyVote : undefined}
+      />
 
-      {isOrganizer && options.length > 0 && (
-        <LockButton
-          label={`Lock destination: ${options[0].emoji} ${options[0].name}`}
-          confirmMessage={`Lock destination to ${options[0].emoji} ${options[0].name} (${options[0].vote_count} votes)? This will open the commitment stage.`}
-          onLock={handleLock}
-        />
+      {/* Lock section — honest about ties */}
+      {isOrganizer && options.length > 0 && totalVotes > 0 && (
+        <>
+          {hasWinner && leader && (
+            <LockButton
+              label={`Lock destination: ${leader.emoji} ${leader.name}`}
+              confirmMessage={`Lock destination to ${leader.emoji} ${leader.name} (${leader.vote_count} votes)? This will open the commitment stage.`}
+              onLock={() => handleLockOption(leader)}
+            />
+          )}
+          {hasTie && (
+            <div className="bg-status-waiting-bg border border-status-waiting/20 rounded-xl p-4 space-y-3">
+              <p className="text-sm font-medium text-status-waiting">
+                It&apos;s a tie! Pick the winner:
+              </p>
+              <div className="space-y-2">
+                {tiedOptions.map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => handleLockOption(opt)}
+                    className="w-full flex items-center gap-3 bg-surface border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium hover:border-primary transition-colors text-left"
+                  >
+                    <span className="text-xl">{opt.emoji}</span>
+                    <span className="flex-1">{opt.name}</span>
+                    <span className="text-text-secondary text-xs">{opt.vote_count} votes</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
