@@ -49,22 +49,6 @@ export function CommitmentStage({
 
   return (
     <div className="space-y-4">
-      {/* Locked decisions */}
-      <div className="bg-status-confirmed-bg rounded-xl px-4 py-2.5 flex items-center gap-2">
-        <span className="text-base">✓</span>
-        <span className="text-sm font-semibold text-status-confirmed">
-          Dates: {trip.locked_dates_start && trip.locked_dates_end
-            ? `${new Date(trip.locked_dates_start).toLocaleDateString("en-IN", { month: "short", day: "numeric" })} – ${new Date(trip.locked_dates_end).toLocaleDateString("en-IN", { month: "short", day: "numeric" })}`
-            : ""}
-        </span>
-      </div>
-      <div className="bg-status-confirmed-bg rounded-xl px-4 py-2.5 flex items-center gap-2">
-        <span className="text-base">✓</span>
-        <span className="text-sm font-semibold text-status-confirmed">
-          Destination: {trip.locked_destination}
-        </span>
-      </div>
-
       <div>
         <h2 className="font-heading text-lg font-semibold">Are you in?</h2>
         <p className="text-text-secondary text-sm">

@@ -360,7 +360,7 @@ export function MemberList({
                   {config.label}
                 </span>
                 {/* Proxy vote button on destination stage */}
-                {isOrganizer && m.is_proxy && tripStatus === "destination_open" && !m.destination_vote && onProxyVote && destinationOptions && (
+                {isOrganizer && m.is_proxy && tripStatus === "destination_open" && onProxyVote && destinationOptions && (
                   <button
                     onClick={() => setVotingForMemberId(votingForMemberId === m.id ? null : m.id)}
                     className="w-7 h-7 flex items-center justify-center rounded-lg text-text-secondary hover:bg-gray-100 transition-colors text-xs"
