@@ -112,15 +112,22 @@ create policy "trips_update" on trips
   using (organizer_id = auth.uid())
   with check (organizer_id = auth.uid());
 
+-- Helper: check trip membership without triggering RLS recursion
+create or replace function is_member_of_trip(p_trip_id uuid)
+returns boolean as $$
+  select exists (
+    select 1 from members
+    where members.trip_id = p_trip_id
+    and members.user_id = auth.uid()
+  );
+$$ language sql security definer;
+
 -- MEMBERS policies
 -- Trip members can see all members of their trip
 create policy "members_select" on members
   for select to authenticated
   using (
-    trip_id in (
-      select trip_id from members where user_id = auth.uid()
-    )
-    -- Also allow reading if user is the trip organizer
+    is_member_of_trip(trip_id)
     or trip_id in (
       select id from trips where organizer_id = auth.uid()
     )
@@ -165,9 +172,7 @@ create policy "members_update_organizer" on members
 create policy "destination_options_select" on destination_options
   for select to authenticated
   using (
-    trip_id in (
-      select trip_id from members where user_id = auth.uid()
-    )
+    is_member_of_trip(trip_id)
     or trip_id in (
       select id from trips where organizer_id = auth.uid()
     )
