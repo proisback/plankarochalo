@@ -95,7 +95,7 @@ alter table destination_options enable row level security;
 -- Any authenticated user can read a trip (the slug is the access control —
 -- you only see a trip if someone shared the link with you)
 create policy "trips_select" on trips
-  for select to authenticated
+  for select to anon, authenticated
   using (true);
 
 -- Only non-anonymous users can create trips (organizers)
