@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plan Karo Chalo — PRD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #FAFAF8; --surface: #FFFFFF; --surface2: #F5F5F3;
+  --text: #1A1A1A; --text2: #555; --text3: #999;
+  --primary: #E86A33; --primary-light: #FFF0E8; --primary-dark: #C65520;
+  --accent: #2D6A4F; --accent-light: #E8F5EE;
+  --border: #E8E8E5; --shadow: 0 1px 3px rgba(0,0,0,0.04);
+  --warning: #D4940A; --warning-light: #FFF8E1;
+  --danger: #C62828; --danger-light: #FFEBEE;
+  --radius: 14px;
+}
+[data-theme="dark"] {
+  --bg: #111110; --surface: #1C1C1A; --surface2: #252523;
+  --text: #ECECEA; --text2: #A0A09B; --text3: #666;
+  --primary: #F0854D; --primary-light: #2D1E14; --primary-dark: #FF9A66;
+  --accent: #5CB88A; --accent-light: #1A2E22;
+  --border: #333; --shadow: 0 1px 3px rgba(0,0,0,0.2);
+  --warning: #E8B84A; --warning-light: #2A2410;
+  --danger: #E57373; --danger-light: #2A1414;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:80px}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);line-height:1.7;font-size:15px;transition:background 0.3s,color 0.3s}
+
+/* Layout */
+.wrapper{max-width:760px;margin:0 auto;padding:0 24px}
+.hero{padding:80px 24px 48px;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-40%;left:-20%;width:140%;height:140%;background:radial-gradient(ellipse at 50% 0%,var(--primary-light) 0%,transparent 60%);pointer-events:none;z-index:0}
+.hero *{position:relative;z-index:1}
+.hero h1{font-family:'Outfit',sans-serif;font-size:clamp(32px,6vw,52px);font-weight:800;line-height:1.05;margin-bottom:12px;letter-spacing:-0.02em}
+.hero h1 span{color:var(--primary)}
+.hero .subtitle{font-size:17px;color:var(--text2);max-width:540px;margin:0 auto 20px;line-height:1.6}
+.hero .meta{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;font-size:13px;color:var(--text3);font-weight:500}
+.hero .meta span{display:flex;align-items:center;gap:4px}
+
+/* Sticky Nav */
+.sticky-nav{position:sticky;top:0;z-index:100;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);transition:all 0.3s}
+.sticky-nav .inner{max-width:760px;margin:0 auto;padding:10px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.nav-links{display:flex;gap:4px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.nav-links::-webkit-scrollbar{display:none}
+.nav-links a{padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;color:var(--text3);text-decoration:none;white-space:nowrap;transition:all 0.2s;letter-spacing:0.02em}
+.nav-links a:hover,.nav-links a.active{background:var(--primary-light);color:var(--primary)}
+.theme-toggle{width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s}
+.theme-toggle:hover{border-color:var(--primary);background:var(--primary-light)}
+
+/* Sections */
+section{padding:48px 0 32px}
+section + section{border-top:1px solid var(--border)}
+.section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--primary);margin-bottom:8px}
+.section-title{font-family:'Outfit',sans-serif;font-size:clamp(22px,4vw,30px);font-weight:700;line-height:1.2;margin-bottom:20px;letter-spacing:-0.01em}
+
+/* Stat Callouts */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:28px 0}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:var(--primary);border-radius:4px 0 0 4px}
+.stat-card .number{font-family:'Outfit',sans-serif;font-size:28px;font-weight:800;color:var(--primary);line-height:1.1;margin-bottom:6px}
+.stat-card .label{font-size:13px;color:var(--text2);line-height:1.5}
+
+/* Prose */
+.prose{margin-bottom:24px}
+.prose p{margin-bottom:16px;color:var(--text);font-size:15px}
+.prose strong{font-weight:600}
+.callout{background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--primary);border-radius:0 var(--radius) var(--radius) 0;padding:16px 20px;margin:20px 0;font-size:14px;line-height:1.6;color:var(--text2)}
+.callout.green{border-left-color:var(--accent)}
+.callout.warn{border-left-color:var(--warning)}
+
+/* Tables */
+.table-wrap{overflow-x:auto;margin:20px 0;border-radius:var(--radius);border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:10px 14px;background:var(--surface2);font-weight:700;color:var(--text2);font-size:11px;text-transform:uppercase;letter-spacing:0.06em;white-space:nowrap}
+td{padding:10px 14px;border-top:1px solid var(--border);vertical-align:top}
+td:first-child{font-weight:600;color:var(--text)}
+tr:hover td{background:var(--surface2)}
+
+/* Priority badges */
+.badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:0.03em}
+.badge.must{background:var(--primary-light);color:var(--primary)}
+.badge.should{background:var(--accent-light);color:var(--accent)}
+.badge.could{background:#F0ECFF;color:#7B61FF}
+.badge.wont{background:var(--surface2);color:var(--text3)}
+.badge.v1{background:var(--primary-light);color:var(--primary)}
+.badge.defer{background:var(--warning-light);color:var(--warning)}
+.badge.cut{background:var(--danger-light);color:var(--danger)}
+.badge.resolved{background:var(--accent-light);color:var(--accent)}
+
+/* Journey Map */
+.journey{display:flex;flex-direction:column;gap:0;margin:24px 0}
+.journey-step{display:flex;gap:16px;align-items:flex-start;padding:14px 0}
+.journey-dot{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;position:relative;z-index:1}
+.journey-dot.active{background:var(--primary);color:#fff}
+.journey-dot.kill{background:var(--danger);color:#fff}
+.journey-dot.inactive{background:var(--surface2);color:var(--text3);border:2px solid var(--border)}
+.journey-line{position:relative}
+.journey-line::before{content:'';position:absolute;left:15px;top:32px;width:2px;height:calc(100% - 18px);background:var(--border)}
+.journey-step:last-child .journey-line::before{display:none}
+.journey-content h4{font-size:14px;font-weight:700;margin-bottom:2px}
+.journey-content p{font-size:13px;color:var(--text2);line-height:1.5}
+
+/* Design Decision Cards */
+.decision{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin:16px 0}
+.decision .chose{font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.decision .chose::before{content:'✓';display:inline-flex;width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;align-items:center;justify-content:center;flex-shrink:0}
+.decision .rejected{font-size:13px;color:var(--text3);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.decision .rejected::before{content:'✕';display:inline-flex;width:20px;height:20px;border-radius:50%;background:var(--danger-light);color:var(--danger);font-size:11px;align-items:center;justify-content:center;flex-shrink:0}
+.decision .why{font-size:13px;color:var(--text2);line-height:1.6}
+
+/* Expandable */
+details{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin:12px 0;overflow:hidden}
+details summary{padding:14px 18px;cursor:pointer;font-weight:600;font-size:14px;color:var(--text);list-style:none;display:flex;justify-content:space-between;align-items:center}
+details summary::after{content:'▸';transition:transform 0.2s;font-size:12px;color:var(--text3)}
+details[open] summary::after{transform:rotate(90deg)}
+details .detail-body{padding:0 18px 16px;font-size:14px;color:var(--text2);line-height:1.6}
+
+/* Closing */
+.closing{text-align:center;padding:60px 24px;margin-top:40px;background:var(--surface);border-top:1px solid var(--border)}
+.closing .principle{font-family:'Outfit',sans-serif;font-size:clamp(18px,3.5vw,24px);font-weight:700;color:var(--text);max-width:600px;margin:0 auto;line-height:1.4}
+.closing .principle span{color:var(--primary)}
+
+/* Flow diagram */
+.flow{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin:20px 0;padding:16px;background:var(--surface);border-radius:var(--radius);border:1px solid var(--border)}
+.flow-step{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:700;background:var(--primary-light);color:var(--primary)}
+.flow-arrow{color:var(--text3);font-size:16px}
+
+/* Metric card */
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:20px 0}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center}
+.metric .val{font-family:'Outfit',sans-serif;font-size:24px;font-weight:800;color:var(--accent)}
+.metric .name{font-size:12px;color:var(--text2);margin-top:4px;font-weight:500}
+.metric .target{font-size:11px;color:var(--text3);margin-top:2px}
+
+/* Responsive */
+@media(max-width:640px){
+  .hero{padding:48px 20px 32px}
+  section{padding:32px 0 24px}
+  .stats-grid{grid-template-columns:1fr}
+  .hero .meta{flex-direction:column;align-items:center;gap:6px}
+  .wrapper{padding:0 16px}
+}
+</style>
+</head>
+<body>
+
+<!-- Sticky Nav -->
+<nav class="sticky-nav">
+  <div class="inner">
+    <div class="nav-links">
+      <a href="#discovery">Discovery</a>
+      <a href="#problem">Problem</a>
+      <a href="#solution">Solution</a>
+      <a href="#implementation">Implementation</a>
+      <a href="#build-guide">Build Guide</a>
+    </div>
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
+  </div>
+</nav>
+
+<!-- Hero -->
+<header class="hero">
+  <h1>Plan Karo<span>,</span> Chalo<span>.</span></h1>
+  <p class="subtitle">A link-based group trip coordination tool that collapses weeks of WhatsApp chaos into minutes of structured decision-making.</p>
+  <div class="meta">
+    <span>📄 v1.2 · April 2026</span>
+    <span>👤 Prateek · Cohort 7</span>
+    <span>🔗 plankarochalo.com</span>
+  </div>
+</header>
+
+<div class="wrapper">
+
+<!-- ============ DISCOVERY ============ -->
+<section id="discovery">
+  <div class="section-label">Section 1</div>
+  <h2 class="section-title">Discovery Insights</h2>
+
+  <div class="prose">
+    <p>This product is grounded in primary research across <strong>132+ unique data points</strong>: 27 interviews spanning structured deep conversations, consolidated Q&A-format interviews, qualitative retrospective write-ups, and cross-group interviews — plus 105 survey responses across three independent surveys. Respondents covered friend groups, multi-family trips, women's treks, couples groups, motorcycle touring clubs, and three-generation family vacations. Group sizes ranged from 2-3 to 22+. The full interview registry is available in the <strong>Research Appendix</strong> (linked separately).</p>
+    <p>Secondary research validated primary findings against published market data: the global group travel market reached ~$168B in 2024 at 7.2% CAGR, India's travel market was valued at $22.5B with 2.5 billion domestic tourist visits in 2023 (up 45% YoY), and Asia Pacific leads global growth at 8.2–8.4% CAGR.</p>
+  </div>
+
+  <h3 style="font-family:'Outfit',sans-serif;font-size:20px;font-weight:700;margin-bottom:16px">What We Found</h3>
+  <div class="prose">
+    <p>We entered this research expecting itinerary building to be the core pain point. We were wrong. The trip journey dies much earlier, and the kill zone is remarkably consistent across every group type.</p>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card"><div class="number">80%+</div><div class="label">of respondents named date alignment as their #1 friction point. 35% of trips that never happened died specifically because dates couldn't be aligned.</div></div>
+    <div class="stat-card"><div class="number">67%</div><div class="label">of groups have 1-2 people doing most or all planning work. Organizers spend 5-15+ hours per trip while having the worst experience.</div></div>
+    <div class="stat-card"><div class="number">6-8 apps</div><div class="label">used per trip on average, with information scattered across all of them. WhatsApp is universal but structurally broken for coordination.</div></div>
+    <div class="stat-card"><div class="number">2 users</div><div class="label">from very different contexts (college friends, three-generation family) independently described the same solution: "one link, no download, see the status, tap and done."</div></div>
+  </div>
+
+  <div class="prose">
+    <p>The trip lifecycle has eight stages: spark → dates → destination → budget → accommodation → itinerary → on-trip → post-trip. Across every data source, the critical failure point is stages 2-4. In the 40-person survey, "coordinating dates and availability" was the most time-consuming stage for roughly half the respondents, and "dates couldn't be aligned" was the #1 reason trips didn't happen — cited by 14 of 40 respondents.</p>
+    <p>But dates are just the entry point to a deeper coordination failure. One interviewee — a frustrated non-lead who travels infrequently but cares deeply about trip quality — described the pattern: excitement in the WhatsApp group, then 7-8 destination suggestions simultaneously, a poll with 3 voters, preferences debated with no structure, people stop responding, the group goes silent, and the trip quietly dies through inertia. The 40-person survey confirmed: 20% of failed trips died from "planning became too overwhelming and momentum died."</p>
+    <p>The organizer tax is structural. In the 49-person survey, 55% said "1-2 people did most of it," another 12% said one person did everything. One super-organizer plans all 5-6 trips per year for his group — when he became unavailable, the trip was cancelled entirely. A family coordinator described managing seven people across three generations: "None of that is hard, it's just a lot of small things all in my head and nobody else is thinking about them."</p>
+    <p>A college-age organizer echoed the same for friend groups: "I end up doing it because otherwise it won't happen." He'd made a Google Sheet nobody opened, then answered the same questions in WhatsApp.</p>
+  </div>
+
+  <div class="callout">Both cross-group interviewees independently rejected the same features: expense tracking ("the real pain is 'why is this taking 2 weeks to decide dates,' not 'how do we split ₹1,200'"), in-app chat ("WhatsApp is where we talk"), and feature-heavy platforms ("If I see itinerary builder, expense tracker, booking integrations — I'll just ignore all of it").</div>
+
+  <h3 style="font-family:'Outfit',sans-serif;font-size:20px;font-weight:700;margin:28px 0 16px">Assumptions vs. Reality</h3>
+  <div class="table-wrap"><table>
+    <tr><th>Assumption</th><th>Status</th><th>What Changed</th></tr>
+    <tr><td>Itinerary building is the core pain</td><td><span class="badge cut">Overturned</span></td><td>Trip dies at dates, not itinerary. AI itinerary is commoditizing — 56% already use AI. The coordination layer is the white space.</td></tr>
+    <tr><td>Users want an all-in-one platform</td><td><span class="badge cut">Overturned</span></td><td>Both interviewees explicitly rejected feature-heavy tools. Users want one problem solved well.</td></tr>
+    <tr><td>Anonymous budget ranges solve misalignment</td><td><span class="badge defer">Partially wrong</span></td><td>Survey response was lukewarm ("Maybe"). Families handle budget implicitly — sharing options at price tiers and reading reactions.</td></tr>
+    <tr><td>Everyone needs to use the tool</td><td><span class="badge cut">Overturned</span></td><td>Must work even if only organizer creates an account. Proxy input and link-based participation are essential.</td></tr>
+  </table></div>
+</section>
+
+<!-- ============ PROBLEM ============ -->
+<section id="problem">
+  <div class="section-label">Section 2</div>
+  <h2 class="section-title">Problem Prioritization</h2>
+
+  <div class="prose">
+    <p>Twelve distinct pain points emerged. After validating against secondary data and the competitive landscape, four are selected for V1 — they sit in the kill zone (stages 2-4), are high-frequency and high-severity, and have no adequate solution in market.</p>
+  </div>
+
+  <h3 style="font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;margin-bottom:12px">The Trip Journey — Where It Breaks</h3>
+  <div class="journey">
+    <div class="journey-step journey-line"><div class="journey-dot active">1</div><div class="journey-content"><h4>Spark</h4><p>"Let's go somewhere!" in WhatsApp. No structure, 12 destinations across 3 conversations.</p></div></div>
+    <div class="journey-step journey-line"><div class="journey-dot kill">2</div><div class="journey-content"><h4>Date Alignment <span class="badge must" style="font-size:10px;vertical-align:middle">KILL ZONE</span></h4><p>Manual availability checking. 2-4 weeks of back-and-forth. Trip stalls here most often.</p></div></div>
+    <div class="journey-step journey-line"><div class="journey-dot kill">3</div><div class="journey-content"><h4>Destination Decision <span class="badge must" style="font-size:10px;vertical-align:middle">KILL ZONE</span></h4><p>WhatsApp debates, expired polls, decision paralysis. Trips get canceled during discussion.</p></div></div>
+    <div class="journey-step journey-line"><div class="journey-dot kill">4</div><div class="journey-content"><h4>Budget Agreement <span class="badge must" style="font-size:10px;vertical-align:middle">KILL ZONE</span></h4><p>Rarely discussed explicitly. Silent misalignment surfaces later as dropouts.</p></div></div>
+    <div class="journey-step journey-line"><div class="journey-dot inactive">5</div><div class="journey-content"><h4>Accommodation</h4><p>One person researches across 3-5 OTAs. Siloed, competing preferences.</p></div></div>
+    <div class="journey-step journey-line"><div class="journey-dot inactive">6</div><div class="journey-content"><h4>Itinerary</h4><p>3-4 days of calls + blog research. Massive time sink. AI commoditizing this.</p></div></div>
+    <div class="journey-step journey-line"><div class="journey-dot inactive">7</div><div class="journey-content"><h4>On-Trip</h4><p>Organizer becomes GPS + concierge + accountant. Activity splits, food friction.</p></div></div>
+    <div class="journey-step"><div class="journey-dot inactive">8</div><div class="journey-content"><h4>Post-Trip</h4><p>Expense settlement drags. Small amounts leak. Splitwise friction.</p></div></div>
+  </div>
+
+  <div class="callout green"><strong>Critical insight:</strong> If a group survives past budget agreement (stage 4), the trip almost always happens. The highest-leverage intervention is collapsing stages 2-4 into a single, structured flow.</div>
+
+  <h3 style="font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;margin:24px 0 12px">Pain Point Disposition</h3>
+  <div class="table-wrap"><table>
+    <tr><th>Pain Point</th><th>Status</th><th>Rationale</th></tr>
+    <tr><td>Date & Schedule Alignment</td><td><span class="badge v1">V1</span></td><td>#1 universal pain (80%+). No tool solves it for informal groups.</td></tr>
+    <tr><td>Trip Status + Momentum</td><td><span class="badge v1">V1</span></td><td>No shared dashboard = no visible progress = momentum death. 20% of failed trips.</td></tr>
+    <tr><td>Organizer Tax Reduction</td><td><span class="badge v1">V1 Design Principle</span></td><td>67% of groups = 1-2 planners. Tool reduces burden via automation + proxy input.</td></tr>
+    <tr><td>Destination Convergence</td><td><span class="badge v1">V1</span></td><td>60%+ frequency. WhatsApp polls fail — no context, structure, or lock mechanism.</td></tr>
+    <tr><td>Budget Misalignment</td><td><span class="badge defer">V1.1</span></td><td>Validated (55%+) but anonymous range concept unvalidated. Simple budget field for now.</td></tr>
+    <tr><td>Itinerary Effort</td><td><span class="badge defer">V2</span></td><td>AI commoditizing fast. Group-aware AI needs V1 data.</td></tr>
+    <tr><td>Passive Participation</td><td><span class="badge should">UX Principle</span></td><td>One-tap interactions, 10-second comprehension. Baked into every screen.</td></tr>
+    <tr><td>Expense Tracking</td><td><span class="badge cut">Eliminated</span></td><td>$512.5M mature market. Splitwise/UPI adequate. Both interviewees rejected it.</td></tr>
+    <tr><td>Booking Integration</td><td><span class="badge cut">Never</span></td><td>Architectural boundary. We're coordination, not booking.</td></tr>
+  </table></div>
+
+  <h3 style="font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;margin:28px 0 12px">Problem Statement</h3>
+  <div class="callout" style="border-left-color:var(--text);font-size:15px;line-height:1.7;color:var(--text)">
+    <strong>The "default planner" in Indian friend groups and families of 4-10 people</strong> needs a way to <strong>move their group from "let's go somewhere" to "dates locked, destination chosen, everyone confirmed"</strong> because the pre-booking coordination phase is entirely unstructured — currently managed through weeks of WhatsApp back-and-forth, manually piecing together availability, chasing non-responders, and absorbing all cognitive load alone — resulting in <strong>35% of planned trips never happening</strong>, organizer burnout across 5-15+ hours per trip, late bookings at higher prices, and compounding social friction.
+  </div>
+</section>
+
+<!-- ============ SOLUTION ============ -->
+<section id="solution">
+  <div class="section-label">Section 3</div>
+  <h2 class="section-title">Proposed Solution</h2>
+
+  <div class="prose">
+    <p>Plan Karo Chalo is a <strong>link-based trip coordination tool</strong> that guides Indian groups through the pre-booking decision sequence — dates → destination → commitment — via a shared dashboard, with no app download required.</p>
+    <p>That single sentence is what a user should be able to repeat back. It's not a travel planner, not an itinerary builder, not a booking platform. It's the coordination layer that gets a group from "let's go somewhere" to "we're going."</p>
+  </div>
+
+  <div class="flow">
+    <div class="flow-step">📝 Create Trip</div><span class="flow-arrow">→</span>
+    <div class="flow-step">🔗 Share Link</div><span class="flow-arrow">→</span>
+    <div class="flow-step">📅 Pick Dates</div><span class="flow-arrow">→</span>
+    <div class="flow-step">📍 Vote Destination</div><span class="flow-arrow">→</span>
+    <div class="flow-step">✅ Confirm</div><span class="flow-arrow">→</span>
+    <div class="flow-step">🎉 Locked!</div>
+  </div>
+
+  <h3 style="font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;margin:24px 0 12px">How It Solves Each Pain Point</h3>
+
+  <details><summary>📅 Date Alignment</summary><div class="detail-body">Organizer creates a trip, sets candidate date ranges, and shares a link. Members tap their availability via the link — no account needed. System auto-calculates the best overlap window for the target trip duration and surfaces it with a "Lock dates" action. Organizer can also enter constraints on behalf of members who won't use the tool (proxy input).</div></details>
+  <details><summary>📊 Trip Status & Momentum</summary><div class="detail-body">Single-screen dashboard shows the current trip stage (dates → destination → committed → ready), what's decided, what's pending, and who hasn't responded. Progress bar visualizes how close the trip is to locked. "Waiting on 3 people" indicator removes the ambiguity that lets trips quietly die.</div></details>
+  <details><summary>🎒 Organizer Tax Reduction</summary><div class="detail-body">Organizer's only job: create trip + share link. System auto-sends reminders to non-responders. Dashboard eliminates repeating information. Proxy input handles tech-averse members. The tool does the chasing, not the human.</div></details>
+  <details><summary>📍 Destination Convergence</summary><div class="detail-body">After dates lock, the dashboard advances to destination. Any member can propose options. Members vote. Results visible in real-time. Organizer locks when consensus is clear. Simple, structured, with finality.</div></details>
+
+  <h3 style="font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;margin:24px 0 12px">What It Deliberately Does NOT Do</h3>
+  <div class="table-wrap"><table>
+    <tr><th>Excluded</th><th>Why</th></tr>
+    <tr><td>Itinerary builder</td><td>AI itinerary commoditizing (56% adoption). Wanderlog, ChatGPT serve this. Not our differentiation.</td></tr>
+    <tr><td>Expense splitting</td><td>$512.5M market. Splitwise/UPI adequate. Both interviewees explicitly rejected it.</td></tr>
+    <tr><td>Booking/OTA integration</td><td>Different business with massive incumbents. We're coordination, OTAs are partners.</td></tr>
+    <tr><td>In-app messaging</td><td>WhatsApp is where 500M+ Indian users talk. Duplicating chat = abandoned channel.</td></tr>
+    <tr><td>AI destination recommendations</td><td>V2. Group already has ideas from Instagram/YouTube. Problem is convergence, not discovery.</td></tr>
+  </table></div>
+
+  <h3 style="font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;margin:24px 0 12px">Success Metrics</h3>
+  <div class="metrics">
+    <div class="metric"><div class="val">>40%</div><div class="name">Trip Completion Rate</div><div class="target">vs ~20% WhatsApp-only</div></div>
+    <div class="metric"><div class="val"><5 days</div><div class="name">Time to Lock Dates</div><div class="target">vs 2-8 weeks currently</div></div>
+    <div class="metric"><div class="val">>70%</div><div class="name">Response Rate (48h)</div><div class="target">vs days of partial responses</div></div>
+  </div>
+</section>
+
+<!-- ============ IMPLEMENTATION ============ -->
+<section id="implementation">
+  <div class="section-label">Section 4</div>
+  <h2 class="section-title">Implementation Plan</h2>
+
+  <h3 style="font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;margin-bottom:12px">V1 Feature Prioritization</h3>
+  <div class="table-wrap"><table>
+    <tr><th>Priority</th><th>Feature</th><th>Traces To</th></tr>
+    <tr><td><span class="badge must">MUST</span></td><td>Trip creation with date range proposals</td><td>Core entry point</td></tr>
+    <tr><td><span class="badge must">MUST</span></td><td>Shareable link — no auth for participants</td><td>#1 adoption requirement</td></tr>
+    <tr><td><span class="badge must">MUST</span></td><td>Date availability input + auto-overlap</td><td>Core value prop — replaces weeks of back-and-forth</td></tr>
+    <tr><td><span class="badge must">MUST</span></td><td>Trip dashboard with stage progression</td><td>Single source of truth</td></tr>
+    <tr><td><span class="badge must">MUST</span></td><td>Destination voting with lock mechanism</td><td>Structured convergence</td></tr>
+    <tr><td><span class="badge must">MUST</span></td><td>"I'm in" / "I'm out" commitment toggle</td><td>Clean commitment tracking</td></tr>
+    <tr><td><span class="badge should">SHOULD</span></td><td>Auto-reminder nudges for non-responders</td><td>Organizer tax reduction</td></tr>
+    <tr><td><span class="badge should">SHOULD</span></td><td>Proxy input (organizer enters for others)</td><td>Family group essential</td></tr>
+    <tr><td><span class="badge should">SHOULD</span></td><td>Deadline-based auto-lock</td><td>Prevents indefinite drift</td></tr>
+    <tr><td><span class="badge could">COULD</span></td><td>WhatsApp-formatted summary</td><td>Bridges gap for non-users</td></tr>
+    <tr><td><span class="badge could">COULD</span></td><td>Group budget field</td><td>Lightweight budget signal</td></tr>
+    <tr><td><span class="badge wont">WON'T</span></td><td>Itinerary builder, expense splitting, in-app chat, booking integration</td><td>Out of scope — see exclusions above</td></tr>
+  </table></div>
+
+  <h3 style="font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;margin:28px 0 12px">Technical Approach</h3>
+  <div class="prose">
+    <p>Responsive web app, mobile-first. <strong>React + Supabase + Vercel.</strong> Three key decisions: web over native (no-download requirement is non-negotiable), Supabase real-time subscriptions (dashboard updates live), and anonymous participation via unique trip URLs (Supabase Anonymous Sign-Ins — members get a real user ID without creating an account).</p>
+  </div>
+
+  <h3 style="font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;margin:28px 0 12px">V1 → V2 Roadmap</h3>
+  <div class="table-wrap"><table>
+    <tr><th>Feature</th><th>V1</th><th>V2</th><th>Never</th><th>Why</th></tr>
+    <tr><td>Date alignment + overlap</td><td>✓</td><td></td><td></td><td>Core</td></tr>
+    <tr><td>Dashboard + stages</td><td>✓</td><td></td><td></td><td>Core</td></tr>
+    <tr><td>Destination voting</td><td>✓</td><td></td><td></td><td>Core</td></tr>
+    <tr><td>Commitment tracking</td><td>✓</td><td></td><td></td><td>Core</td></tr>
+    <tr><td>Anonymous budget ranges</td><td></td><td>✓</td><td></td><td>Concept unvalidated</td></tr>
+    <tr><td>Group-aware AI itinerary</td><td></td><td>✓</td><td></td><td>Needs V1 preference data</td></tr>
+    <tr><td>WhatsApp bot</td><td></td><td>✓</td><td></td><td>Needs V1 adoption data</td></tr>
+    <tr><td>Commitment deposits</td><td></td><td>✓</td><td></td><td>Needs payment infra</td></tr>
+    <tr><td>Booking integration</td><td></td><td></td><td>✕</td><td>Architectural boundary</td></tr>
+    <tr><td>In-app messaging</td><td></td><td></td><td>✕</td><td>Architectural boundary</td></tr>
+  </table></div>
+
+  <h3 style="font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;margin:28px 0 12px">Open Gaps</h3>
+
+  <details><summary><span class="badge resolved">Resolved</span> &nbsp;Link-based anonymous participation</summary><div class="detail-body">Supabase Anonymous Sign-Ins (launched Apr 2024) handles this natively. <code style="font-family:'JetBrains Mono',monospace;font-size:12px;background:var(--surface2);padding:2px 6px;border-radius:4px">signInAnonymously()</code> creates a real user with unique ID and JWT, without requiring any personal information. Anonymous users get full RLS enforcement and Realtime access. Two caveats: session doesn't persist across devices (acceptable for MVP), and Cloudflare Turnstile should be enabled post-launch.</div></details>
+  <details><summary><span class="badge defer">Open</span> &nbsp;Will users adopt a tool alongside WhatsApp?</summary><div class="detail-body">Working assumption: yes — if link-based, under 30 seconds, and reduces WhatsApp noise. Fallback: WhatsApp-formatted summaries make the tool invisible to resistant members.</div></details>
+  <details><summary><span class="badge defer">Open</span> &nbsp;Will the organizer persona pay?</summary><div class="detail-body">64% said they'd pay ₹49-500+. Splitwise Pro ($3/mo) and Wanderlog Pro ($5/mo) establish willingness. Fallback: freemium — core coordination stays free.</div></details>
+  <details><summary><span class="badge defer">Open</span> &nbsp;Does the lock mechanism feel too rigid?</summary><div class="detail-body">Working bet: groups want clarity over flexibility. Fallback: "soft lock" (reversible with group consent) can supplement hard lock.</div></details>
+</section>
+
+<!-- ============ BUILD GUIDE ============ -->
+<section id="build-guide">
+  <div class="section-label">Section 5</div>
+  <h2 class="section-title">Build Guide — Design Decisions</h2>
+
+  <div class="prose"><p>The choices that define this product aren't the features — they're the tradeoffs. Five decisions shaped the architecture, and each involved rejecting a plausible alternative.</p></div>
+
+  <div class="decision">
+    <div class="chose">Link-based participation — no account for members</div>
+    <div class="rejected">Rejected: Require all members to create accounts</div>
+    <div class="why">Every interviewee said the same thing: asking people to install an app or create an account is where adoption dies. The family coordinator's father "still calls to ask how to download a PDF." Howbout (closest competitor on dates) requires universal app install — that's their bottleneck and our differentiator.</div>
+  </div>
+
+  <div class="decision">
+    <div class="chose">Stage-gate progression — dates → destination → commitment</div>
+    <div class="rejected">Rejected: Freeform dashboard, any decision in any order</div>
+    <div class="why">Flexibility is what WhatsApp already provides, and it produces chaos. One interviewee described 7-8 destination suggestions flooding in before dates were even discussed. Stage gates enforce the discipline groups need but cannot self-impose.</div>
+  </div>
+
+  <div class="decision">
+    <div class="chose">Organizer-created trips — one person sets it up</div>
+    <div class="rejected">Rejected: Equal co-creation by all members</div>
+    <div class="why">67% of groups have 1-2 planners. The only distributed planning counter-example was a 4-person motorcycle group. Designing for "equal participation" sounds ideal but ignores reality. Others participate through responding, voting, and confirming.</div>
+  </div>
+
+  <div class="decision">
+    <div class="chose">Automated nudging — system sends reminders</div>
+    <div class="rejected">Rejected: Manual "remind" button for organizer</div>
+    <div class="why">The organizer tax isn't just time — it's the social awkwardness of chasing friends and family. If the system sends the nudge, the social cost shifts from the organizer to the tool. "The group is waiting on your input" is neutral accountability, not personal pressure.</div>
+  </div>
+
+  <div class="decision">
+    <div class="chose">Visible individual response status</div>
+    <div class="rejected">Rejected: Only aggregate numbers ("4 of 7 responded")</div>
+    <div class="why">The college-age organizer: "Show me 'Waiting on 3 people' — I know who to ping." But both interviewees flagged shaming risk. Design shows WHO hasn't responded but frames neutrally — "hasn't responded yet" not "is delaying the group."</div>
+  </div>
+
+  <h3 style="font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;margin:28px 0 12px">Core Data Model</h3>
+  <div class="prose"><p>Four entities: <strong>Trip</strong> (name, organizer, status, date ranges, budget, destination, deadline), <strong>Member</strong> (trip reference, name, status, availability, vote, proxy flag), <strong>DateRange</strong> (trip reference, start, end, available count), <strong>DestinationOption</strong> (trip reference, name, note, emoji, vote count). Supabase RLS policies ensure members can only see and modify their own responses within trips they belong to.</p></div>
+
+  <h3 style="font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;margin:28px 0 12px">Testing Plan</h3>
+  <div class="prose"><p>Create a trip with 5 cohort members. Each opens the link on their phone, inputs availability, votes on destination, confirms commitment. Key qualitative measure: does the organizer still need to explain the plan in WhatsApp? If no, the dashboard works. If yes, iterate.</p></div>
+</section>
+
+</div><!-- end wrapper -->
+
+<!-- ============ CLOSING ============ -->
+<div class="closing">
+  <div class="section-label" style="margin-bottom:16px">Closing Principle</div>
+  <div class="principle">Every design decision traces back to one belief: <span>the trip should be harder to cancel than to confirm.</span></div>
+  <p style="font-size:14px;color:var(--text3);margin-top:16px;max-width:480px;margin-left:auto;margin-right:auto;line-height:1.6">If the tool makes deciding effortless and visible, the default shifts from inertia — where trips quietly die — to momentum, where trips happen.</p>
+</div>
+
+<footer style="text-align:center;padding:24px;font-size:12px;color:var(--text3)">
+  Plan Karo Chalo · Prateek · Cohort 7 · Rethink Systems · April 2026
+</footer>
+
+<script>
+// Theme toggle
+function toggleTheme(){
+  const d=document.documentElement;
+  const current=d.getAttribute('data-theme');
+  const next=current==='dark'?'light':'dark';
+  d.setAttribute('data-theme',next);
+  document.querySelector('.theme-toggle').textContent=next==='dark'?'☀️':'🌙';
+}
+
+// Active nav highlighting
+const sections=document.querySelectorAll('section[id]');
+const navLinks=document.querySelectorAll('.nav-links a');
+const observer=new IntersectionObserver(entries=>{
+  entries.forEach(entry=>{
+    if(entry.isIntersecting){
+      navLinks.forEach(l=>l.classList.remove('active'));
+      const active=document.querySelector(`.nav-links a[href="#${entry.target.id}"]`);
+      if(active)active.classList.add('active');
+    }
+  });
+},{threshold:0.2,rootMargin:'-80px 0px -60% 0px'});
+sections.forEach(s=>observer.observe(s));
+</script>
+</body>
+</html>
