@@ -58,17 +58,21 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
       setUserId(user.id);
 
       // Check if user is already a member of this trip
-      const { data: existingMember } = await supabase
+      // Use maybeSingle() — returns null without error if no row found
+      const { data: existingMember, error: memberError } = await supabase
         .from("members")
         .select("*")
         .eq("trip_id", trip.id)
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
 
       if (existingMember) {
         setCurrentMember(existingMember);
         await loadMembers();
+      } else if (!memberError) {
+        setNeedsJoin(true);
       } else {
+        // RLS or other error — still show join prompt as fallback
         setNeedsJoin(true);
       }
 

@@ -23,6 +23,7 @@ export function JoinPrompt({
     setLoading(true);
     setError("");
 
+    // Try insert; if duplicate, fetch the existing record instead
     const { data, error: insertError } = await supabase
       .from("members")
       .insert({
@@ -36,6 +37,20 @@ export function JoinPrompt({
       .single();
 
     if (insertError) {
+      // Duplicate key = member already exists (e.g. organizer visiting their own trip)
+      if (insertError.code === "23505") {
+        const { data: existing } = await supabase
+          .from("members")
+          .select("*")
+          .eq("trip_id", tripId)
+          .eq("user_id", userId)
+          .single();
+
+        if (existing) {
+          onJoined(existing as Member);
+          return;
+        }
+      }
       setError(insertError.message);
       setLoading(false);
       return;
