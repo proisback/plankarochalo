@@ -46,11 +46,24 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
       let { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
-        const { data } = await supabase.auth.signInAnonymously();
+        const { data, error: anonError } = await supabase.auth.signInAnonymously();
+        if (anonError) {
+          console.error("Anonymous sign-in failed:", anonError.message);
+          setLoading(false);
+          return;
+        }
         user = data.user;
       }
 
       if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      // Verify we actually have an authenticated session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.error("No session after sign-in");
         setLoading(false);
         return;
       }

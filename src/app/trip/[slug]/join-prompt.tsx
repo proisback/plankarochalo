@@ -23,6 +23,18 @@ export function JoinPrompt({
     setLoading(true);
     setError("");
 
+    // Verify we have an active session before attempting insert
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      // Re-attempt anonymous sign-in
+      const { error: anonError } = await supabase.auth.signInAnonymously();
+      if (anonError) {
+        setError("Could not connect. Please refresh and try again.");
+        setLoading(false);
+        return;
+      }
+    }
+
     // Try insert; if duplicate, fetch the existing record instead
     const { data, error: insertError } = await supabase
       .from("members")
@@ -31,6 +43,7 @@ export function JoinPrompt({
         user_id: userId,
         name: name.trim(),
         is_organizer: false,
+        is_proxy: false,
         status: "invited",
       })
       .select()
