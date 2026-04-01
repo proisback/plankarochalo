@@ -134,7 +134,7 @@ export function CommitmentStage({
       )}
 
       <WaitingBanner members={members} />
-      <MemberList members={members} isOrganizer={isOrganizer} onMembersUpdated={onMembersUpdated} />
+      <MemberList members={members} isOrganizer={isOrganizer} onMembersUpdated={onMembersUpdated} tripStatus={trip.status} />
 
       {isOrganizer && confirmedIn.length > 0 && (
         <LockButton

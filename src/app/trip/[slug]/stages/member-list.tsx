@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { Member, MemberStatus } from "@/lib/types";
+import type { Member, MemberStatus, TripStatus } from "@/lib/types";
 
 /* -- status badge config -- */
 const STATUS_CONFIG: Record<
@@ -40,6 +40,31 @@ const STATUS_CONFIG: Record<
     text: "text-red-700",
   },
 };
+
+type BadgeConfig = { icon: string; label: string; bg: string; text: string };
+
+function getBadge(m: Member, tripStatus?: TripStatus): BadgeConfig {
+  // Commitment / ready stages — use status directly
+  if (m.status === "confirmed_in" || m.status === "confirmed_out") {
+    return STATUS_CONFIG[m.status];
+  }
+
+  // Destination stage — badge based on vote, not dates status
+  if (tripStatus === "destination_open") {
+    if (m.destination_vote) {
+      return { icon: "✓", label: "Voted", bg: "bg-teal-100", text: "text-teal-700" };
+    }
+    return { icon: "⏳", label: "Waiting", bg: "bg-amber-100", text: "text-amber-700" };
+  }
+
+  // Commitment stage — waiting unless committed
+  if (tripStatus === "commitment") {
+    return { icon: "⏳", label: "Waiting", bg: "bg-amber-100", text: "text-amber-700" };
+  }
+
+  // Dates stage + default — use member status
+  return STATUS_CONFIG[m.status];
+}
 
 /* -- helpers -- */
 function formatDateRange(
@@ -208,10 +233,12 @@ export function MemberList({
   members,
   isOrganizer,
   onMembersUpdated,
+  tripStatus,
 }: {
   members: Member[];
   isOrganizer?: boolean;
   onMembersUpdated?: () => Promise<void>;
+  tripStatus?: TripStatus;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -266,7 +293,7 @@ export function MemberList({
             );
           }
 
-          const config = STATUS_CONFIG[m.status];
+          const config = getBadge(m, tripStatus);
           const dateRange = formatDateRange(
             m.availability_start ?? m.constraint_start,
             m.availability_end ?? m.constraint_end

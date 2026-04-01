@@ -287,7 +287,7 @@ export function DatesStage({
       )}
 
       <WaitingBanner members={members} />
-      <MemberList members={members} isOrganizer={isOrganizer} onMembersUpdated={onMembersUpdated} />
+      <MemberList members={members} isOrganizer={isOrganizer} onMembersUpdated={onMembersUpdated} tripStatus={trip.status} />
 
       {isOrganizer && best && (
         <LockButton
