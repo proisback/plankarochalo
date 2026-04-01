@@ -149,10 +149,10 @@ export function DatesStage({
         <h2 className="font-heading text-lg font-semibold">When are you free?</h2>
         <p className="text-text-secondary text-sm">
           {!startDate
-            ? `Tap your start date \u2014 looking for a ${trip.trip_days}-day window`
+            ? `Tap your start date — looking for a ${trip.trip_days}-day window`
             : !endDate
               ? "Now tap your end date"
-              : "Your dates are set \u2014 waiting for others"}
+              : "Your dates are set — waiting for others"}
         </p>
       </div>
 
@@ -163,15 +163,15 @@ export function DatesStage({
           <div className="flex-1">
             <p className="text-sm font-semibold text-text">
               {endDate
-                ? `${new Date(startDate).toLocaleDateString("en-IN", { month: "short", day: "numeric" })} \u2013 ${new Date(endDate).toLocaleDateString("en-IN", { month: "short", day: "numeric" })}`
-                : `${new Date(startDate).toLocaleDateString("en-IN", { month: "short", day: "numeric" })} \u2192 pick end date`}
+                ? `${new Date(startDate).toLocaleDateString("en-IN", { month: "short", day: "numeric" })} – ${new Date(endDate).toLocaleDateString("en-IN", { month: "short", day: "numeric" })}`
+                : `${new Date(startDate).toLocaleDateString("en-IN", { month: "short", day: "numeric" })} → pick end date`}
             </p>
           </div>
           <button
             onClick={() => { setStartDate(""); setEndDate(""); }}
             className="text-text-secondary hover:text-text text-base"
           >
-            \u2715
+            ✕
           </button>
         </div>
       )}
@@ -224,7 +224,7 @@ export function DatesStage({
             Best {trip.trip_days}-day window found
           </p>
           <p className="font-heading text-lg font-bold text-text">
-            {best.start.toLocaleDateString("en-IN", { month: "short", day: "numeric" })} \u2013{" "}
+            {best.start.toLocaleDateString("en-IN", { month: "short", day: "numeric" })} –{" "}
             {best.end.toLocaleDateString("en-IN", { month: "short", day: "numeric" })}
           </p>
           <p className="text-text-secondary text-sm mt-1">
@@ -257,13 +257,13 @@ export function DatesStage({
                 <span className="text-sm flex-1">{member.name}</span>
                 {hasConflict && (
                   <span className="text-xs text-status-waiting">
-                    \u26A0 conflict{" "}
+                    ⚠ conflict{" "}
                     {member.constraint_start &&
                       new Date(member.constraint_start).toLocaleDateString(
                         "en-IN",
                         { day: "numeric", month: "short" }
                       )}
-                    {"\u2013"}
+                    {"–"}
                     {member.constraint_end &&
                       new Date(member.constraint_end).toLocaleDateString(
                         "en-IN",
@@ -291,8 +291,8 @@ export function DatesStage({
 
       {isOrganizer && best && (
         <LockButton
-          label={`Lock Dates \u2192 ${best.start.toLocaleDateString("en-IN", { month: "short", day: "numeric" })} \u2013 ${best.end.toLocaleDateString("en-IN", { month: "short", day: "numeric" })}`}
-          confirmMessage={`Lock dates to ${best.start.toLocaleDateString("en-IN", { month: "short", day: "numeric" })} \u2013 ${best.end.toLocaleDateString("en-IN", { month: "short", day: "numeric" })}? This will notify the group and open destination voting.`}
+          label={`Lock Dates → ${best.start.toLocaleDateString("en-IN", { month: "short", day: "numeric" })} – ${best.end.toLocaleDateString("en-IN", { month: "short", day: "numeric" })}`}
+          confirmMessage={`Lock dates to ${best.start.toLocaleDateString("en-IN", { month: "short", day: "numeric" })} – ${best.end.toLocaleDateString("en-IN", { month: "short", day: "numeric" })}? This will notify the group and open destination voting.`}
           onLock={handleLockDates}
         />
       )}

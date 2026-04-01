@@ -10,31 +10,31 @@ const STATUS_CONFIG: Record<
   { icon: string; label: string; bg: string; text: string }
 > = {
   confirmed_in: {
-    icon: "\u2713",
+    icon: "✓",
     label: "Confirmed",
     bg: "bg-green-100",
     text: "text-green-700",
   },
   responded: {
-    icon: "\u25CF",
+    icon: "●",
     label: "Dates set",
     bg: "bg-teal-100",
     text: "text-teal-700",
   },
   invited: {
-    icon: "\u23F3",
+    icon: "⏳",
     label: "Waiting",
     bg: "bg-amber-100",
     text: "text-amber-700",
   },
   no_response: {
-    icon: "\u23F3",
+    icon: "⏳",
     label: "Waiting",
     bg: "bg-amber-100",
     text: "text-amber-700",
   },
   confirmed_out: {
-    icon: "\u2715",
+    icon: "✕",
     label: "Out",
     bg: "bg-red-100",
     text: "text-red-700",
@@ -52,7 +52,7 @@ function formatDateRange(
       day: "numeric",
       month: "short",
     });
-  return `${fmt(start)} \u2013 ${fmt(end)}`;
+  return `${fmt(start)} – ${fmt(end)}`;
 }
 
 function initials(name: string): string {
@@ -94,7 +94,7 @@ function EditProxyForm({
       constraint_end: constraintEnd || null,
       constraint_note:
         constraintStart && constraintEnd
-          ? `${new Date(constraintStart).toLocaleDateString("en-IN", { month: "short", day: "numeric" })} \u2013 ${new Date(constraintEnd).toLocaleDateString("en-IN", { month: "short", day: "numeric" })} unavailable`
+          ? `${new Date(constraintStart).toLocaleDateString("en-IN", { month: "short", day: "numeric" })} – ${new Date(constraintEnd).toLocaleDateString("en-IN", { month: "short", day: "numeric" })} unavailable`
           : null,
     };
 
@@ -247,7 +247,7 @@ export function MemberList({
           )}
         </span>
         <span className="text-text-secondary text-sm leading-none">
-          {expanded ? "\u25BE" : "\u25B8"}
+          {expanded ? "▾" : "▸"}
         </span>
       </button>
 
@@ -345,7 +345,7 @@ export function WaitingBanner({ members }: { members: Member[] }) {
   return (
     <div className="bg-status-waiting-bg border border-status-waiting/20 rounded-xl px-4 py-3">
       <p className="text-status-waiting text-sm">
-        \u23F3 Waiting on {waiting.length}{" "}
+        ⏳ Waiting on {waiting.length}{" "}
         {waiting.length === 1 ? "person" : "people"}:{" "}
         {waiting.map((m) => m.name).join(", ")}
       </p>
