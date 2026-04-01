@@ -3,12 +3,15 @@ import { createClient } from "@/lib/supabase/server";
 import { LoginForm } from "./login-form";
 
 export default async function Home() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
-  // If organizer is already logged in, go straight to create
-  if (user && !user.is_anonymous) {
-    redirect("/create");
+    if (user && !user.is_anonymous) {
+      redirect("/create");
+    }
+  } catch {
+    // Supabase not configured yet — render landing page anyway
   }
 
   return (

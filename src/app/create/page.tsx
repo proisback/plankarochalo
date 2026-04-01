@@ -3,10 +3,14 @@ import { createClient } from "@/lib/supabase/server";
 import { CreateTripForm } from "./create-trip-form";
 
 export default async function CreatePage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user || user.is_anonymous) {
+    if (!user || user.is_anonymous) {
+      redirect("/");
+    }
+  } catch {
     redirect("/");
   }
 
