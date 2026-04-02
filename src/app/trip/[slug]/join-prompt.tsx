@@ -193,7 +193,7 @@ export function JoinPrompt({
         <button
           onClick={() => joinAndFinish(false)}
           disabled={loading}
-          className="w-full bg-surface text-text-secondary border border-border rounded-xl px-4 py-3.5 text-sm font-medium hover:bg-stone-50 active:scale-[0.98] transition-all disabled:opacity-50"
+          className="w-full bg-surface text-text-secondary border border-border rounded-xl px-4 py-3.5 text-sm font-medium hover:bg-subtle active:scale-[0.98] transition-all disabled:opacity-50"
         >
           I can&apos;t make these dates
         </button>

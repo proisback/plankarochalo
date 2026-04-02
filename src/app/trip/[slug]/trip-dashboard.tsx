@@ -188,12 +188,12 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
 
   return (
     <main className="min-h-screen pb-20">
-      <div className="max-w-lg mx-auto p-4 stagger">
+      <div className="max-w-lg mx-auto px-4 pt-5 pb-6">
         {/* Nav */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-5">
           <button
             onClick={() => window.history.back()}
-            className="text-xs text-text-secondary border border-border rounded-lg px-3 py-1.5 hover:bg-stone-50 active:scale-95 transition-all flex items-center gap-1"
+            className="text-xs text-text-secondary border border-border rounded-lg px-3 py-1.5 hover:bg-subtle active:scale-95 transition-all flex items-center gap-1"
           >
             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
@@ -203,7 +203,7 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
           {isOrganizer && (
             <a
               href="/create"
-              className="text-xs text-text-secondary border border-border rounded-lg px-3 py-1.5 hover:bg-stone-50 active:scale-95 transition-all flex items-center gap-1"
+              className="text-xs text-text-secondary border border-border rounded-lg px-3 py-1.5 hover:bg-subtle active:scale-95 transition-all flex items-center gap-1"
             >
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -214,7 +214,7 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
         </div>
 
         {/* Header */}
-        <div className="flex items-start justify-between">
+        <div className="flex items-start justify-between mb-4">
           <div>
             <h1 className="font-heading text-xl font-bold text-text">{trip.name}</h1>
             {trip.budget && (
@@ -226,6 +226,8 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
           </span>
         </div>
 
+        {/* Content with consistent spacing */}
+        <div className="space-y-4 stagger">
         <ProgressBar currentStage={trip.status} />
         {trip.status !== "ready" && <ShareLink slug={trip.slug} />}
 
@@ -287,6 +289,7 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
         {trip.status === "ready" && (
           <ReadyStage trip={trip} members={members} currentMember={currentMember!} />
         )}
+        </div>
       </div>
     </main>
   );

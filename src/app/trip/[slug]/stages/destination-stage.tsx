@@ -183,7 +183,7 @@ export function DestinationStage({
                 <div className="flex items-center gap-3">
                   <div className={[
                     "w-11 h-11 rounded-xl flex items-center justify-center text-xl shrink-0",
-                    isVoted ? "bg-primary/10" : "bg-stone-50",
+                    isVoted ? "bg-primary/10" : "bg-subtle",
                   ].join(" ")}>
                     {opt.emoji}
                   </div>
@@ -197,7 +197,7 @@ export function DestinationStage({
                         {voters.slice(0, 3).map((v) => (
                           <span
                             key={v.id}
-                            className="w-5 h-5 rounded-full bg-accent/10 text-accent text-[9px] font-bold flex items-center justify-center ring-1 ring-white"
+                            className="w-5 h-5 rounded-full bg-accent/10 text-accent text-[9px] font-bold flex items-center justify-center ring-1 ring-surface"
                           >
                             {v.name.charAt(0).toUpperCase()}
                           </span>
@@ -229,7 +229,7 @@ export function DestinationStage({
 
         {options.length === 0 && (
           <div className="bg-surface border border-border-light rounded-2xl p-8 text-center shadow-xs">
-            <div className="w-10 h-10 rounded-xl bg-stone-50 flex items-center justify-center mx-auto mb-3">
+            <div className="w-10 h-10 rounded-xl bg-subtle flex items-center justify-center mx-auto mb-3">
               <svg className="w-5 h-5 text-text-tertiary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
@@ -245,7 +245,7 @@ export function DestinationStage({
       {!showAdd ? (
         <button
           onClick={() => setShowAdd(true)}
-          className="w-full border-2 border-dashed border-stone-200 rounded-2xl px-4 py-3.5 text-sm text-text-secondary font-medium hover:border-primary hover:text-primary hover:bg-primary-light/30 transition-all flex items-center justify-center gap-1.5"
+          className="w-full border-2 border-dashed border-subtle-hover rounded-2xl px-4 py-3.5 text-sm text-text-secondary font-medium hover:border-primary hover:text-primary hover:bg-primary-light/30 transition-all flex items-center justify-center gap-1.5"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -285,7 +285,7 @@ export function DestinationStage({
                     "w-9 h-9 rounded-lg text-lg flex items-center justify-center transition-all",
                     newEmoji === e
                       ? "bg-primary-light border-2 border-primary/25 scale-110"
-                      : "bg-stone-50 hover:bg-stone-100 border-2 border-transparent",
+                      : "bg-subtle hover:bg-subtle-hover border-2 border-transparent",
                   ].join(" ")}
                 >
                   {e}
@@ -297,7 +297,7 @@ export function DestinationStage({
             <button
               type="button"
               onClick={() => setShowAdd(false)}
-              className="flex-1 border border-border rounded-xl px-4 py-2.5 text-sm font-medium text-text-secondary hover:bg-stone-50 active:scale-[0.98] transition-all"
+              className="flex-1 border border-border rounded-xl px-4 py-2.5 text-sm font-medium text-text-secondary hover:bg-subtle active:scale-[0.98] transition-all"
             >
               Cancel
             </button>

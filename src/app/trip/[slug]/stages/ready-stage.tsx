@@ -108,7 +108,7 @@ export function ReadyStage({
             {confirmedIn.map((m, i) => (
               <div
                 key={m.id}
-                className="flex items-center gap-1.5 bg-stone-50 rounded-full pl-1 pr-2.5 py-1"
+                className="flex items-center gap-1.5 bg-subtle rounded-full pl-1 pr-2.5 py-1"
               >
                 <div className={[
                   "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold",
@@ -126,7 +126,7 @@ export function ReadyStage({
       {/* WhatsApp share button */}
       <button
         onClick={handleCopy}
-        className="w-full bg-[#25D366] text-white rounded-2xl px-5 py-4 text-sm font-bold shadow-sm hover:bg-[#20BD5A] active:scale-[0.98] transition-all flex items-center justify-center gap-2.5 animate-in"
+        className="w-full bg-whatsapp text-white rounded-2xl px-5 py-4 text-sm font-bold shadow-sm hover:bg-whatsapp-hover active:scale-[0.98] transition-all flex items-center justify-center gap-2.5 animate-in"
         style={{ animationDelay: "320ms" }}
       >
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">

@@ -32,7 +32,8 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap"
           rel="stylesheet"
         />
-        <meta name="theme-color" content="#FAF9F7" />
+        <meta name="theme-color" content="#FAF9F7" media="(prefers-color-scheme: light)" />
+        <meta name="theme-color" content="#141316" media="(prefers-color-scheme: dark)" />
       </head>
       <body className="antialiased min-h-screen">
         {children}

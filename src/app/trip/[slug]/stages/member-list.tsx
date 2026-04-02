@@ -174,7 +174,7 @@ function EditProxyForm({
     "w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all";
 
   return (
-    <div className="border-t border-border-light px-4 py-3 space-y-3 bg-stone-50/50 animate-in">
+    <div className="border-t border-border-light px-4 py-3 space-y-3 bg-subtle/50 animate-in">
       {/* Name */}
       <div>
         <label className="block text-[11px] font-semibold text-text-tertiary uppercase tracking-wider mb-1">
@@ -323,7 +323,7 @@ function EditProxyForm({
         </button>
         <button
           onClick={onCancel}
-          className="flex-1 bg-stone-100 text-text-secondary rounded-xl px-3 py-2 text-sm font-medium hover:bg-stone-200 active:scale-[0.98] transition-all"
+          className="flex-1 bg-subtle-hover text-text-secondary rounded-xl px-3 py-2 text-sm font-medium hover:bg-subtle-active active:scale-[0.98] transition-all"
         >
           Cancel
         </button>
@@ -368,7 +368,7 @@ export function MemberList({
       {/* header */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between px-4 py-3 hover:bg-stone-50/50 transition-colors"
+        className="w-full flex items-center justify-between px-4 py-3 hover:bg-subtle/50 transition-colors"
       >
         <span className="flex items-center gap-2 text-xs">
           <span className="font-bold text-text-secondary uppercase tracking-wider">
@@ -433,13 +433,13 @@ export function MemberList({
           return (
             <div key={m.id} className="border-t border-border-light">
             <div
-              className="flex items-center justify-between px-4 py-2 hover:bg-stone-50/30 transition-colors"
+              className="flex items-center justify-between px-4 py-2 hover:bg-subtle/30 transition-colors"
             >
               {/* left: avatar + info */}
               <div className="flex items-center gap-2.5 min-w-0">
                 <div
                   className={[
-                    "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ring-2 ring-white",
+                    "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ring-2 ring-surface",
                     getAvatarColor(memberIndex, m.is_organizer),
                   ].join(" ")}
                 >
@@ -491,7 +491,7 @@ export function MemberList({
                 {isOrganizer && m.is_proxy && tripStatus === "destination_open" && onProxyVote && destinationOptions && (
                   <button
                     onClick={() => { setVotingForMemberId(votingForMemberId === m.id ? null : m.id); setCommittingMemberId(null); }}
-                    className="w-7 h-7 flex items-center justify-center rounded-lg text-text-tertiary hover:bg-stone-100 hover:text-text-secondary transition-all text-xs"
+                    className="w-7 h-7 flex items-center justify-center rounded-lg text-text-tertiary hover:bg-subtle-hover hover:text-text-secondary transition-all text-xs"
                     aria-label={`Vote for ${m.name}`}
                   >
                     🗳
@@ -501,7 +501,7 @@ export function MemberList({
                 {isOrganizer && m.is_proxy && tripStatus === "commitment" && onProxyCommit && m.status !== "confirmed_in" && m.status !== "confirmed_out" && (
                   <button
                     onClick={() => { setCommittingMemberId(committingMemberId === m.id ? null : m.id); setVotingForMemberId(null); }}
-                    className="w-7 h-7 flex items-center justify-center rounded-lg text-text-tertiary hover:bg-stone-100 hover:text-text-secondary transition-all text-xs"
+                    className="w-7 h-7 flex items-center justify-center rounded-lg text-text-tertiary hover:bg-subtle-hover hover:text-text-secondary transition-all text-xs"
                     aria-label={`Confirm ${m.name}`}
                   >
                     ✋
@@ -510,7 +510,7 @@ export function MemberList({
                 {isOrganizer && m.is_proxy && (
                   <button
                     onClick={() => setEditingId(m.id)}
-                    className="w-7 h-7 flex items-center justify-center rounded-lg text-text-tertiary hover:bg-stone-100 hover:text-text-secondary transition-all"
+                    className="w-7 h-7 flex items-center justify-center rounded-lg text-text-tertiary hover:bg-subtle-hover hover:text-text-secondary transition-all"
                     aria-label={`Edit ${m.name}`}
                   >
                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -523,7 +523,7 @@ export function MemberList({
 
             {/* Inline vote picker */}
             {votingForMemberId === m.id && destinationOptions && onProxyVote && (
-              <div className="px-4 py-2 flex flex-wrap gap-1.5 bg-stone-50/50 animate-in">
+              <div className="px-4 py-2 flex flex-wrap gap-1.5 bg-subtle/50 animate-in">
                 {destinationOptions.map((opt) => (
                   <button
                     key={opt.id}
@@ -542,7 +542,7 @@ export function MemberList({
 
             {/* Inline commitment picker */}
             {committingMemberId === m.id && onProxyCommit && (
-              <div className="px-4 py-2 flex gap-2 bg-stone-50/50 animate-in">
+              <div className="px-4 py-2 flex gap-2 bg-subtle/50 animate-in">
                 <button
                   onClick={() => { onProxyCommit(m.id, "confirmed_in"); setCommittingMemberId(null); }}
                   className="flex-1 bg-accent text-white rounded-xl py-2 text-xs font-semibold shadow-sm hover:bg-accent-hover active:scale-95 transition-all"

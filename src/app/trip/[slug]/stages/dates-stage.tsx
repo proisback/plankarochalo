@@ -273,7 +273,7 @@ export function DatesStage({
                       [member.id]: e.target.checked,
                     }))
                   }
-                  className="w-4 h-4 rounded border-stone-300 text-accent focus:ring-accent/30"
+                  className="w-4 h-4 rounded border-subtle-active text-accent focus:ring-accent/30"
                 />
                 <span className="text-sm flex-1 group-hover:text-text transition-colors">{member.name}</span>
                 {hasConflict && (

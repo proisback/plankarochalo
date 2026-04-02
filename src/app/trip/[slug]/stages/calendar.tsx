@@ -90,7 +90,7 @@ export default function Calendar({
     const base = "w-10 h-10 flex items-center justify-center rounded-xl text-sm transition-all duration-150";
 
     if (past) {
-      return `${base} opacity-30 cursor-default text-stone-400`;
+      return `${base} opacity-30 cursor-default text-muted`;
     }
 
     // Selected start or end
@@ -109,13 +109,13 @@ export default function Calendar({
 
     let heatmap: string;
     if (count >= 4) {
-      heatmap = "bg-emerald-200/80 text-emerald-800 font-medium";
+      heatmap = "bg-heat-high text-heat-high-text font-medium";
     } else if (count >= 2) {
-      heatmap = "bg-emerald-100/70 text-emerald-700";
+      heatmap = "bg-heat-medium text-heat-medium-text";
     } else if (count === 1) {
-      heatmap = "bg-amber-100/70 text-amber-700";
+      heatmap = "bg-heat-low text-heat-low-text";
     } else {
-      heatmap = isWeekend ? "bg-stone-50 text-stone-500" : "text-stone-600";
+      heatmap = isWeekend ? "bg-subtle text-muted-medium" : "text-muted-dark";
     }
 
     const todayStyle = isToday ? "text-primary font-bold ring-2 ring-primary/20" : "";
@@ -136,7 +136,7 @@ export default function Calendar({
         <button
           type="button"
           onClick={prevMonth}
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary hover:bg-stone-100 active:scale-90 transition-all"
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary hover:bg-subtle-hover active:scale-90 transition-all"
           aria-label="Previous month"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -149,7 +149,7 @@ export default function Calendar({
         <button
           type="button"
           onClick={nextMonth}
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary hover:bg-stone-100 active:scale-90 transition-all"
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary hover:bg-subtle-hover active:scale-90 transition-all"
           aria-label="Next month"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -192,19 +192,19 @@ export default function Calendar({
       {/* Legend */}
       <div className="mt-4 flex items-center justify-center gap-4 text-[10px] text-text-tertiary font-medium">
         <span className="flex items-center gap-1.5">
-          <span className="inline-block h-2.5 w-2.5 rounded bg-stone-100" />
+          <span className="inline-block h-2.5 w-2.5 rounded bg-subtle-hover" />
           None
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="inline-block h-2.5 w-2.5 rounded bg-amber-100" />
+          <span className="inline-block h-2.5 w-2.5 rounded bg-heat-low" />
           1
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="inline-block h-2.5 w-2.5 rounded bg-emerald-100" />
+          <span className="inline-block h-2.5 w-2.5 rounded bg-heat-medium" />
           2-3
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="inline-block h-2.5 w-2.5 rounded bg-emerald-200" />
+          <span className="inline-block h-2.5 w-2.5 rounded bg-heat-high" />
           4+
         </span>
       </div>

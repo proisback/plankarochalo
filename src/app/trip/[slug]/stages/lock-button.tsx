@@ -80,7 +80,7 @@ export function LockButton({
               </button>
               <button
                 onClick={() => setShowConfirm(false)}
-                className="flex-1 bg-stone-100 text-text-secondary rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-stone-200 active:scale-[0.98] transition-all"
+                className="flex-1 bg-subtle-hover text-text-secondary rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-subtle-active active:scale-[0.98] transition-all"
               >
                 Wait, not yet
               </button>

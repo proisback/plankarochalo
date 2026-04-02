@@ -132,7 +132,7 @@ export function CreateTripForm() {
                 "flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95",
                 tripDays === d
                   ? "bg-primary text-white shadow-sm"
-                  : "bg-stone-50 border border-border text-text hover:bg-stone-100",
+                  : "bg-subtle border border-border text-text hover:bg-subtle-hover",
               ].join(" ")}
             >
               {d}
@@ -177,7 +177,7 @@ export function CreateTripForm() {
                 "py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95",
                 votingDeadline === opt.value
                   ? "bg-primary text-white shadow-sm"
-                  : "bg-stone-50 border border-border text-text hover:bg-stone-100",
+                  : "bg-subtle border border-border text-text hover:bg-subtle-hover",
               ].join(" ")}
             >
               {opt.label}
@@ -201,7 +201,7 @@ export function CreateTripForm() {
         {proxyMembers.map((p, i) => (
           <div
             key={i}
-            className="flex items-center gap-2 bg-stone-50 rounded-xl px-3.5 py-2.5"
+            className="flex items-center gap-2 bg-subtle rounded-xl px-3.5 py-2.5"
           >
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold truncate text-text">{p.name}</p>
@@ -228,7 +228,7 @@ export function CreateTripForm() {
               onClick={() =>
                 setProxyMembers((prev) => prev.filter((_, j) => j !== i))
               }
-              className="w-7 h-7 rounded-lg hover:bg-stone-200 flex items-center justify-center text-text-tertiary hover:text-text transition-all"
+              className="w-7 h-7 rounded-lg hover:bg-subtle-active flex items-center justify-center text-text-tertiary hover:text-text transition-all"
             >
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -238,7 +238,7 @@ export function CreateTripForm() {
         ))}
 
         {/* Add constraint form */}
-        <div className="bg-stone-50/70 border border-border-light rounded-2xl p-4 space-y-2.5">
+        <div className="bg-subtle/70 border border-border-light rounded-2xl p-4 space-y-2.5">
           <p className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">
             Add a member&apos;s unavailable dates
           </p>
@@ -287,7 +287,7 @@ export function CreateTripForm() {
               setPStart("");
               setPEnd("");
             }}
-            className="w-full bg-accent text-white rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm hover:bg-accent-hover active:scale-[0.98] transition-all disabled:bg-stone-200 disabled:text-text-tertiary disabled:shadow-none flex items-center justify-center gap-1.5"
+            className="w-full bg-accent text-white rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm hover:bg-accent-hover active:scale-[0.98] transition-all disabled:bg-subtle-active disabled:text-text-tertiary disabled:shadow-none flex items-center justify-center gap-1.5"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />

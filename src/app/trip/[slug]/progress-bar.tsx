@@ -64,7 +64,7 @@ export function ProgressBar({ currentStage }: { currentStage: TripStatus }) {
             ? "w-9 h-9 bg-gradient-to-br from-primary to-[#F4845F] text-white shadow-sm"
             : isCurrent
               ? "w-10 h-10 bg-primary text-white shadow-lg shadow-primary/20 ring-[3px] ring-primary/10"
-              : "w-9 h-9 bg-stone-100 text-stone-400",
+              : "w-9 h-9 bg-subtle-hover text-muted",
         ].join(" ");
 
         const labelClasses = [
@@ -88,7 +88,7 @@ export function ProgressBar({ currentStage }: { currentStage: TripStatus }) {
 
             {/* Connecting line */}
             {!isLast && (
-              <div className="flex-1 mt-[18px] mx-1 h-[3px] rounded-full bg-stone-100 relative overflow-hidden">
+              <div className="flex-1 mt-[18px] mx-1 h-[3px] rounded-full bg-subtle-hover relative overflow-hidden">
                 <div
                   className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-primary to-[#F4845F] transition-all duration-700 ease-out"
                   style={{
