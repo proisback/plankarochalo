@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { CreateTripForm } from "./create-trip-form";
+import { ThemeToggle } from "@/app/theme-toggle";
 
 export default async function CreatePage() {
   try {
@@ -15,7 +16,10 @@ export default async function CreatePage() {
   }
 
   return (
-    <main className="min-h-screen p-6 bg-hero">
+    <main className="min-h-screen p-6 bg-hero relative">
+      <div className="absolute top-4 right-4 z-20">
+        <ThemeToggle />
+      </div>
       <div className="max-w-lg mx-auto stagger">
         <div className="mb-6">
           <a

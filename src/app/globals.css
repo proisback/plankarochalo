@@ -75,69 +75,69 @@
    DARK MODE
    ═══════════════════════════════════════════════ */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* ── Primary (brighter for dark bg) ─────── */
-    --color-primary: #F07A45;
-    --color-primary-hover: #E86A33;
-    --color-primary-light: rgba(240, 122, 69, 0.12);
-    --color-primary-glow: rgba(240, 122, 69, 0.20);
+html.dark {
+  color-scheme: dark;
 
-    /* ── Accent (brighter green) ────────────── */
-    --color-accent: #3D8B6A;
-    --color-accent-hover: #2D6A4F;
-    --color-accent-light: rgba(61, 139, 106, 0.12);
+  /* ── Primary (brighter for dark bg) ─────── */
+  --color-primary: #F07A45;
+  --color-primary-hover: #E86A33;
+  --color-primary-light: rgba(240, 122, 69, 0.12);
+  --color-primary-glow: rgba(240, 122, 69, 0.20);
 
-    /* ── Surfaces (dark charcoal) ───────────── */
-    --color-background: #141316;
-    --color-surface: #1E1D21;
+  /* ── Accent (brighter green) ────────────── */
+  --color-accent: #3D8B6A;
+  --color-accent-hover: #2D6A4F;
+  --color-accent-light: rgba(61, 139, 106, 0.12);
 
-    /* ── Text (cool whites/grays) ───────────── */
-    --color-text: #EDEDEF;
-    --color-text-secondary: #9E9CA3;
-    --color-text-tertiary: #6B6971;
+  /* ── Surfaces (dark charcoal) ───────────── */
+  --color-background: #141316;
+  --color-surface: #1E1D21;
 
-    /* ── Borders ────────────────────────────── */
-    --color-border: #2E2D33;
-    --color-border-light: #252429;
+  /* ── Text (cool whites/grays) ───────────── */
+  --color-text: #EDEDEF;
+  --color-text-secondary: #9E9CA3;
+  --color-text-tertiary: #6B6971;
 
-    /* ── Subtle surfaces ────────────────────── */
-    --color-subtle: #252429;
-    --color-subtle-hover: #2E2D33;
-    --color-subtle-active: #3A3940;
+  /* ── Borders ────────────────────────────── */
+  --color-border: #2E2D33;
+  --color-border-light: #252429;
 
-    /* ── Muted text ─────────────────────────── */
-    --color-muted: #6B6971;
-    --color-muted-medium: #9E9CA3;
-    --color-muted-dark: #B0AEB5;
+  /* ── Subtle surfaces ────────────────────── */
+  --color-subtle: #252429;
+  --color-subtle-hover: #2E2D33;
+  --color-subtle-active: #3A3940;
 
-    /* ── Calendar heatmap ────────────────────── */
-    --color-heat-high: rgba(34, 197, 94, 0.25);
-    --color-heat-high-text: #86EFAC;
-    --color-heat-medium: rgba(34, 197, 94, 0.15);
-    --color-heat-medium-text: #6EE7B7;
-    --color-heat-low: rgba(245, 158, 11, 0.15);
-    --color-heat-low-text: #FCD34D;
+  /* ── Muted text ─────────────────────────── */
+  --color-muted: #6B6971;
+  --color-muted-medium: #9E9CA3;
+  --color-muted-dark: #B0AEB5;
 
-    /* ── Status (brighter + translucent bg) ── */
-    --color-status-confirmed: #22C55E;
-    --color-status-confirmed-bg: rgba(34, 197, 94, 0.10);
-    --color-status-responded: #14B8A6;
-    --color-status-responded-bg: rgba(20, 184, 166, 0.10);
-    --color-status-waiting: #F59E0B;
-    --color-status-waiting-bg: rgba(245, 158, 11, 0.10);
-    --color-status-out: #EF4444;
-    --color-status-out-bg: rgba(239, 68, 68, 0.10);
-    --color-status-pending: #A78BFA;
-    --color-status-pending-bg: rgba(167, 139, 250, 0.10);
+  /* ── Calendar heatmap ────────────────────── */
+  --color-heat-high: rgba(34, 197, 94, 0.25);
+  --color-heat-high-text: #86EFAC;
+  --color-heat-medium: rgba(34, 197, 94, 0.15);
+  --color-heat-medium-text: #6EE7B7;
+  --color-heat-low: rgba(245, 158, 11, 0.15);
+  --color-heat-low-text: #FCD34D;
 
-    /* ── Shadows (stronger for dark mode) ──── */
-    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.20);
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.25), 0 2px 8px rgba(0, 0, 0, 0.10);
-    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.30), 0 2px 4px rgba(0, 0, 0, 0.15);
-    --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.40), 0 4px 8px rgba(0, 0, 0, 0.20);
-    --shadow-xl: 0 20px 48px rgba(0, 0, 0, 0.50), 0 8px 16px rgba(0, 0, 0, 0.25);
-  }
+  /* ── Status (brighter + translucent bg) ── */
+  --color-status-confirmed: #22C55E;
+  --color-status-confirmed-bg: rgba(34, 197, 94, 0.10);
+  --color-status-responded: #14B8A6;
+  --color-status-responded-bg: rgba(20, 184, 166, 0.10);
+  --color-status-waiting: #F59E0B;
+  --color-status-waiting-bg: rgba(245, 158, 11, 0.10);
+  --color-status-out: #EF4444;
+  --color-status-out-bg: rgba(239, 68, 68, 0.10);
+  --color-status-pending: #A78BFA;
+  --color-status-pending-bg: rgba(167, 139, 250, 0.10);
+
+  /* ── Shadows (stronger for dark mode) ──── */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.20);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.25), 0 2px 8px rgba(0, 0, 0, 0.10);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.30), 0 2px 4px rgba(0, 0, 0, 0.15);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.40), 0 4px 8px rgba(0, 0, 0, 0.20);
+  --shadow-xl: 0 20px 48px rgba(0, 0, 0, 0.50), 0 8px 16px rgba(0, 0, 0, 0.25);
 }
 
 body {
@@ -146,7 +146,7 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  color-scheme: light dark;
+  color-scheme: light;
 }
 
 /* ═══════════════════════════════════════════════
@@ -280,29 +280,27 @@ body {
 
 /* ── Dark mode utility overrides ─────────────── */
 
-@media (prefers-color-scheme: dark) {
-  .text-gradient {
-    background: linear-gradient(135deg, #F07A45 0%, #F4A57A 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
+html.dark .text-gradient {
+  background: linear-gradient(135deg, #F07A45 0%, #F4A57A 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
 
-  .bg-hero {
-    background:
-      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(240, 122, 69, 0.06), transparent),
-      radial-gradient(ellipse 60% 40% at 80% 110%, rgba(61, 139, 106, 0.04), transparent),
-      var(--color-background);
-  }
+html.dark .bg-hero {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(240, 122, 69, 0.06), transparent),
+    radial-gradient(ellipse 60% 40% at 80% 110%, rgba(61, 139, 106, 0.04), transparent),
+    var(--color-background);
+}
 
-  ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.12);
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.2);
-  }
+html.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+}
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
 
-  ::selection {
-    background: rgba(240, 122, 69, 0.25);
-  }
+html.dark ::selection {
+  background: rgba(240, 122, 69, 0.25);
 }

@@ -10,6 +10,7 @@ import { DatesStage } from "./stages/dates-stage";
 import { DestinationStage } from "./stages/destination-stage";
 import { CommitmentStage } from "./stages/commitment-stage";
 import { ReadyStage } from "./stages/ready-stage";
+import { ThemeToggle } from "@/app/theme-toggle";
 
 
 export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
@@ -200,17 +201,20 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
             </svg>
             Back
           </button>
-          {isOrganizer && (
-            <a
-              href="/create"
-              className="text-xs text-text-secondary border border-border rounded-lg px-3 py-1.5 hover:bg-subtle active:scale-95 transition-all flex items-center gap-1"
-            >
-              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-              </svg>
-              New trip
-            </a>
-          )}
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            {isOrganizer && (
+              <a
+                href="/create"
+                className="text-xs text-text-secondary border border-border rounded-lg px-3 py-1.5 hover:bg-subtle active:scale-95 transition-all flex items-center gap-1"
+              >
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+                New trip
+              </a>
+            )}
+          </div>
         </div>
 
         {/* Header */}
