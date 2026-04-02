@@ -15,12 +15,6 @@ function toDateKey(year: number, month: number, day: number): string {
   return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
-function parseDate(dateStr: string): Date | null {
-  if (!dateStr) return null;
-  const [y, m, d] = dateStr.split("-").map(Number);
-  return new Date(y, m - 1, d);
-}
-
 function isSameDay(a: string, b: string): boolean {
   return a === b;
 }
@@ -93,15 +87,15 @@ export default function Calendar({
     const isEnd = isSameDay(dateKey, endDate);
     const inRange = isInRange(dateKey, startDate, endDate);
 
-    const base = "w-10 h-10 flex items-center justify-center rounded-lg text-sm transition-colors";
+    const base = "w-10 h-10 flex items-center justify-center rounded-xl text-sm transition-all duration-150";
 
     if (past) {
-      return `${base} opacity-40 cursor-default bg-gray-50 text-gray-400`;
+      return `${base} opacity-30 cursor-default text-stone-400`;
     }
 
     // Selected start or end
     if (isStart || isEnd) {
-      return `${base} bg-primary text-white font-medium cursor-pointer`;
+      return `${base} bg-primary text-white font-semibold shadow-sm cursor-pointer`;
     }
 
     // In selection range
@@ -115,18 +109,18 @@ export default function Calendar({
 
     let heatmap: string;
     if (count >= 4) {
-      heatmap = "bg-emerald-200 text-emerald-800 font-medium";
+      heatmap = "bg-emerald-200/80 text-emerald-800 font-medium";
     } else if (count >= 2) {
-      heatmap = "bg-emerald-100 text-emerald-700";
+      heatmap = "bg-emerald-100/70 text-emerald-700";
     } else if (count === 1) {
-      heatmap = "bg-orange-100 text-orange-700";
+      heatmap = "bg-amber-100/70 text-amber-700";
     } else {
-      heatmap = isWeekend ? "bg-gray-100 text-gray-500" : "bg-gray-50 text-gray-600";
+      heatmap = isWeekend ? "bg-stone-50 text-stone-500" : "text-stone-600";
     }
 
-    const todayStyle = isToday ? "text-primary font-bold ring-1 ring-primary/30" : "";
+    const todayStyle = isToday ? "text-primary font-bold ring-2 ring-primary/20" : "";
 
-    return `${base} ${heatmap} ${todayStyle} cursor-pointer hover:ring-2 hover:ring-primary/40`;
+    return `${base} ${heatmap} ${todayStyle} cursor-pointer hover:ring-2 hover:ring-primary/30`;
   }
 
   function handleDayClick(day: number) {
@@ -136,27 +130,31 @@ export default function Calendar({
   }
 
   return (
-    <div className="rounded-xl border border-gray-100 bg-surface p-4">
+    <div className="rounded-2xl border border-border-light bg-surface p-4 shadow-sm">
       {/* Month/Year header with navigation */}
       <div className="mb-3 flex items-center justify-between">
         <button
           type="button"
           onClick={prevMonth}
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary hover:bg-gray-100 transition-colors"
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary hover:bg-stone-100 active:scale-90 transition-all"
           aria-label="Previous month"
         >
-          ◂
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+          </svg>
         </button>
-        <h3 className="font-heading text-base font-semibold text-gray-900">
+        <h3 className="font-heading text-sm font-bold text-text">
           {monthLabel}
         </h3>
         <button
           type="button"
           onClick={nextMonth}
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary hover:bg-gray-100 transition-colors"
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary hover:bg-stone-100 active:scale-90 transition-all"
           aria-label="Next month"
         >
-          ▸
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+          </svg>
         </button>
       </div>
 
@@ -165,7 +163,7 @@ export default function Calendar({
         {DAYS_OF_WEEK.map((d) => (
           <div
             key={d}
-            className="flex h-8 w-10 items-center justify-center text-xs font-medium text-text-secondary"
+            className="flex h-8 w-10 items-center justify-center text-[11px] font-semibold text-text-tertiary uppercase tracking-wider"
           >
             {d}
           </div>
@@ -192,21 +190,21 @@ export default function Calendar({
       </div>
 
       {/* Legend */}
-      <div className="mt-4 flex items-center justify-center gap-4 text-xs text-text-secondary">
+      <div className="mt-4 flex items-center justify-center gap-4 text-[10px] text-text-tertiary font-medium">
         <span className="flex items-center gap-1.5">
-          <span className="inline-block h-3 w-3 rounded-sm bg-gray-100" />
-          0
+          <span className="inline-block h-2.5 w-2.5 rounded bg-stone-100" />
+          None
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="inline-block h-3 w-3 rounded-sm bg-orange-100" />
+          <span className="inline-block h-2.5 w-2.5 rounded bg-amber-100" />
           1
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="inline-block h-3 w-3 rounded-sm bg-emerald-100" />
+          <span className="inline-block h-2.5 w-2.5 rounded bg-emerald-100" />
           2-3
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="inline-block h-3 w-3 rounded-sm bg-emerald-200" />
+          <span className="inline-block h-2.5 w-2.5 rounded bg-emerald-200" />
           4+
         </span>
       </div>

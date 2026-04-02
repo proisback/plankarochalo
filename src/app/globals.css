@@ -1,33 +1,187 @@
 @import "tailwindcss";
 
 @theme {
+  /* ── Primary ────────────────────────────────── */
   --color-primary: #E86A33;
-  --color-primary-light: #FFF0E8;
+  --color-primary-hover: #D45A26;
+  --color-primary-light: #FFF3ED;
+  --color-primary-glow: rgba(232, 106, 51, 0.15);
+
+  /* ── Accent ─────────────────────────────────── */
   --color-accent: #2D6A4F;
-  --color-accent-light: #E8F5EE;
-  --color-background: #FAFAF8;
+  --color-accent-hover: #24593F;
+  --color-accent-light: #ECFDF5;
+
+  /* ── Surfaces ───────────────────────────────── */
+  --color-background: #FAF9F7;
   --color-surface: #FFFFFF;
-  --color-text: #1A1A1A;
-  --color-text-secondary: #6B7280;
 
-  /* Status colors */
-  --color-status-confirmed: #2D6A4F;
-  --color-status-confirmed-bg: #E8F5EE;
-  --color-status-responded: #2D6A4F;
-  --color-status-responded-bg: #E8F5EE;
-  --color-status-waiting: #D4940A;
-  --color-status-waiting-bg: #FFF8E1;
-  --color-status-out: #C62828;
-  --color-status-out-bg: #FFEBEE;
-  --color-status-pending: #7B61FF;
-  --color-status-pending-bg: #F0ECFF;
+  /* ── Text (warm stone tones) ────────────────── */
+  --color-text: #1C1917;
+  --color-text-secondary: #78716C;
+  --color-text-tertiary: #A8A29E;
 
-  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-heading: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  /* ── Borders (warm) ─────────────────────────── */
+  --color-border: #E7E5E4;
+  --color-border-light: #F5F5F4;
+
+  /* ── Status ─────────────────────────────────── */
+  --color-status-confirmed: #16A34A;
+  --color-status-confirmed-bg: #F0FDF4;
+  --color-status-responded: #0D9488;
+  --color-status-responded-bg: #F0FDFA;
+  --color-status-waiting: #D97706;
+  --color-status-waiting-bg: #FFFBEB;
+  --color-status-out: #DC2626;
+  --color-status-out-bg: #FEF2F2;
+  --color-status-pending: #7C3AED;
+  --color-status-pending-bg: #F5F3FF;
+
+  /* ── Typography ─────────────────────────────── */
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+
+  /* ── Shadows (warm, layered) ────────────────── */
+  --shadow-xs: 0 1px 2px rgba(28, 25, 23, 0.04);
+  --shadow-sm: 0 1px 3px rgba(28, 25, 23, 0.06), 0 2px 8px rgba(28, 25, 23, 0.02);
+  --shadow-md: 0 4px 16px rgba(28, 25, 23, 0.07), 0 2px 4px rgba(28, 25, 23, 0.03);
+  --shadow-lg: 0 12px 32px rgba(28, 25, 23, 0.1), 0 4px 8px rgba(28, 25, 23, 0.04);
+  --shadow-xl: 0 20px 48px rgba(28, 25, 23, 0.14), 0 8px 16px rgba(28, 25, 23, 0.06);
 }
 
 body {
   background-color: var(--color-background);
   color: var(--color-text);
   font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ═══════════════════════════════════════════════
+   ANIMATIONS
+   ═══════════════════════════════════════════════ */
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Entrance utility */
+.animate-in {
+  animation: fade-in-up 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-fade {
+  animation: fade-in 0.4s ease-out both;
+}
+
+.animate-scale {
+  animation: scale-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+/* Stagger container: children animate in sequence */
+.stagger > * {
+  opacity: 0;
+  animation: fade-in-up 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.stagger > *:nth-child(1) { animation-delay: 0ms; }
+.stagger > *:nth-child(2) { animation-delay: 80ms; }
+.stagger > *:nth-child(3) { animation-delay: 160ms; }
+.stagger > *:nth-child(4) { animation-delay: 240ms; }
+.stagger > *:nth-child(5) { animation-delay: 320ms; }
+.stagger > *:nth-child(6) { animation-delay: 400ms; }
+.stagger > *:nth-child(7) { animation-delay: 480ms; }
+.stagger > *:nth-child(8) { animation-delay: 560ms; }
+.stagger > *:nth-child(9) { animation-delay: 640ms; }
+.stagger > *:nth-child(10) { animation-delay: 720ms; }
+.stagger > *:nth-child(11) { animation-delay: 800ms; }
+.stagger > *:nth-child(12) { animation-delay: 880ms; }
+
+/* ═══════════════════════════════════════════════
+   UTILITIES
+   ═══════════════════════════════════════════════ */
+
+/* Card with hover lift */
+.card-hover {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.2s ease;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+}
+.card-hover:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* Gradient text */
+.text-gradient {
+  background: linear-gradient(135deg, #E86A33 0%, #F4845F 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Hero background with warm radial gradients */
+.bg-hero {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(232, 106, 51, 0.07), transparent),
+    radial-gradient(ellipse 60% 40% at 80% 110%, rgba(45, 106, 79, 0.04), transparent),
+    var(--color-background);
+}
+
+/* Smooth scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(28, 25, 23, 0.12);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(28, 25, 23, 0.2);
+}
+
+/* Selection */
+::selection {
+  background: rgba(232, 106, 51, 0.15);
+  color: var(--color-text);
 }

@@ -46,7 +46,6 @@ export function JoinPrompt({
       return;
     }
 
-    // Create member record
     const { data, error: rpcError } = await supabase.rpc("join_trip", {
       p_trip_id: tripId,
       p_name: name.trim(),
@@ -60,7 +59,6 @@ export function JoinPrompt({
 
     const member = data as Member;
 
-    // If past dates stage, update member with date response
     if (isPastDates && datesWork !== null) {
       const updates: Record<string, unknown> = {};
 
@@ -96,32 +94,60 @@ export function JoinPrompt({
   // Step 1: Name input
   if (step === "name") {
     return (
-      <form onSubmit={handleNameSubmit} className="space-y-4">
+      <form onSubmit={handleNameSubmit} className="space-y-4 animate-in">
         <div className="space-y-1.5">
-          <label htmlFor="name" className="block text-sm font-medium">
+          <label htmlFor="name" className="block text-sm font-semibold text-text">
             What&apos;s your name?
           </label>
-          <input
-            id="name"
-            type="text"
-            placeholder="e.g. Priya"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            maxLength={50}
-            autoFocus
-            className="w-full rounded-lg border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-          />
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+              <svg className="w-4 h-4 text-text-tertiary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+              </svg>
+            </div>
+            <input
+              id="name"
+              type="text"
+              placeholder="e.g. Priya"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              maxLength={50}
+              autoFocus
+              className="w-full rounded-xl border border-border bg-background pl-10 pr-4 py-3 text-sm placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+            />
+          </div>
         </div>
 
-        {error && <p className="text-status-out text-sm">{error}</p>}
+        {error && (
+          <div className="bg-status-out-bg border border-status-out/15 rounded-lg px-3 py-2">
+            <p className="text-status-out text-xs">{error}</p>
+          </div>
+        )}
 
         <button
           type="submit"
           disabled={loading || !name.trim()}
-          className="w-full bg-primary text-white rounded-xl px-4 py-3.5 text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50"
+          className="w-full bg-primary text-white rounded-xl px-4 py-3.5 text-sm font-semibold shadow-sm hover:bg-primary-hover active:scale-[0.98] transition-all disabled:opacity-50"
         >
-          {loading ? "Joining..." : isPastDates ? "Next" : "Join this trip"}
+          {loading ? (
+            <span className="flex items-center justify-center gap-2">
+              <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              Joining...
+            </span>
+          ) : isPastDates ? (
+            <span className="flex items-center justify-center gap-1.5">
+              Next
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+              </svg>
+            </span>
+          ) : (
+            "Join this trip"
+          )}
         </button>
       </form>
     );
@@ -129,19 +155,19 @@ export function JoinPrompt({
 
   // Step 2: Date check (only when trip is past dates_open)
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 animate-in">
       <div className="text-center">
         <p className="text-sm text-text-secondary mb-1">Hey {name},</p>
-        <h3 className="font-heading text-lg font-bold">
+        <h3 className="font-heading text-lg font-bold text-text">
           The group locked in dates
         </h3>
       </div>
 
-      <div className="bg-status-confirmed-bg border border-status-confirmed/20 rounded-xl px-5 py-4 text-center">
+      <div className="bg-accent-light border border-accent/10 rounded-2xl px-5 py-5 text-center">
         <p className="font-heading text-xl font-bold text-text">
           {lockedDatesLabel}
         </p>
-        <p className="text-sm text-status-confirmed mt-1">
+        <p className="text-sm text-accent font-medium mt-1.5">
           {trip.trip_days} days
         </p>
       </div>
@@ -150,20 +176,24 @@ export function JoinPrompt({
         Do these dates work for you?
       </p>
 
-      {error && <p className="text-status-out text-sm text-center">{error}</p>}
+      {error && (
+        <div className="bg-status-out-bg border border-status-out/15 rounded-lg px-3 py-2">
+          <p className="text-status-out text-xs text-center">{error}</p>
+        </div>
+      )}
 
       <div className="space-y-2">
         <button
           onClick={() => joinAndFinish(true)}
           disabled={loading}
-          className="w-full bg-accent text-white rounded-xl px-4 py-3.5 text-sm font-semibold hover:bg-accent/90 transition-colors disabled:opacity-50"
+          className="w-full bg-accent text-white rounded-xl px-4 py-3.5 text-sm font-semibold shadow-sm hover:bg-accent-hover active:scale-[0.98] transition-all disabled:opacity-50"
         >
           {loading ? "Joining..." : "These work! Count me in"}
         </button>
         <button
           onClick={() => joinAndFinish(false)}
           disabled={loading}
-          className="w-full bg-surface text-text-secondary border border-gray-200 rounded-xl px-4 py-3.5 text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+          className="w-full bg-surface text-text-secondary border border-border rounded-xl px-4 py-3.5 text-sm font-medium hover:bg-stone-50 active:scale-[0.98] transition-all disabled:opacity-50"
         >
           I can&apos;t make these dates
         </button>
@@ -171,9 +201,12 @@ export function JoinPrompt({
 
       <button
         onClick={() => setStep("name")}
-        className="w-full text-xs text-text-secondary hover:text-text transition-colors"
+        className="w-full text-xs text-text-tertiary hover:text-text-secondary transition-colors flex items-center justify-center gap-1"
       >
-        ← Back
+        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+        </svg>
+        Back
       </button>
     </div>
   );

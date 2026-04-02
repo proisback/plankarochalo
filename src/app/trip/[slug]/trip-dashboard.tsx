@@ -31,7 +31,6 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
       .order("created_at", { ascending: true });
     if (data) {
       setMembers(data);
-      // Keep currentMember in sync so stages see fresh data
       if (userId) {
         const updated = data.find((m) => m.user_id === userId);
         if (updated) setCurrentMember(updated);
@@ -42,7 +41,6 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
   // Auth + initial data load
   useEffect(() => {
     async function init() {
-      // Ensure user has a session (anonymous if needed)
       let { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
@@ -60,7 +58,6 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
         return;
       }
 
-      // Verify we actually have an authenticated session
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         console.error("No session after sign-in");
@@ -70,8 +67,6 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
 
       setUserId(user.id);
 
-      // Check if user is already a member of this trip
-      // Use maybeSingle() — returns null without error if no row found
       const { data: existingMember, error: memberError } = await supabase
         .from("members")
         .select("*")
@@ -85,7 +80,6 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
       } else if (!memberError) {
         setNeedsJoin(true);
       } else {
-        // RLS or other error — still show join prompt as fallback
         setNeedsJoin(true);
       }
 
@@ -114,7 +108,7 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "destination_options", filter: `trip_id=eq.${trip.id}` },
-        () => {} // Destination stage handles its own refresh
+        () => {}
       )
       .subscribe();
 
@@ -132,47 +126,61 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
   if (loading) {
     return (
       <main className="flex min-h-screen items-center justify-center">
-        <div className="text-text-secondary text-sm">Loading trip...</div>
+        <div className="flex flex-col items-center gap-3 animate-pulse-soft">
+          <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+          <p className="text-text-tertiary text-sm">Loading trip...</p>
+        </div>
       </main>
     );
   }
 
   if (needsJoin) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center p-6">
-        <div className="w-full max-w-sm space-y-6">
-          <div className="text-center">
-            <h1 className="font-heading text-2xl font-bold">{trip.name}</h1>
+      <main className="flex min-h-screen flex-col items-center justify-center p-6 bg-hero relative overflow-hidden">
+        <div className="absolute top-[-10%] right-[-5%] w-[300px] h-[300px] rounded-full bg-primary/[0.04] blur-[60px] pointer-events-none" />
+
+        <div className="w-full max-w-sm stagger relative z-10">
+          <div className="text-center mb-6">
+            <h1 className="font-heading text-2xl font-bold text-text">{trip.name}</h1>
             {trip.budget && (
               <p className="text-text-secondary text-sm mt-1">{trip.budget}</p>
             )}
-            <div className="flex items-center justify-center gap-3 mt-2 text-xs text-text-secondary">
-              <span>{trip.trip_days} days</span>
-              <span>&middot;</span>
+            <div className="flex items-center justify-center gap-2 mt-2 text-xs text-text-tertiary">
+              <span className="inline-flex items-center gap-1">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                </svg>
+                {trip.trip_days} days
+              </span>
+              <span className="text-border">&middot;</span>
               <span>{members.length > 0 ? `${members.length} joined` : "Be the first!"}</span>
             </div>
           </div>
 
           {/* How it works */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 mb-6">
             {[
-              { icon: "🔗", label: "Join via link" },
-              { icon: "📅", label: "Pick dates" },
-              { icon: "✅", label: "Trip locked" },
+              { icon: "M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244", label: "Join via link" },
+              { icon: "M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5", label: "Pick dates" },
+              { icon: "M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z", label: "Trip locked" },
             ].map((step, i) => (
               <div
                 key={i}
-                className="flex-1 text-center bg-surface border border-gray-100 rounded-xl py-3 px-2"
+                className="flex-1 text-center bg-surface border border-border-light rounded-xl py-3.5 px-2 shadow-xs"
               >
-                <span className="text-lg block">{step.icon}</span>
-                <span className="text-[10px] text-text-secondary font-medium leading-tight">
+                <svg className="w-5 h-5 mx-auto text-primary mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d={step.icon} />
+                </svg>
+                <span className="text-[10px] text-text-secondary font-medium leading-tight block">
                   {step.label}
                 </span>
               </div>
             ))}
           </div>
 
-          <JoinPrompt tripId={trip.id} trip={trip} onJoined={handleJoined} />
+          <div className="bg-surface rounded-2xl p-5 shadow-md border border-border-light">
+            <JoinPrompt tripId={trip.id} trip={trip} onJoined={handleJoined} />
+          </div>
         </div>
       </main>
     );
@@ -180,21 +188,27 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
 
   return (
     <main className="min-h-screen pb-20">
-      <div className="max-w-lg mx-auto p-4 space-y-4">
+      <div className="max-w-lg mx-auto p-4 stagger">
         {/* Nav */}
         <div className="flex items-center justify-between">
           <button
             onClick={() => window.history.back()}
-            className="text-xs text-text-secondary border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors"
+            className="text-xs text-text-secondary border border-border rounded-lg px-3 py-1.5 hover:bg-stone-50 active:scale-95 transition-all flex items-center gap-1"
           >
-            ← Back
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+            </svg>
+            Back
           </button>
           {isOrganizer && (
             <a
               href="/create"
-              className="text-xs text-text-secondary border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors"
+              className="text-xs text-text-secondary border border-border rounded-lg px-3 py-1.5 hover:bg-stone-50 active:scale-95 transition-all flex items-center gap-1"
             >
-              + New trip
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              New trip
             </a>
           )}
         </div>
@@ -202,12 +216,12 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="font-heading text-xl font-bold">{trip.name}</h1>
+            <h1 className="font-heading text-xl font-bold text-text">{trip.name}</h1>
             {trip.budget && (
-              <p className="text-text-secondary text-xs mt-0.5">{trip.budget}</p>
+              <p className="text-text-tertiary text-xs mt-0.5">{trip.budget}</p>
             )}
           </div>
-          <span className="text-xs bg-primary-light text-primary px-2.5 py-1 rounded-full font-medium">
+          <span className="text-xs bg-primary-light text-primary px-2.5 py-1 rounded-full font-semibold">
             {trip.trip_days} days
           </span>
         </div>
@@ -215,18 +229,29 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
         <ProgressBar currentStage={trip.status} />
         {trip.status !== "ready" && <ShareLink slug={trip.slug} />}
 
-        {/* Locked decisions banner */}
+        {/* Locked decisions banners */}
         {trip.locked_dates_start && trip.locked_dates_end && (
-          <div className="bg-status-confirmed-bg border border-status-confirmed/20 rounded-xl px-4 py-3">
+          <div className="bg-status-confirmed-bg/60 border border-status-confirmed/10 rounded-xl px-4 py-3 flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-status-confirmed/10 flex items-center justify-center shrink-0">
+              <svg className="w-3.5 h-3.5 text-status-confirmed" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+              </svg>
+            </div>
             <p className="text-status-confirmed text-sm font-medium">
-              Dates locked: {new Date(trip.locked_dates_start).toLocaleDateString("en-IN", { month: "short", day: "numeric" })} — {new Date(trip.locked_dates_end).toLocaleDateString("en-IN", { month: "short", day: "numeric" })}
+              Dates: {new Date(trip.locked_dates_start).toLocaleDateString("en-IN", { month: "short", day: "numeric" })} — {new Date(trip.locked_dates_end).toLocaleDateString("en-IN", { month: "short", day: "numeric" })}
             </p>
           </div>
         )}
         {trip.locked_destination && (
-          <div className="bg-status-confirmed-bg border border-status-confirmed/20 rounded-xl px-4 py-3">
+          <div className="bg-status-confirmed-bg/60 border border-status-confirmed/10 rounded-xl px-4 py-3 flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-status-confirmed/10 flex items-center justify-center shrink-0">
+              <svg className="w-3.5 h-3.5 text-status-confirmed" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+              </svg>
+            </div>
             <p className="text-status-confirmed text-sm font-medium">
-              Destination locked: {trip.locked_destination}
+              {trip.locked_destination}
             </p>
           </div>
         )}

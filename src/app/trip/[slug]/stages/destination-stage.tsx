@@ -69,7 +69,6 @@ export function DestinationStage({
     };
   }, [options]);
 
-  // Who voted for each option (for avatars)
   function votersForOption(optionId: string): Member[] {
     return members.filter((m) => m.destination_vote === optionId);
   }
@@ -112,7 +111,6 @@ export function DestinationStage({
     setVoting(false);
   }
 
-  // Organizer votes on behalf of a proxy member
   async function handleProxyVote(memberId: string, optionId: string) {
     setError("");
     const { error: voteError } = await supabase
@@ -139,18 +137,18 @@ export function DestinationStage({
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="font-heading text-lg font-semibold">
+        <h2 className="font-heading text-lg font-bold text-text">
           {currentMember.name}, where to?
         </h2>
-        <p className="text-text-secondary text-sm">
-          Pick your top spot. Add a new one if it's missing. One vote each.
+        <p className="text-text-secondary text-sm mt-0.5">
+          Pick your top spot. Add a new one if it&apos;s missing. One vote each.
         </p>
       </div>
 
       <DeadlineBanner trip={trip} isOrganizer={isOrganizer} />
 
-      {/* Destination options */}
-      <div className="space-y-2">
+      {/* Destination option cards */}
+      <div className="space-y-2.5">
         {options.map((opt) => {
           const isVoted = currentMember.destination_vote === opt.id;
           const voters = votersForOption(opt.id);
@@ -162,45 +160,65 @@ export function DestinationStage({
               key={opt.id}
               onClick={() => handleVote(opt.id)}
               disabled={voting}
-              className={`w-full text-left rounded-xl p-4 border transition-colors relative ${
+              className={[
+                "w-full text-left rounded-2xl p-4 border-2 transition-all duration-200 relative card-hover",
                 isVoted
-                  ? "bg-primary-light border-primary/30"
-                  : "bg-surface border-gray-100 hover:border-gray-200"
-              }`}
+                  ? "bg-primary-light/60 border-primary/25 shadow-sm"
+                  : "bg-surface border-transparent shadow-xs hover:shadow-sm hover:border-border",
+              ].join(" ")}
             >
-              {/* LEADING / TIED badge */}
+              {/* Badge */}
               {isLeading && (
-                <span className="absolute -top-2 right-3 bg-accent text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                <span className="absolute -top-2.5 right-3 bg-gradient-to-r from-accent to-[#3D8B6A] text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-sm">
                   LEADING
                 </span>
               )}
               {isTied && (
-                <span className="absolute -top-2 right-3 bg-status-waiting text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                <span className="absolute -top-2.5 right-3 bg-gradient-to-r from-status-waiting to-[#E8A830] text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-sm">
                   TIED
                 </span>
               )}
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <span className="text-2xl">{opt.emoji}</span>
+                  <div className={[
+                    "w-11 h-11 rounded-xl flex items-center justify-center text-xl shrink-0",
+                    isVoted ? "bg-primary/10" : "bg-stone-50",
+                  ].join(" ")}>
+                    {opt.emoji}
+                  </div>
                   <div>
-                    <p className="text-sm font-medium">{opt.name}</p>
+                    <p className="text-sm font-semibold text-text">{opt.name}</p>
                     {opt.note && (
-                      <p className="text-xs text-text-secondary">{opt.note}</p>
+                      <p className="text-xs text-text-secondary mt-0.5">{opt.note}</p>
                     )}
-                    {/* Voter names */}
                     {voters.length > 0 && (
-                      <p className="text-[10px] text-text-secondary mt-0.5">
-                        {voters.map((v) => v.name).join(", ")}
-                      </p>
+                      <div className="flex items-center gap-1 mt-1">
+                        {voters.slice(0, 3).map((v) => (
+                          <span
+                            key={v.id}
+                            className="w-5 h-5 rounded-full bg-accent/10 text-accent text-[9px] font-bold flex items-center justify-center ring-1 ring-white"
+                          >
+                            {v.name.charAt(0).toUpperCase()}
+                          </span>
+                        ))}
+                        {voters.length > 3 && (
+                          <span className="text-[10px] text-text-tertiary ml-0.5">
+                            +{voters.length - 3}
+                          </span>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className={`text-lg font-semibold ${isVoted ? "text-primary" : "text-text"}`}>
+                <div className="text-right pl-3">
+                  <p className={[
+                    "text-xl font-bold tabular-nums",
+                    isVoted ? "text-primary" : "text-text",
+                  ].join(" ")}>
                     {opt.vote_count}
                   </p>
-                  <p className="text-[10px] text-text-secondary">
+                  <p className="text-[10px] text-text-tertiary font-medium">
                     {opt.vote_count === 1 ? "vote" : "votes"}
                   </p>
                 </div>
@@ -210,8 +228,15 @@ export function DestinationStage({
         })}
 
         {options.length === 0 && (
-          <div className="bg-surface border border-gray-100 rounded-xl p-6 text-center">
-            <p className="text-text-secondary text-sm">No destinations yet. Add one!</p>
+          <div className="bg-surface border border-border-light rounded-2xl p-8 text-center shadow-xs">
+            <div className="w-10 h-10 rounded-xl bg-stone-50 flex items-center justify-center mx-auto mb-3">
+              <svg className="w-5 h-5 text-text-tertiary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+              </svg>
+            </div>
+            <p className="text-text-secondary text-sm font-medium">No destinations yet</p>
+            <p className="text-text-tertiary text-xs mt-0.5">Be the first to suggest a spot!</p>
           </div>
         )}
       </div>
@@ -220,14 +245,17 @@ export function DestinationStage({
       {!showAdd ? (
         <button
           onClick={() => setShowAdd(true)}
-          className="w-full border border-dashed border-gray-300 rounded-xl px-4 py-3 text-sm text-text-secondary hover:border-primary hover:text-primary transition-colors"
+          className="w-full border-2 border-dashed border-stone-200 rounded-2xl px-4 py-3.5 text-sm text-text-secondary font-medium hover:border-primary hover:text-primary hover:bg-primary-light/30 transition-all flex items-center justify-center gap-1.5"
         >
-          + Add a destination
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+          Add a destination
         </button>
       ) : (
         <form
           onSubmit={handleAddOption}
-          className="bg-surface border border-gray-100 rounded-xl p-4 space-y-3"
+          className="bg-surface border border-border-light rounded-2xl p-4 space-y-3 shadow-sm animate-in"
         >
           <input
             type="text"
@@ -236,28 +264,29 @@ export function DestinationStage({
             onChange={(e) => setNewName(e.target.value)}
             required
             autoFocus
-            className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
           />
           <input
             type="text"
             placeholder="Note (e.g. Coffee plantations, 5hr drive)"
             value={newNote}
             onChange={(e) => setNewNote(e.target.value)}
-            className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
           />
           <div>
-            <p className="text-xs text-text-secondary mb-1.5">Pick an emoji</p>
+            <p className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider mb-2">Pick an emoji</p>
             <div className="flex gap-1.5 flex-wrap">
               {EMOJI_OPTIONS.map((e) => (
                 <button
                   key={e}
                   type="button"
                   onClick={() => setNewEmoji(e)}
-                  className={`w-9 h-9 rounded-lg text-lg flex items-center justify-center ${
+                  className={[
+                    "w-9 h-9 rounded-lg text-lg flex items-center justify-center transition-all",
                     newEmoji === e
-                      ? "bg-primary-light border border-primary/30"
-                      : "bg-gray-50 hover:bg-gray-100"
-                  }`}
+                      ? "bg-primary-light border-2 border-primary/25 scale-110"
+                      : "bg-stone-50 hover:bg-stone-100 border-2 border-transparent",
+                  ].join(" ")}
                 >
                   {e}
                 </button>
@@ -268,14 +297,14 @@ export function DestinationStage({
             <button
               type="button"
               onClick={() => setShowAdd(false)}
-              className="flex-1 border border-gray-200 rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-gray-50 transition-colors"
+              className="flex-1 border border-border rounded-xl px-4 py-2.5 text-sm font-medium text-text-secondary hover:bg-stone-50 active:scale-[0.98] transition-all"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={adding || !newName.trim()}
-              className="flex-1 bg-primary text-white rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+              className="flex-1 bg-primary text-white rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm hover:bg-primary-hover active:scale-[0.98] transition-all disabled:opacity-50"
             >
               {adding ? "Adding..." : "Add"}
             </button>
@@ -283,7 +312,11 @@ export function DestinationStage({
         </form>
       )}
 
-      {error && <p className="text-status-out text-sm">{error}</p>}
+      {error && (
+        <div className="bg-status-out-bg border border-status-out/15 rounded-lg px-3 py-2">
+          <p className="text-status-out text-xs">{error}</p>
+        </div>
+      )}
 
       <WaitingBanner members={members} tripStatus={trip.status} />
       <MemberList
@@ -295,7 +328,7 @@ export function DestinationStage({
         onProxyVote={isOrganizer ? handleProxyVote : undefined}
       />
 
-      {/* Lock section — honest about ties */}
+      {/* Lock section */}
       {isOrganizer && options.length > 0 && totalVotes > 0 && (
         <>
           {hasWinner && leader && (
@@ -306,20 +339,25 @@ export function DestinationStage({
             />
           )}
           {hasTie && (
-            <div className="bg-status-waiting-bg border border-status-waiting/20 rounded-xl p-4 space-y-3">
-              <p className="text-sm font-medium text-status-waiting">
-                It&apos;s a tie! Pick the winner:
-              </p>
+            <div className="bg-status-waiting-bg/60 border border-status-waiting/10 rounded-2xl p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-status-waiting" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                </svg>
+                <p className="text-sm font-semibold text-status-waiting">
+                  It&apos;s a tie! Pick the winner:
+                </p>
+              </div>
               <div className="space-y-2">
                 {tiedOptions.map((opt) => (
                   <button
                     key={opt.id}
                     onClick={() => handleLockOption(opt)}
-                    className="w-full flex items-center gap-3 bg-surface border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium hover:border-primary transition-colors text-left"
+                    className="w-full flex items-center gap-3 bg-surface border border-border rounded-xl px-4 py-3 text-sm font-medium hover:border-primary hover:bg-primary-light/30 active:scale-[0.98] transition-all text-left"
                   >
                     <span className="text-xl">{opt.emoji}</span>
-                    <span className="flex-1">{opt.name}</span>
-                    <span className="text-text-secondary text-xs">{opt.vote_count} votes</span>
+                    <span className="flex-1 font-semibold">{opt.name}</span>
+                    <span className="text-text-tertiary text-xs">{opt.vote_count} votes</span>
                   </button>
                 ))}
               </div>

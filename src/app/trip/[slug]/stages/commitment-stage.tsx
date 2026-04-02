@@ -60,37 +60,50 @@ export function CommitmentStage({
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="font-heading text-lg font-semibold">
+        <h2 className="font-heading text-lg font-bold text-text">
           {currentMember.name}, you in or nah?
         </h2>
-        <p className="text-text-secondary text-sm">
-          {trip.locked_destination} · {confirmedIn.length} of {members.length} have committed. Your move.
+        <p className="text-text-secondary text-sm mt-0.5">
+          {trip.locked_destination} &middot; {confirmedIn.length} of {members.length} committed. Your move.
         </p>
       </div>
 
-      {error && <p className="text-status-out text-sm">{error}</p>}
+      {error && (
+        <div className="bg-status-out-bg border border-status-out/15 rounded-lg px-3 py-2">
+          <p className="text-status-out text-xs">{error}</p>
+        </div>
+      )}
 
-      {/* Commitment buttons — always visible, selected one highlighted */}
+      {/* Commitment buttons */}
       <div className="flex gap-3">
         <button
           onClick={() => handleCommit("confirmed_in")}
           disabled={saving}
-          className={`flex-[2] rounded-xl py-3.5 text-base font-bold font-heading transition-colors disabled:opacity-50 ${
+          className={[
+            "flex-[2] rounded-2xl py-4 text-base font-bold font-heading transition-all disabled:opacity-50 active:scale-[0.97]",
             userIn
-              ? "bg-accent text-white shadow-sm"
-              : "bg-accent/10 text-accent border-2 border-accent/30 hover:bg-accent hover:text-white"
-          }`}
+              ? "bg-gradient-to-r from-accent to-[#3D8B6A] text-white shadow-md"
+              : "bg-accent/8 text-accent border-2 border-accent/20 hover:bg-accent hover:text-white hover:border-accent hover:shadow-md",
+          ].join(" ")}
         >
-          I&apos;m In ✓
+          <span className="flex items-center justify-center gap-2">
+            {userIn && (
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+              </svg>
+            )}
+            I&apos;m In
+          </span>
         </button>
         <button
           onClick={() => handleCommit("confirmed_out")}
           disabled={saving}
-          className={`flex-1 rounded-xl py-3.5 text-sm font-semibold font-heading transition-colors disabled:opacity-50 ${
+          className={[
+            "flex-1 rounded-2xl py-4 text-sm font-semibold font-heading transition-all disabled:opacity-50 active:scale-[0.97]",
             userOut
-              ? "bg-status-out text-white"
-              : "bg-surface text-status-out border-2 border-status-out/30 hover:bg-status-out hover:text-white"
-          }`}
+              ? "bg-status-out text-white shadow-sm"
+              : "bg-surface text-text-secondary border-2 border-border hover:bg-status-out hover:text-white hover:border-status-out",
+          ].join(" ")}
         >
           I&apos;m Out
         </button>
@@ -98,23 +111,39 @@ export function CommitmentStage({
 
       {/* Summary */}
       {(confirmedIn.length > 0 || confirmedOut.length > 0) && (
-        <div className="bg-surface border border-gray-100 rounded-xl p-4 space-y-2">
+        <div className="bg-surface border border-border-light rounded-2xl p-4 space-y-3 shadow-xs">
           {confirmedIn.length > 0 && (
-            <div className="flex items-start gap-2">
-              <span className="text-status-confirmed text-sm">✅</span>
-              <p className="text-sm">
-                <span className="font-medium">{confirmedIn.length} in:</span>{" "}
-                {confirmedIn.map((m) => m.name).join(", ")}
-              </p>
+            <div className="flex items-start gap-2.5">
+              <div className="w-6 h-6 rounded-lg bg-status-confirmed-bg flex items-center justify-center shrink-0 mt-0.5">
+                <svg className="w-3 h-3 text-status-confirmed" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-text">{confirmedIn.length} going</p>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {confirmedIn.map((m) => (
+                    <span key={m.id} className="text-xs bg-status-confirmed-bg text-status-confirmed px-2 py-0.5 rounded-full font-medium">
+                      {m.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
           {confirmedOut.length > 0 && (
-            <div className="flex items-start gap-2">
-              <span className="text-status-out text-sm">✕</span>
-              <p className="text-sm">
-                <span className="font-medium">{confirmedOut.length} out:</span>{" "}
-                {confirmedOut.map((m) => m.name).join(", ")}
-              </p>
+            <div className="flex items-start gap-2.5">
+              <div className="w-6 h-6 rounded-lg bg-status-out-bg flex items-center justify-center shrink-0 mt-0.5">
+                <svg className="w-3 h-3 text-status-out" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-text-secondary">{confirmedOut.length} out</p>
+                <p className="text-xs text-text-tertiary mt-0.5">
+                  {confirmedOut.map((m) => m.name).join(", ")}
+                </p>
+              </div>
             </div>
           )}
         </div>
@@ -125,7 +154,7 @@ export function CommitmentStage({
 
       {isOrganizer && confirmedIn.length > 0 && (
         <LockButton
-          label={`Lock Trip — ${confirmedIn.length} going! 🎉`}
+          label={`Lock Trip — ${confirmedIn.length} going!`}
           confirmMessage={`Finalize with ${confirmedIn.length} people going? This will mark the trip as ready.`}
           onLock={handleLock}
         />

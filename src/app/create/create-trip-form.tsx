@@ -44,7 +44,6 @@ export function CreateTripForm() {
 
     const slug = generateSlug(name);
 
-    // Create the trip
     const { data: trip, error: tripError } = await supabase
       .from("trips")
       .insert({
@@ -64,7 +63,6 @@ export function CreateTripForm() {
       return;
     }
 
-    // Add organizer as a member
     const { error: memberError } = await supabase.from("members").insert({
       trip_id: trip.id,
       user_id: user.id,
@@ -79,7 +77,6 @@ export function CreateTripForm() {
       return;
     }
 
-    // Add proxy members with constraints
     if (proxyMembers.length > 0) {
       await supabase.from("members").insert(
         proxyMembers.map((p) => ({
@@ -105,7 +102,7 @@ export function CreateTripForm() {
     <form onSubmit={handleSubmit} className="space-y-5">
       {/* Trip Name */}
       <div className="space-y-1.5">
-        <label htmlFor="name" className="block text-sm font-medium">
+        <label htmlFor="name" className="block text-sm font-semibold text-text">
           Trip name
         </label>
         <input
@@ -116,13 +113,13 @@ export function CreateTripForm() {
           onChange={(e) => setName(e.target.value)}
           required
           maxLength={80}
-          className="w-full rounded-lg border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+          className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
         />
       </div>
 
       {/* Trip Duration */}
       <div className="space-y-1.5">
-        <label className="block text-sm font-medium">
+        <label className="block text-sm font-semibold text-text">
           How many days?
         </label>
         <div className="flex gap-2">
@@ -131,11 +128,12 @@ export function CreateTripForm() {
               key={d}
               type="button"
               onClick={() => setTripDays(d)}
-              className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              className={[
+                "flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95",
                 tripDays === d
-                  ? "bg-primary text-white"
-                  : "bg-surface border border-gray-200 text-text hover:bg-gray-50"
-              }`}
+                  ? "bg-primary text-white shadow-sm"
+                  : "bg-stone-50 border border-border text-text hover:bg-stone-100",
+              ].join(" ")}
             >
               {d}
             </button>
@@ -145,23 +143,28 @@ export function CreateTripForm() {
 
       {/* Budget */}
       <div className="space-y-1.5">
-        <label htmlFor="budget" className="block text-sm font-medium">
-          Budget range <span className="text-text-secondary font-normal">(optional)</span>
+        <label htmlFor="budget" className="block text-sm font-semibold text-text">
+          Budget range <span className="text-text-tertiary font-normal">(optional)</span>
         </label>
-        <input
-          id="budget"
-          type="text"
-          placeholder="e.g. ₹5,000-10,000 per person"
-          value={budget}
-          onChange={(e) => setBudget(e.target.value)}
-          maxLength={100}
-          className="w-full rounded-lg border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-        />
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+            <span className="text-text-tertiary text-sm">₹</span>
+          </div>
+          <input
+            id="budget"
+            type="text"
+            placeholder="e.g. 5,000-10,000 per person"
+            value={budget}
+            onChange={(e) => setBudget(e.target.value)}
+            maxLength={100}
+            className="w-full rounded-xl border border-border bg-background pl-8 pr-4 py-3 text-sm placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+          />
+        </div>
       </div>
 
       {/* Voting Deadline */}
       <div className="space-y-1.5">
-        <label className="block text-sm font-medium">
+        <label className="block text-sm font-semibold text-text">
           Voting deadline
         </label>
         <div className="grid grid-cols-2 gap-2">
@@ -170,11 +173,12 @@ export function CreateTripForm() {
               key={opt.value}
               type="button"
               onClick={() => setVotingDeadline(opt.value)}
-              className={`py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              className={[
+                "py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95",
                 votingDeadline === opt.value
-                  ? "bg-primary text-white"
-                  : "bg-surface border border-gray-200 text-text hover:bg-gray-50"
-              }`}
+                  ? "bg-primary text-white shadow-sm"
+                  : "bg-stone-50 border border-border text-text hover:bg-stone-100",
+              ].join(" ")}
             >
               {opt.label}
             </button>
@@ -185,12 +189,11 @@ export function CreateTripForm() {
       {/* Known Constraints (Proxy Members) */}
       <div className="space-y-3">
         <div>
-          <label className="block text-sm font-medium">
-            Known constraints <span className="text-text-secondary font-normal">(optional)</span>
+          <label className="block text-sm font-semibold text-text">
+            Known constraints <span className="text-text-tertiary font-normal">(optional)</span>
           </label>
-          <p className="text-xs text-text-secondary mt-0.5">
+          <p className="text-xs text-text-tertiary mt-0.5">
             Add dates that won&apos;t work for members who may not use the tool
-            (e.g. parents, busy friends)
           </p>
         </div>
 
@@ -198,13 +201,15 @@ export function CreateTripForm() {
         {proxyMembers.map((p, i) => (
           <div
             key={i}
-            className="flex items-center gap-2 bg-background rounded-lg px-3 py-2"
+            className="flex items-center gap-2 bg-stone-50 rounded-xl px-3.5 py-2.5"
           >
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{p.name}</p>
+              <p className="text-sm font-semibold truncate text-text">{p.name}</p>
               {p.start && p.end && (
-                <p className="text-xs text-status-waiting">
-                  ⚠{" "}
+                <p className="text-xs text-status-waiting font-medium flex items-center gap-1">
+                  <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                  </svg>
                   {new Date(p.start).toLocaleDateString("en-IN", {
                     month: "short",
                     day: "numeric",
@@ -223,16 +228,18 @@ export function CreateTripForm() {
               onClick={() =>
                 setProxyMembers((prev) => prev.filter((_, j) => j !== i))
               }
-              className="text-text-secondary hover:text-text text-sm"
+              className="w-7 h-7 rounded-lg hover:bg-stone-200 flex items-center justify-center text-text-tertiary hover:text-text transition-all"
             >
-              ✕
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
             </button>
           </div>
         ))}
 
         {/* Add constraint form */}
-        <div className="bg-surface border border-gray-100 rounded-xl p-4 space-y-2">
-          <p className="text-xs font-medium text-text-secondary">
+        <div className="bg-stone-50/70 border border-border-light rounded-2xl p-4 space-y-2.5">
+          <p className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">
             Add a member&apos;s unavailable dates
           </p>
           <input
@@ -240,30 +247,30 @@ export function CreateTripForm() {
             placeholder="Name"
             value={pName}
             onChange={(e) => setPName(e.target.value)}
-            className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-sm placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
           />
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="block text-[10px] font-medium text-text-secondary mb-0.5">
-                Unavailable from
+              <label className="block text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1">
+                From
               </label>
               <input
                 type="date"
                 value={pStart}
                 onChange={(e) => setPStart(e.target.value)}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
               />
             </div>
             <div>
-              <label className="block text-[10px] font-medium text-text-secondary mb-0.5">
-                Unavailable to
+              <label className="block text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1">
+                To
               </label>
               <input
                 type="date"
                 value={pEnd}
                 onChange={(e) => setPEnd(e.target.value)}
                 min={pStart}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
               />
             </div>
           </div>
@@ -280,23 +287,43 @@ export function CreateTripForm() {
               setPStart("");
               setPEnd("");
             }}
-            className="w-full bg-accent text-white rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-accent/90 transition-colors disabled:bg-gray-200 disabled:text-text-secondary"
+            className="w-full bg-accent text-white rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm hover:bg-accent-hover active:scale-[0.98] transition-all disabled:bg-stone-200 disabled:text-text-tertiary disabled:shadow-none flex items-center justify-center gap-1.5"
           >
-            + Add Constraint
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            Add Constraint
           </button>
         </div>
       </div>
 
       {error && (
-        <p className="text-status-out text-sm">{error}</p>
+        <div className="bg-status-out-bg border border-status-out/15 rounded-lg px-3 py-2">
+          <p className="text-status-out text-sm">{error}</p>
+        </div>
       )}
 
       <button
         type="submit"
         disabled={loading || !name.trim()}
-        className="w-full bg-primary text-white rounded-xl px-4 py-3.5 text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50"
+        className="w-full bg-gradient-to-r from-primary to-[#F4845F] text-white rounded-2xl px-5 py-4 text-sm font-bold font-heading shadow-md hover:shadow-lg active:scale-[0.98] transition-all disabled:opacity-50 disabled:shadow-sm flex items-center justify-center gap-2"
       >
-        {loading ? "Creating..." : "Create Trip & Get Link →"}
+        {loading ? (
+          <span className="flex items-center gap-2">
+            <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            Creating...
+          </span>
+        ) : (
+          <span className="flex items-center gap-1.5">
+            Create Trip & Get Link
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+            </svg>
+          </span>
+        )}
       </button>
     </form>
   );
