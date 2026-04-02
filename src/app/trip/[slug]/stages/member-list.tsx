@@ -397,10 +397,8 @@ export function MemberList({
           // Stage-aware subtitle — only show info relevant to the current stage
           let subtitle: string | null = null;
           if (tripStatus === "dates_open") {
-            subtitle = formatDateRange(
-              m.availability_start ?? m.constraint_start,
-              m.availability_end ?? m.constraint_end
-            );
+            // Only show availability dates, not constraint dates (constraint_note handles those)
+            subtitle = formatDateRange(m.availability_start, m.availability_end);
           } else if (tripStatus === "destination_open") {
             if (m.destination_vote && destinationOptions) {
               const voted = destinationOptions.find((o) => o.id === m.destination_vote);
