@@ -77,7 +77,7 @@ export function ProgressBar({ currentStage }: { currentStage: TripStatus }) {
         ].join(" ");
 
         return (
-          <div key={step.key} className="flex items-start flex-1">
+          <div key={step.key} className={`flex items-start ${isLast ? "" : "flex-1"}`}>
             {/* Step circle + label */}
             <div className="flex flex-col items-center w-10">
               <div className={circleClasses}>
