@@ -146,7 +146,32 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
             {trip.budget && (
               <p className="text-text-secondary text-sm mt-1">{trip.budget}</p>
             )}
+            <div className="flex items-center justify-center gap-3 mt-2 text-xs text-text-secondary">
+              <span>{trip.trip_days} days</span>
+              <span>&middot;</span>
+              <span>{members.length > 0 ? `${members.length} joined` : "Be the first!"}</span>
+            </div>
           </div>
+
+          {/* How it works */}
+          <div className="flex gap-2">
+            {[
+              { icon: "🔗", label: "Join via link" },
+              { icon: "📅", label: "Pick dates" },
+              { icon: "✅", label: "Trip locked" },
+            ].map((step, i) => (
+              <div
+                key={i}
+                className="flex-1 text-center bg-surface border border-gray-100 rounded-xl py-3 px-2"
+              >
+                <span className="text-lg block">{step.icon}</span>
+                <span className="text-[10px] text-text-secondary font-medium leading-tight">
+                  {step.label}
+                </span>
+              </div>
+            ))}
+          </div>
+
           <JoinPrompt tripId={trip.id} trip={trip} onJoined={handleJoined} />
         </div>
       </main>

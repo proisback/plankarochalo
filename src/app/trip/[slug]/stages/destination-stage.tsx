@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { Trip, Member, DestinationOption } from "@/lib/types";
 import { MemberList, WaitingBanner } from "./member-list";
 import { LockButton } from "./lock-button";
+import { DeadlineBanner } from "./deadline-banner";
 
 export function DestinationStage({
   trip,
@@ -145,6 +146,8 @@ export function DestinationStage({
           Pick your top spot. Add a new one if it's missing. One vote each.
         </p>
       </div>
+
+      <DeadlineBanner trip={trip} isOrganizer={isOrganizer} />
 
       {/* Destination options */}
       <div className="space-y-2">

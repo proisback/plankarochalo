@@ -7,6 +7,7 @@ import { findBestOverlap } from "@/lib/overlap";
 import { MemberList, WaitingBanner } from "./member-list";
 import { LockButton } from "./lock-button";
 import Calendar from "./calendar";
+import { DeadlineBanner } from "./deadline-banner";
 
 export function DatesStage({
   trip,
@@ -157,6 +158,8 @@ export function DatesStage({
               : "Locked in. Now we wait for the crew."}
         </p>
       </div>
+
+      <DeadlineBanner trip={trip} isOrganizer={isOrganizer} />
 
       {/* Selected range display */}
       {startDate && (
