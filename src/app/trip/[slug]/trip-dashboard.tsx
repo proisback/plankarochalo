@@ -11,6 +11,7 @@ import { DestinationStage } from "./stages/destination-stage";
 import { CommitmentStage } from "./stages/commitment-stage";
 import { ReadyStage } from "./stages/ready-stage";
 import { ThemeToggle } from "@/app/theme-toggle";
+import { ReturnPrompt } from "./return-prompt";
 
 
 export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
@@ -21,8 +22,21 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
   const [userId, setUserId] = useState<string | null>(null);
   const [needsJoin, setNeedsJoin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showReturnPrompt, setShowReturnPrompt] = useState(false);
+  const [prevMemberStatus, setPrevMemberStatus] = useState<string | null>(null);
 
   const isOrganizer = currentMember?.is_organizer ?? false;
+
+  // Detect when the member completes an action (status changes)
+  useEffect(() => {
+    if (!currentMember) return;
+    const newStatus = currentMember.status;
+    if (prevMemberStatus && newStatus !== prevMemberStatus && newStatus !== "invited" && newStatus !== "no_response") {
+      // Member just submitted something — show return prompt
+      setShowReturnPrompt(true);
+    }
+    setPrevMemberStatus(newStatus);
+  }, [currentMember?.status]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadMembers = useCallback(async () => {
     const { data } = await supabase
@@ -292,6 +306,11 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
         )}
         </div>
       </div>
+
+      {/* Return prompt — shows after member completes an action */}
+      {showReturnPrompt && (
+        <ReturnPrompt onDismiss={() => setShowReturnPrompt(false)} />
+      )}
     </main>
   );
 }
