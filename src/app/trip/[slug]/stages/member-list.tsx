@@ -604,12 +604,12 @@ function NudgeModal({
   const stat = `${responded} of ${total} people have ${action} for ${tripName}`;
 
   const nudges = [
-    { emoji: "🔥", label: "Urgent", msg: `${stat} — ${actionVerb} kar do warna trip cancel 😭` },
+    { emoji: "😊", label: "Friendly", msg: `Hey, we're waiting on you! ${stat} — just need you! One tap, 30 seconds 🙏` },
+    { emoji: "👀", label: "Shady", msg: `${stat}... and ${waiting} ${waiting === 1 ? "person is" : "people are"} ghosting 👀` },
     { emoji: "⚡", label: "Quick", msg: `${stat}. 2 mins ka kaam hai — we need YOU!` },
     { emoji: "🥺", label: "Guilt", msg: `${stat}. Your silence is delaying vacation happiness.` },
-    { emoji: "👀", label: "Shady", msg: `${stat}... and ${waiting} ${waiting === 1 ? "person is" : "people are"} ghosting 👀` },
-    { emoji: "✨", label: "Friendly", msg: `${stat} — just need you! One tap, 30 seconds 🙏` },
-    { emoji: "😤", label: "Final call", msg: `Last chance! ${responded}/${total} done for ${tripName}. Don't be the reason this trip doesn't happen.` },
+    { emoji: "🔥", label: "Hinglish", msg: `${stat} — ${actionVerb} kar do warna trip cancel 😭` },
+    { emoji: "🔒", label: "Urgent", msg: `Last call! ${responded}/${total} done for ${tripName}. We're locking decisions tomorrow with or without you 🔒` },
   ];
 
   async function handleCopy(idx: number) {
