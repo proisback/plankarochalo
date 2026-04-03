@@ -445,29 +445,36 @@ export function MemberList({
                     </p>
                   )}
                   {m.constraint_note && (() => {
-                    let ranges: { start: string; end: string }[] = [];
                     try {
                       const parsed = JSON.parse(m.constraint_note);
-                      if (Array.isArray(parsed)) ranges = parsed;
-                    } catch {
-                      // Legacy text format — show as-is
-                      return (
-                        <p className="text-[11px] text-status-warning leading-tight flex items-center gap-0.5">
+                      if (!Array.isArray(parsed) || parsed.length === 0) return null;
+
+                      // New per-day format: ["2026-04-13","2026-04-14",...]
+                      if (typeof parsed[0] === "string" && parsed[0].match(/^\d{4}-\d{2}-\d{2}$/)) {
+                        return (
+                          <p className="text-[11px] text-accent leading-tight">
+                            {parsed.length} {parsed.length === 1 ? "date" : "dates"} marked
+                          </p>
+                        );
+                      }
+
+                      // Old unavailable ranges format: [{start, end},...]
+                      return (parsed as { start: string; end: string }[]).map((r, ri) => (
+                        <p key={ri} className="text-[11px] text-status-waiting leading-tight flex items-center gap-0.5">
                           <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
                           </svg>
+                          {new Date(r.start).toLocaleDateString("en-IN", { day: "numeric", month: "short" })} – {new Date(r.end).toLocaleDateString("en-IN", { day: "numeric", month: "short" })} unavailable
+                        </p>
+                      ));
+                    } catch {
+                      // Legacy plain text
+                      return (
+                        <p className="text-[11px] text-text-tertiary leading-tight">
                           {m.constraint_note}
                         </p>
                       );
                     }
-                    return ranges.map((r, ri) => (
-                      <p key={ri} className="text-[11px] text-status-waiting leading-tight flex items-center gap-0.5">
-                        <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                        </svg>
-                        {new Date(r.start).toLocaleDateString("en-IN", { day: "numeric", month: "short" })} – {new Date(r.end).toLocaleDateString("en-IN", { day: "numeric", month: "short" })} unavailable
-                      </p>
-                    ));
                   })()}
                 </div>
               </div>
