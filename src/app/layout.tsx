@@ -43,7 +43,6 @@ export default function RootLayout({
       <body className="antialiased min-h-screen">
         <div className="phone-frame-wrapper">
           <div className="phone-frame">
-            <div className="phone-notch" />
             <div className="phone-content">
               {children}
             </div>

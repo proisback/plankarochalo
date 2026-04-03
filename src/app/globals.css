@@ -322,7 +322,6 @@ html.dark ::selection {
   min-height: 100vh;
 }
 
-.phone-notch,
 .phone-home {
   display: none;
 }
@@ -349,25 +348,6 @@ html.dark ::selection {
     display: flex;
     flex-direction: column;
     transform: translateZ(0);
-  }
-
-  .phone-notch {
-    position: sticky;
-    top: 0;
-    z-index: 50;
-    pointer-events: none;
-    height: 0;
-    display: flex;
-    justify-content: center;
-  }
-  .phone-notch::after {
-    content: "";
-    display: block;
-    width: 126px;
-    height: 36px;
-    background: #000;
-    border-radius: 20px;
-    margin-top: 10px;
   }
 
   .phone-content {
