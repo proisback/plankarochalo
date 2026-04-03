@@ -138,47 +138,49 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
   if (needsJoin) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center p-6 bg-hero relative overflow-hidden">
-        <div className="absolute top-[-10%] right-[-5%] w-[300px] h-[300px] rounded-full bg-primary/[0.04] blur-[60px] pointer-events-none" />
+        <div className="absolute top-[-15%] right-[-10%] w-[400px] h-[400px] rounded-full bg-primary/[0.06] blur-[90px] pointer-events-none" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[300px] h-[300px] rounded-full bg-pop/[0.04] blur-[70px] pointer-events-none" />
 
-        <div className="w-full max-w-sm stagger relative z-10">
-          <div className="text-center mb-6">
-            <p className="text-text-secondary text-sm mb-2">You&apos;ve been invited to plan</p>
-            <h1 className="font-heading text-2xl font-bold text-text">{trip.name}</h1>
-            <div className="flex items-center justify-center gap-2 mt-2 text-xs text-text-tertiary">
-              <span className="inline-flex items-center gap-1">
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-                </svg>
-                {trip.trip_days} days
+        <div className="w-full max-w-sm relative z-10 stagger">
+          {/* Invitation header — emotional, not informational */}
+          <div className="text-center mb-8">
+            <span className="text-4xl block mb-3 animate-pop">🎒</span>
+            <p className="text-text-secondary text-sm font-medium">You&apos;re invited!</p>
+            <h1 className="font-heading text-[1.75rem] leading-tight font-extrabold text-text mt-1">
+              {trip.name}
+            </h1>
+            <div className="flex items-center justify-center gap-2 mt-3">
+              <span className="inline-flex items-center gap-1 bg-primary-light text-primary text-xs font-bold px-2.5 py-1 rounded-full">
+                📅 {trip.trip_days} days
               </span>
-              <span className="text-border">&middot;</span>
-              <span>{members.length > 0 ? `${members.length} joined` : "Be the first!"}</span>
+              {members.length > 0 && (
+                <span className="inline-flex items-center gap-1 bg-accent-light text-accent text-xs font-bold px-2.5 py-1 rounded-full">
+                  👥 {members.length} joined
+                </span>
+              )}
             </div>
           </div>
 
-          {/* How it works */}
-          <div className="bg-surface border border-border-light rounded-2xl p-4 mb-6 shadow-xs">
-            <p className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider mb-3">How it works</p>
-            <div className="space-y-3">
-              {[
-                { emoji: "👋", title: "Join the trip", desc: "Add your name — takes 10 seconds" },
-                { emoji: "📅", title: "Pick your dates & budget", desc: "Mark when you're free + set your budget range" },
-                { emoji: "📍", title: "Vote on destination", desc: "Choose where to go — everyone gets a vote" },
-                { emoji: "✅", title: "Trip confirmed", desc: "Dates locked, destination picked, you're all set" },
-              ].map((step, i) => (
-                <div key={i} className="flex items-start gap-3">
-                  <span className="text-lg shrink-0 mt-0.5">{step.emoji}</span>
-                  <div>
-                    <p className="text-sm font-semibold text-text">{step.title}</p>
-                    <p className="text-xs text-text-tertiary">{step.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="bg-surface rounded-2xl p-5 shadow-md border border-border-light">
+          {/* Join card — THE action, front and center */}
+          <div className="bg-surface rounded-2xl p-6 shadow-lg border border-border-light/60">
+            <p className="text-center text-sm font-semibold text-text mb-4">
+              Add your name to get started
+            </p>
             <JoinPrompt tripId={trip.id} trip={trip} onJoined={handleJoined} />
+          </div>
+
+          {/* Compact "what happens next" — BELOW the action, not before */}
+          <div className="mt-6 flex items-center justify-center gap-4 text-text-tertiary">
+            {[
+              { icon: "📅", label: "Pick dates" },
+              { icon: "📍", label: "Vote place" },
+              { icon: "✅", label: "Confirmed!" },
+            ].map((s, i) => (
+              <div key={i} className="flex flex-col items-center gap-1">
+                <span className="text-base">{s.icon}</span>
+                <span className="text-[10px] font-medium">{s.label}</span>
+              </div>
+            ))}
           </div>
         </div>
       </main>
