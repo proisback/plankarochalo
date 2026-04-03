@@ -581,7 +581,12 @@ export function WaitingBanner({
 
   async function handleCopyReminder() {
     const url = `${typeof window !== "undefined" ? window.location.origin : ""}/trip/${slug}`;
-    const msg = `Hey! We're planning ${tripName} — add your dates here: ${url}\nTakes 30 seconds!`;
+    const action =
+      tripStatus === "dates_open" ? "add your dates"
+      : tripStatus === "destination_open" ? "vote on the destination"
+      : tripStatus === "commitment" ? "confirm if you're in"
+      : "check in";
+    const msg = `Hey! We're planning ${tripName} — ${action} here: ${url}\nTakes 30 seconds!`;
     await navigator.clipboard.writeText(msg);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
