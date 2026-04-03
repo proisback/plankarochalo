@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Trip, Member, DestinationOption } from "@/lib/types";
 import { MemberList, WaitingBanner } from "./member-list";
@@ -43,6 +43,51 @@ export function DestinationStage({
   const [adding, setAdding] = useState(false);
   const [voting, setVoting] = useState(false);
   const [error, setError] = useState("");
+
+  // Shake-to-decide state
+  const [shaking, setShaking] = useState(false);
+  const [shakeWinner, setShakeWinner] = useState<DestinationOption | null>(null);
+  const [shakeHighlight, setShakeHighlight] = useState<number>(-1);
+  const shakeRef = useRef(false);
+
+  // Shake detection via DeviceMotion
+  useEffect(() => {
+    let lastShake = 0;
+    function handleMotion(e: DeviceMotionEvent) {
+      const acc = e.accelerationIncludingGravity;
+      if (!acc) return;
+      const force = Math.sqrt((acc.x ?? 0) ** 2 + (acc.y ?? 0) ** 2 + (acc.z ?? 0) ** 2);
+      if (force > 25 && Date.now() - lastShake > 2000 && !shakeRef.current) {
+        lastShake = Date.now();
+        triggerShake();
+      }
+    }
+    window.addEventListener("devicemotion", handleMotion);
+    return () => window.removeEventListener("devicemotion", handleMotion);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function triggerShake() {
+    if (shakeRef.current || !hasTie || tiedOptions.length < 2) return;
+    shakeRef.current = true;
+    setShaking(true);
+    setShakeWinner(null);
+
+    // Animate cycling through options
+    let count = 0;
+    const total = 12 + Math.floor(Math.random() * 6); // 12-18 cycles
+    const interval = setInterval(() => {
+      setShakeHighlight(count % tiedOptions.length);
+      count++;
+      if (count >= total) {
+        clearInterval(interval);
+        const winner = tiedOptions[Math.floor(Math.random() * tiedOptions.length)];
+        setShakeHighlight(tiedOptions.indexOf(winner));
+        setShakeWinner(winner);
+        setShaking(false);
+        shakeRef.current = false;
+      }
+    }, 120);
+  }
 
   const loadOptions = useCallback(async () => {
     const { data } = await supabase
@@ -414,28 +459,94 @@ export function DestinationStage({
             />
           )}
           {hasTie && (
-            <div className="bg-status-waiting-bg/60 border border-status-waiting/10 rounded-2xl p-4 space-y-3">
-              <div className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-status-waiting" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                </svg>
-                <p className="text-sm font-semibold text-status-waiting">
-                  It&apos;s a tie! Pick the winner:
-                </p>
+            <div className="bg-status-waiting-bg/60 border border-status-waiting/10 rounded-2xl p-5 space-y-4">
+              <div className="text-center">
+                <p className="text-xs font-bold text-status-waiting uppercase tracking-wider">It&apos;s a tie!</p>
+                {!shakeWinner && (
+                  <p className="text-text-secondary text-sm mt-1">Shake your phone or tap below to break it</p>
+                )}
               </div>
-              <div className="space-y-2">
-                {tiedOptions.map((opt) => (
-                  <button
+
+              {/* Tied options */}
+              <div className="flex justify-center gap-3">
+                {tiedOptions.map((opt, i) => (
+                  <div
                     key={opt.id}
-                    onClick={() => handleLockOption(opt)}
-                    className="w-full flex items-center gap-3 bg-surface border border-border rounded-xl px-4 py-3 text-sm font-medium hover:border-primary hover:bg-primary-light/30 active:scale-[0.98] transition-all text-left"
+                    className={[
+                      "flex-1 max-w-[140px] rounded-xl border-2 p-3 text-center transition-all duration-150",
+                      shakeWinner?.id === opt.id
+                        ? "border-accent bg-accent-light scale-105 shadow-md"
+                        : shaking && shakeHighlight === i
+                          ? "border-primary bg-primary-light scale-105"
+                          : "border-border-light bg-surface",
+                    ].join(" ")}
                   >
-                    <span className="text-xl">{opt.emoji}</span>
-                    <span className="flex-1 font-semibold">{opt.name}</span>
-                    <span className="text-text-tertiary text-xs">{opt.vote_count} votes</span>
-                  </button>
+                    <span className="text-2xl block">{opt.emoji}</span>
+                    <p className="text-sm font-bold text-text mt-1">{opt.name}</p>
+                    <p className="text-[10px] text-text-tertiary">{opt.vote_count} votes</p>
+                  </div>
                 ))}
               </div>
+
+              {/* Winner announcement */}
+              {shakeWinner && (
+                <div className="text-center animate-in">
+                  <p className="text-lg font-bold text-accent">
+                    {shakeWinner.emoji} {shakeWinner.name} wins!
+                  </p>
+                  <p className="text-xs text-text-tertiary mt-0.5">The universe has spoken. No backsies.</p>
+                  {isOrganizer && (
+                    <button
+                      onClick={() => handleLockOption(shakeWinner)}
+                      className="mt-3 bg-accent text-white rounded-xl px-5 py-2.5 text-sm font-bold shadow-sm hover:bg-accent-hover active:scale-[0.98] transition-all"
+                    >
+                      Lock {shakeWinner.name} as destination
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Shake / random button */}
+              {!shakeWinner && (
+                <div className="text-center">
+                  <button
+                    onClick={triggerShake}
+                    disabled={shaking}
+                    className={[
+                      "inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold transition-all active:scale-95",
+                      shaking
+                        ? "bg-subtle text-text-tertiary"
+                        : "bg-surface border border-border text-text hover:bg-subtle shadow-xs",
+                    ].join(" ")}
+                  >
+                    <span className="text-base">{shaking ? "🎲" : "🎲"}</span>
+                    {shaking ? "Deciding..." : "Shake to decide"}
+                  </button>
+                  <p className="text-[10px] text-text-tertiary mt-2">
+                    Anyone can shake. First shake decides.
+                  </p>
+                </div>
+              )}
+
+              {/* Manual pick fallback (organizer) */}
+              {isOrganizer && !shakeWinner && !shaking && (
+                <div className="border-t border-status-waiting/10 pt-3">
+                  <p className="text-[10px] text-text-tertiary text-center mb-2">Or pick manually:</p>
+                  <div className="space-y-1.5">
+                    {tiedOptions.map((opt) => (
+                      <button
+                        key={opt.id}
+                        onClick={() => handleLockOption(opt)}
+                        className="w-full flex items-center gap-2 bg-surface border border-border rounded-lg px-3 py-2 text-xs font-medium hover:border-primary active:scale-[0.98] transition-all text-left"
+                      >
+                        <span>{opt.emoji}</span>
+                        <span className="flex-1">{opt.name}</span>
+                        <span className="text-text-tertiary">{opt.vote_count} votes</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </>
