@@ -329,6 +329,19 @@ html.dark ::selection {
   background: rgba(240, 122, 69, 0.25);
 }
 
+/* Details/collapsible — instant, no animation artifacts */
+details summary {
+  list-style: none;
+}
+details summary::-webkit-details-marker {
+  display: none;
+}
+/* Ensure details content appears instantly — no animation artifacts */
+details[open] > :not(summary) {
+  opacity: 1 !important;
+  animation: none !important;
+}
+
 /* ═══════════════════════════════════════════════
    RANGE SLIDER
    ═══════════════════════════════════════════════ */

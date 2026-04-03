@@ -217,7 +217,7 @@ export function CreateTripForm() {
           More options
         </summary>
 
-        <div className="mt-4 space-y-5 animate-in">
+        <div className="mt-4 space-y-5">
           {/* Date Window */}
           <div className="space-y-1.5">
             <label className="block text-sm font-semibold text-text">
