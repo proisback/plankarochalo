@@ -237,8 +237,8 @@ export function DatesStage({
 
       {/* Budget bottom sheet — slides up AFTER dates are saved */}
       {showBudgetSheet && (
-        <div className="fixed inset-0 z-40 flex items-end justify-center bg-background/60 backdrop-blur-sm animate-fade" onClick={() => setShowBudgetSheet(false)}>
-          <div className="w-full max-w-sm mx-4 mb-4 bg-surface rounded-2xl shadow-xl border border-border-light p-5 space-y-4 animate-in" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-background/80 backdrop-blur-md animate-fade" onClick={() => setShowBudgetSheet(false)}>
+          <div className="w-full max-w-sm mx-4 bg-surface rounded-2xl shadow-xl border border-border-light p-5 space-y-4 animate-scale" onClick={(e) => e.stopPropagation()}>
             {/* Swipe indicator */}
             <div className="flex justify-center"><div className="w-8 h-1 rounded-full bg-border" /></div>
 
