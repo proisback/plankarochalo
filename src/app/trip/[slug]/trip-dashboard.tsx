@@ -142,6 +142,7 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
 
         <div className="w-full max-w-sm stagger relative z-10">
           <div className="text-center mb-6">
+            <p className="text-text-secondary text-sm mb-2">You&apos;ve been invited to plan</p>
             <h1 className="font-heading text-2xl font-bold text-text">{trip.name}</h1>
             {trip.budget && (
               <p className="text-text-secondary text-sm mt-1">{trip.budget}</p>
@@ -159,11 +160,11 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
           </div>
 
           {/* How it works */}
-          <div className="flex gap-2 mb-6">
+          <div className="flex gap-2 mb-2">
             {[
-              { icon: "M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244", label: "Join via link" },
-              { icon: "M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5", label: "Pick dates" },
-              { icon: "M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z", label: "Trip locked" },
+              { icon: "M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z", label: "Add your name" },
+              { icon: "M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5", label: "Pick free dates" },
+              { icon: "M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z", label: "Trip confirmed!" },
             ].map((step, i) => (
               <div
                 key={i}
@@ -178,6 +179,7 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
               </div>
             ))}
           </div>
+          <p className="text-center text-text-tertiary text-[10px] mb-6">Takes less than a minute</p>
 
           <div className="bg-surface rounded-2xl p-5 shadow-md border border-border-light">
             <JoinPrompt tripId={trip.id} trip={trip} onJoined={handleJoined} />

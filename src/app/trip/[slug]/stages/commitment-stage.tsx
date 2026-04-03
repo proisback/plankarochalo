@@ -64,7 +64,11 @@ export function CommitmentStage({
           {currentMember.name}, you in or nah?
         </h2>
         <p className="text-text-secondary text-sm mt-0.5">
-          {trip.locked_destination} &middot; {confirmedIn.length} of {members.length} committed. Your move.
+          {userIn
+            ? `You're going! ${confirmedIn.length} of ${members.length} confirmed so far.`
+            : userOut
+              ? `You're out. ${confirmedIn.length} of ${members.length} confirmed so far.`
+              : `${trip.locked_destination} \u00B7 ${confirmedIn.length} of ${members.length} committed. Your move.`}
         </p>
       </div>
 
@@ -149,7 +153,7 @@ export function CommitmentStage({
         </div>
       )}
 
-      <WaitingBanner members={members} tripStatus={trip.status} />
+      <WaitingBanner members={members} tripStatus={trip.status} isOrganizer={isOrganizer} tripName={trip.name} slug={trip.slug} />
       <MemberList members={members} isOrganizer={isOrganizer} onMembersUpdated={onMembersUpdated} tripStatus={trip.status} onProxyCommit={isOrganizer ? handleProxyCommit : undefined} />
 
       {isOrganizer && confirmedIn.length > 0 && (

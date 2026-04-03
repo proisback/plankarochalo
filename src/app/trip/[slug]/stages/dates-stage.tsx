@@ -150,11 +150,14 @@ export function DatesStage({
           {currentMember.name}, when works for you?
         </h2>
         <p className="text-text-secondary text-sm mt-0.5">
-          {!startDate
-            ? `Drop your available dates — we're hunting for a ${trip.trip_days}-day window.`
-            : !endDate
-              ? "Now tap your end date."
-              : "Locked in. Now we wait for the crew."}
+          {(() => {
+            if (!startDate) return `Drop your available dates — we're hunting for a ${trip.trip_days}-day window.`;
+            if (!endDate) return "Now tap your end date.";
+            const responded = members.filter(m => m.availability_start).length;
+            const waiting = members.length - responded;
+            if (waiting > 0) return `You're in! Waiting for ${waiting} more ${waiting === 1 ? "person" : "people"} to submit dates.`;
+            return "Everyone's in! The organizer can now lock dates.";
+          })()}
         </p>
       </div>
 
@@ -310,7 +313,7 @@ export function DatesStage({
         </div>
       )}
 
-      <WaitingBanner members={members} tripStatus={trip.status} />
+      <WaitingBanner members={members} tripStatus={trip.status} isOrganizer={isOrganizer} tripName={trip.name} slug={trip.slug} />
       <MemberList members={members} isOrganizer={isOrganizer} onMembersUpdated={onMembersUpdated} tripStatus={trip.status} />
 
       {isOrganizer && best && (

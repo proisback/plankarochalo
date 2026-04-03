@@ -141,7 +141,9 @@ export function DestinationStage({
           {currentMember.name}, where to?
         </h2>
         <p className="text-text-secondary text-sm mt-0.5">
-          Pick your top spot. Add a new one if it&apos;s missing. One vote each.
+          {currentMember.destination_vote
+            ? `You voted! ${totalVotes} ${totalVotes === 1 ? "vote" : "votes"} so far from ${members.filter(m => m.destination_vote).length} ${members.filter(m => m.destination_vote).length === 1 ? "member" : "members"}.`
+            : "Pick your top spot. Add a new one if it\u2019s missing. One vote each."}
         </p>
       </div>
 
@@ -318,7 +320,7 @@ export function DestinationStage({
         </div>
       )}
 
-      <WaitingBanner members={members} tripStatus={trip.status} />
+      <WaitingBanner members={members} tripStatus={trip.status} isOrganizer={isOrganizer} tripName={trip.name} slug={trip.slug} />
       <MemberList
         members={members}
         isOrganizer={isOrganizer}

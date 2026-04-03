@@ -567,22 +567,58 @@ export function MemberList({
 }
 
 /* -- WaitingBanner -- */
-export function WaitingBanner({ members, tripStatus }: { members: Member[]; tripStatus?: TripStatus }) {
+export function WaitingBanner({
+  members,
+  tripStatus,
+  isOrganizer,
+  tripName,
+  slug,
+}: {
+  members: Member[];
+  tripStatus?: TripStatus;
+  isOrganizer?: boolean;
+  tripName?: string;
+  slug?: string;
+}) {
+  const [copied, setCopied] = useState(false);
   const waiting = members.filter((m) => !hasResponded(m, tripStatus));
   if (waiting.length === 0) return null;
 
+  async function handleCopyReminder() {
+    const url = `${typeof window !== "undefined" ? window.location.origin : ""}/trip/${slug}`;
+    const msg = `Hey! We're planning ${tripName} — add your dates here: ${url}\nTakes 30 seconds!`;
+    await navigator.clipboard.writeText(msg);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
   return (
-    <div className="bg-status-waiting-bg/60 border border-status-waiting/10 rounded-xl px-4 py-3 flex items-center gap-2.5">
-      <div className="w-7 h-7 rounded-lg bg-status-waiting/10 flex items-center justify-center shrink-0">
-        <svg className="w-3.5 h-3.5 text-status-waiting" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
+    <div className="bg-status-waiting-bg/60 border border-status-waiting/10 rounded-xl px-4 py-3 space-y-2">
+      <div className="flex items-center gap-2.5">
+        <div className="w-7 h-7 rounded-lg bg-status-waiting/10 flex items-center justify-center shrink-0">
+          <svg className="w-3.5 h-3.5 text-status-waiting" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <p className="text-status-waiting text-sm font-medium">
+          Waiting on {waiting.length}{" "}
+          {waiting.length === 1 ? "person" : "people"}:{" "}
+          <span className="font-normal">{waiting.map((m) => m.name).join(", ")}</span>
+        </p>
       </div>
-      <p className="text-status-waiting text-sm font-medium">
-        Waiting on {waiting.length}{" "}
-        {waiting.length === 1 ? "person" : "people"}:{" "}
-        <span className="font-normal">{waiting.map((m) => m.name).join(", ")}</span>
-      </p>
+      {isOrganizer && slug && tripName && (
+        <button
+          onClick={handleCopyReminder}
+          className={[
+            "w-full text-xs font-semibold py-2 rounded-lg transition-all active:scale-[0.98]",
+            copied
+              ? "bg-status-confirmed/10 text-status-confirmed"
+              : "bg-status-waiting/10 text-status-waiting hover:bg-status-waiting/15",
+          ].join(" ")}
+        >
+          {copied ? "Reminder copied!" : "Copy reminder for WhatsApp"}
+        </button>
+      )}
     </div>
   );
 }
