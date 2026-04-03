@@ -28,6 +28,13 @@ function isOutsideWindow(dateKey: string, windowStart?: string, windowEnd?: stri
   return false;
 }
 
+function isInRange(dateKey: string, start: string | null, end: string | null): boolean {
+  if (!start || !end) return false;
+  const a = start < end ? start : end;
+  const b = start < end ? end : start;
+  return dateKey >= a && dateKey <= b;
+}
+
 export default function Calendar({
   selectedDates,
   onToggleDate,
@@ -44,6 +51,7 @@ export default function Calendar({
 
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
+  const [rangeMode, setRangeMode] = useState(false);
   const [rangeStart, setRangeStart] = useState<string | null>(null);
 
   const monthLabel = useMemo(() => {
@@ -79,26 +87,33 @@ export default function Calendar({
     if (isPast(dateKey, todayKey)) return;
     if (isOutsideWindow(dateKey, windowStart, windowEnd)) return;
 
-    if (rangeStart) {
-      // Complete the range
-      const start = rangeStart < dateKey ? rangeStart : dateKey;
-      const end = rangeStart < dateKey ? dateKey : rangeStart;
-      onRangeSelect(start, end);
-      setRangeStart(null);
+    if (rangeMode) {
+      if (!rangeStart) {
+        // First tap in range mode — set start
+        setRangeStart(dateKey);
+      } else {
+        // Second tap — complete range
+        const start = rangeStart < dateKey ? rangeStart : dateKey;
+        const end = rangeStart < dateKey ? dateKey : rangeStart;
+        onRangeSelect(start, end);
+        setRangeStart(null);
+        setRangeMode(false);
+      }
     } else {
-      // Single tap — toggle. But if user wants a range, they can long-press or double-tap.
-      // Simple approach: first tap selects/deselects, hold shift (desktop) or we just use single toggle.
+      // Single tap mode — toggle
       onToggleDate(dateKey);
     }
   }
 
-  function handleDayDoubleClick(day: number) {
-    const dateKey = toDateKey(viewYear, viewMonth, day);
-    if (isPast(dateKey, todayKey)) return;
-    if (isOutsideWindow(dateKey, windowStart, windowEnd)) return;
-
-    // Start range selection mode
-    setRangeStart(dateKey);
+  function toggleRangeMode() {
+    if (rangeMode) {
+      // Turning off — cancel any pending range
+      setRangeMode(false);
+      setRangeStart(null);
+    } else {
+      setRangeMode(true);
+      setRangeStart(null);
+    }
   }
 
   function getCellClasses(day: number): string {
@@ -109,6 +124,7 @@ export default function Calendar({
     const isToday = dateKey === todayKey;
     const isSelected = selectedDates.has(dateKey);
     const isRangeAnchor = dateKey === rangeStart;
+    const inPendingRange = rangeMode && rangeStart && !isRangeAnchor && isInRange(dateKey, rangeStart, null);
 
     const base = "w-full aspect-square flex items-center justify-center rounded-xl text-sm font-medium transition-all duration-100";
 
@@ -116,10 +132,12 @@ export default function Calendar({
       return `${base} text-text-tertiary/30 cursor-default`;
     }
 
+    // Range start anchor
     if (isRangeAnchor) {
-      return `${base} bg-primary text-white ring-2 ring-primary/30 cursor-pointer`;
+      return `${base} bg-primary text-white font-bold ring-2 ring-primary/30 cursor-pointer`;
     }
 
+    // Already selected
     if (isSelected) {
       return `${base} bg-accent text-white font-bold cursor-pointer hover:bg-accent-hover`;
     }
@@ -140,14 +158,15 @@ export default function Calendar({
     }
 
     const todayStyle = isToday ? "ring-2 ring-primary/20 text-primary font-bold" : "";
+    const rangeCursor = rangeMode ? "cursor-pointer ring-1 ring-primary/10" : "";
 
-    return `${base} ${heatmap} ${todayStyle} cursor-pointer hover:ring-2 hover:ring-accent/30`;
+    return `${base} ${heatmap} ${todayStyle} ${rangeCursor} cursor-pointer hover:ring-2 hover:ring-accent/30`;
   }
 
   return (
     <div className="rounded-2xl border border-border-light bg-surface p-4 shadow-sm">
       {/* Month nav */}
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-2 flex items-center justify-between">
         <button type="button" onClick={prevMonth}
           className="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary hover:bg-subtle-hover active:scale-90 transition-all">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -162,6 +181,45 @@ export default function Calendar({
           </svg>
         </button>
       </div>
+
+      {/* Mode toggle + hint */}
+      <div className="mb-3 flex items-center justify-between">
+        <p className="text-sm text-text-secondary">
+          {rangeMode
+            ? rangeStart
+              ? "Now tap the end date"
+              : "Tap the start date"
+            : "Tap dates to mark as available"}
+        </p>
+        <button
+          type="button"
+          onClick={toggleRangeMode}
+          className={[
+            "text-xs font-semibold px-3 py-1.5 rounded-lg transition-all active:scale-95 flex items-center gap-1",
+            rangeMode
+              ? "bg-primary text-white shadow-sm"
+              : "bg-subtle text-text-secondary hover:bg-subtle-hover",
+          ].join(" ")}
+        >
+          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+          </svg>
+          Range
+        </button>
+      </div>
+
+      {/* Range mode indicator */}
+      {rangeMode && rangeStart && (
+        <div className="mb-2 bg-primary-light border border-primary/10 rounded-lg px-3 py-2 flex items-center justify-between">
+          <p className="text-xs text-primary font-medium">
+            From {new Date(rangeStart + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short" })} → tap end date
+          </p>
+          <button type="button" onClick={() => setRangeStart(null)}
+            className="text-[10px] text-primary/60 hover:text-primary font-medium">
+            Cancel
+          </button>
+        </div>
+      )}
 
       {/* Day headers */}
       <div className="mb-1 grid grid-cols-7 gap-1">
@@ -182,7 +240,6 @@ export default function Calendar({
               key={day}
               type="button"
               onClick={() => handleDayClick(day)}
-              onDoubleClick={() => handleDayDoubleClick(day)}
               disabled={isPast(toDateKey(viewYear, viewMonth, day), todayKey) || isOutsideWindow(toDateKey(viewYear, viewMonth, day), windowStart, windowEnd)}
               className={getCellClasses(day)}
             >
@@ -197,30 +254,16 @@ export default function Calendar({
         <p className="text-xs text-accent font-semibold">
           {selectedDates.size} {selectedDates.size === 1 ? "date" : "dates"} selected
         </p>
-        {rangeStart ? (
-          <button type="button" onClick={() => setRangeStart(null)}
-            className="text-[10px] text-status-out hover:text-status-out/80 font-medium transition-colors">
-            Cancel range
-          </button>
-        ) : selectedDates.size > 0 ? (
+        {selectedDates.size > 0 && (
           <button type="button" onClick={() => { for (const d of selectedDates) onToggleDate(d); }}
-            className="text-[10px] text-status-out hover:text-status-out/80 font-medium transition-colors">
+            className="text-xs text-status-out hover:text-status-out/80 font-medium transition-colors">
             Clear all
           </button>
-        ) : null}
+        )}
       </div>
 
-      {/* Range mode indicator */}
-      {rangeStart && (
-        <div className="mt-2 bg-primary-light/50 border border-primary/10 rounded-lg px-3 py-2 text-center">
-          <p className="text-xs text-primary font-medium">
-            Tap another date to select the range from {new Date(rangeStart + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
-          </p>
-        </div>
-      )}
-
       {/* Legend */}
-      <div className="mt-3 flex items-center justify-center gap-4 text-[10px] text-text-tertiary font-medium">
+      <div className="mt-2 flex items-center justify-center gap-4 text-[10px] text-text-tertiary font-medium">
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-2.5 w-2.5 rounded bg-accent" />
           You
@@ -238,11 +281,6 @@ export default function Calendar({
           4+
         </span>
       </div>
-
-      {/* Hint */}
-      <p className="text-center text-[10px] text-text-tertiary mt-2">
-        Tap to select &middot; Double-tap to start a range
-      </p>
     </div>
   );
 }
