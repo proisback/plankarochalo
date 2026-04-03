@@ -14,7 +14,7 @@ const DEADLINE_OPTIONS = [
   { value: "72h", label: "72 hours" },
 ];
 
-export function CreateTripForm({ onCreated }: { onCreated?: () => void }) {
+export function CreateTripForm() {
   const router = useRouter();
   const supabase = createClient();
 
@@ -112,7 +112,6 @@ export function CreateTripForm({ onCreated }: { onCreated?: () => void }) {
       );
     }
 
-    onCreated?.();
     router.push(`/trip/${slug}`);
   }
 
