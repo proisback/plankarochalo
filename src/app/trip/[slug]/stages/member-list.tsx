@@ -573,34 +573,48 @@ function NudgeModal({
   tripName,
   slug,
   tripStatus,
+  members,
   onClose,
 }: {
   tripName: string;
   slug: string;
   tripStatus?: TripStatus;
+  members: Member[];
   onClose: () => void;
 }) {
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
 
   const url = `${typeof window !== "undefined" ? window.location.origin : ""}/trip/${slug}`;
+  const total = members.length;
+  const responded = members.filter((m) => hasResponded(m, tripStatus)).length;
+  const waiting = total - responded;
+
   const action =
+    tripStatus === "dates_open" ? "added their dates"
+    : tripStatus === "destination_open" ? "voted on the destination"
+    : tripStatus === "commitment" ? "confirmed they're in"
+    : "responded";
+
+  const actionVerb =
     tripStatus === "dates_open" ? "add your dates"
     : tripStatus === "destination_open" ? "vote on the destination"
     : tripStatus === "commitment" ? "confirm if you're in"
     : "check in";
 
+  const stat = `${responded} of ${total} people have ${action} for ${tripName}`;
+
   const nudges = [
-    { emoji: "🔥", label: "Urgent", msg: `${action === "vote on the destination" ? "Vote" : "Respond"} kar do warna trip cancel 😭` },
-    { emoji: "⚡", label: "Quick", msg: `2 mins ka kaam hai. Trip bacha lo.` },
-    { emoji: "🥺", label: "Guilt", msg: `Your silence is delaying vacation happiness.` },
-    { emoji: "👀", label: "Shady", msg: `This trip is waiting on flaky energy 👀` },
-    { emoji: "✨", label: "Sweet", msg: `One tap away from vacation happiness.` },
-    { emoji: "👻", label: "Spooky", msg: `The group chat is haunted by your absence.` },
+    { emoji: "🔥", label: "Urgent", msg: `${stat} — ${actionVerb} kar do warna trip cancel 😭` },
+    { emoji: "⚡", label: "Quick", msg: `${stat}. 2 mins ka kaam hai — we need YOU!` },
+    { emoji: "🥺", label: "Guilt", msg: `${stat}. Your silence is delaying vacation happiness.` },
+    { emoji: "👀", label: "Shady", msg: `${stat}... and ${waiting} ${waiting === 1 ? "person is" : "people are"} ghosting 👀` },
+    { emoji: "✨", label: "Friendly", msg: `${stat} — just need you! One tap, 30 seconds 🙏` },
+    { emoji: "😤", label: "Final call", msg: `Last chance! ${responded}/${total} done for ${tripName}. Don't be the reason this trip doesn't happen.` },
   ];
 
   async function handleCopy(idx: number) {
     const nudge = nudges[idx];
-    const full = `${nudge.msg}\n\n${tripName} — ${action} here: ${url}`;
+    const full = `${nudge.msg}\n\n${actionVerb} here 👉 ${url}`;
     await navigator.clipboard.writeText(full);
     setCopiedIdx(idx);
     setTimeout(() => setCopiedIdx(null), 1500);
@@ -706,6 +720,7 @@ export function WaitingBanner({
           tripName={tripName}
           slug={slug}
           tripStatus={tripStatus}
+          members={members}
           onClose={() => setShowNudge(false)}
         />
       )}
