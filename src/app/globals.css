@@ -304,3 +304,116 @@ html.dark ::-webkit-scrollbar-thumb:hover {
 html.dark ::selection {
   background: rgba(240, 122, 69, 0.25);
 }
+
+/* ═══════════════════════════════════════════════
+   PHONE FRAME (desktop only)
+   ═══════════════════════════════════════════════ */
+
+/* Mobile: invisible pass-through */
+.phone-frame-wrapper {
+  min-height: 100vh;
+}
+
+/* Desktop: iPhone-shaped container */
+@media (min-width: 768px) {
+  body {
+    overflow: hidden;
+  }
+
+  .phone-frame-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  .phone-frame {
+    position: relative;
+    width: 393px;
+    height: 852px;
+    border-radius: 44px;
+    border: 5px solid var(--color-border);
+    background: var(--color-background);
+    box-shadow:
+      var(--shadow-xl),
+      0 0 0 1px var(--color-border-light),
+      inset 0 0 0 1px var(--color-border-light);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    /* Make fixed children (modals) relative to frame, not viewport */
+    transform: translateZ(0);
+  }
+
+  .phone-notch {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 126px;
+    height: 36px;
+    background: #000;
+    border-radius: 20px;
+    z-index: 50;
+    pointer-events: none;
+  }
+
+  .phone-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Override min-h-screen inside the frame */
+  .phone-content > main {
+    min-height: 100% !important;
+    flex: 1;
+  }
+
+  /* Centered pages (landing, join) need flex to keep centering */
+  .phone-content > main.flex {
+    display: flex;
+  }
+
+  .phone-home {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 134px;
+    height: 5px;
+    background: var(--color-text-tertiary);
+    border-radius: 3px;
+    opacity: 0.35;
+    z-index: 50;
+    pointer-events: none;
+  }
+
+  /* Custom scrollbar inside phone frame */
+  .phone-content::-webkit-scrollbar {
+    width: 3px;
+  }
+  .phone-content::-webkit-scrollbar-thumb {
+    background: rgba(28, 25, 23, 0.1);
+    border-radius: 2px;
+  }
+}
+
+/* Dark mode frame */
+@media (min-width: 768px) {
+  html.dark .phone-frame {
+    border-color: #2E2D33;
+    box-shadow:
+      0 20px 60px rgba(0, 0, 0, 0.5),
+      0 0 0 1px rgba(255, 255, 255, 0.06),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+  }
+
+  html.dark .phone-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.08);
+  }
+}

@@ -41,7 +41,15 @@ export default function RootLayout({
         <meta name="theme-color" content="#141316" media="(prefers-color-scheme: dark)" />
       </head>
       <body className="antialiased min-h-screen">
-        {children}
+        <div className="phone-frame-wrapper">
+          <div className="phone-frame">
+            <div className="phone-notch" />
+            <div className="phone-content">
+              {children}
+            </div>
+            <div className="phone-home" />
+          </div>
+        </div>
       </body>
     </html>
   );
