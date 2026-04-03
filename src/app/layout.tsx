@@ -8,8 +8,8 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://plankarochalo.com"),
   manifest: "/manifest.json",
   icons: {
-    icon: "/favicon.svg",
-    apple: "/icon-192.svg",
+    icon: "/icon-192.png",
+    apple: "/icon-192.png",
   },
   openGraph: {
     title: "Plan Karo Chalo — Group Trip Planner",
