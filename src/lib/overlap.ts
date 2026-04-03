@@ -29,40 +29,60 @@ export function findBestOverlap(
   for (const m of members) {
     if (!m.availability_start || !m.availability_end) continue;
 
-    const start = new Date(m.availability_start);
-    const end = new Date(m.availability_end);
-
-    // Build constraint ranges to exclude (supports multiple via JSON in constraint_note)
-    const constraintRanges: { start: Date; end: Date }[] = [];
+    // Check if constraint_note holds per-day selected dates (new format)
+    let perDayDates: string[] | null = null;
     if (m.constraint_note) {
       try {
         const parsed = JSON.parse(m.constraint_note);
-        if (Array.isArray(parsed)) {
-          for (const r of parsed) {
-            if (r.start && r.end) {
-              constraintRanges.push({ start: new Date(r.start), end: new Date(r.end) });
-            }
-          }
+        if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === "string" && parsed[0].match(/^\d{4}-\d{2}-\d{2}$/)) {
+          perDayDates = parsed;
         }
       } catch {
-        // Not JSON — fall back to single constraint pair
-        if (m.constraint_start && m.constraint_end) {
-          constraintRanges.push({ start: new Date(m.constraint_start), end: new Date(m.constraint_end) });
-        }
+        // Not JSON
       }
-    } else if (m.constraint_start && m.constraint_end) {
-      constraintRanges.push({ start: new Date(m.constraint_start), end: new Date(m.constraint_end) });
     }
 
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      // Skip dates within ANY of the member's unavailable constraint windows
-      const isBlocked = constraintRanges.some((r) => d >= r.start && d <= r.end);
-      if (isBlocked) continue;
+    if (perDayDates) {
+      // New format: explicit list of available dates
+      for (const key of perDayDates) {
+        const existing = dateMap.get(key) || [];
+        existing.push(m.name);
+        dateMap.set(key, existing);
+      }
+    } else {
+      // Legacy format: range with optional constraint exclusions
+      const start = new Date(m.availability_start);
+      const end = new Date(m.availability_end);
 
-      const key = d.toISOString().split("T")[0];
-      const existing = dateMap.get(key) || [];
-      existing.push(m.name);
-      dateMap.set(key, existing);
+      const constraintRanges: { start: Date; end: Date }[] = [];
+      if (m.constraint_note) {
+        try {
+          const parsed = JSON.parse(m.constraint_note);
+          if (Array.isArray(parsed)) {
+            for (const r of parsed) {
+              if (r.start && r.end) {
+                constraintRanges.push({ start: new Date(r.start), end: new Date(r.end) });
+              }
+            }
+          }
+        } catch {
+          if (m.constraint_start && m.constraint_end) {
+            constraintRanges.push({ start: new Date(m.constraint_start), end: new Date(m.constraint_end) });
+          }
+        }
+      } else if (m.constraint_start && m.constraint_end) {
+        constraintRanges.push({ start: new Date(m.constraint_start), end: new Date(m.constraint_end) });
+      }
+
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const isBlocked = constraintRanges.some((r) => d >= r.start && d <= r.end);
+        if (isBlocked) continue;
+
+        const key = d.toISOString().split("T")[0];
+        const existing = dateMap.get(key) || [];
+        existing.push(m.name);
+        dateMap.set(key, existing);
+      }
     }
   }
 
