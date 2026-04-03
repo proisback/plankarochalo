@@ -26,6 +26,7 @@ export function DatesStage({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [updatingDays, setUpdatingDays] = useState(false);
+  const [showBudgetStep, setShowBudgetStep] = useState(false);
 
   // Selected dates — initialize from existing data
   const [selectedDates, setSelectedDates] = useState<Set<string>>(() => {
@@ -178,78 +179,117 @@ export function DatesStage({
         windowEnd={trip.date_window_end ?? undefined}
       />
 
-      {/* Status card */}
-      {selectedDates.size > 0 && (
-        <div className="bg-accent-light/40 border border-accent/10 rounded-xl px-4 py-3 flex items-center justify-between">
-          <div>
-            <p className="text-sm font-semibold text-text">
-              {selectedDates.size} {selectedDates.size === 1 ? "date" : "dates"} selected
-              {hasSubmitted && waiting === 0 && " — everyone\u2019s in!"}
-            </p>
-            <p className="text-xs text-accent font-medium mt-0.5">
-              {responded} of {members.length} {responded === 1 ? "person has" : "people have"} marked dates
-              {waiting > 0 && ` · ${waiting} waiting`}
-            </p>
-          </div>
-          <svg className="w-5 h-5 text-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      {/* Group response status */}
+      {hasSubmitted && (
+        <div className="bg-accent-light/40 border border-accent/10 rounded-xl px-4 py-2.5 flex items-center justify-between">
+          <p className="text-xs text-accent font-medium">
+            {responded} of {members.length} {responded === 1 ? "person has" : "people have"} marked dates
+            {waiting > 0 && ` · ${waiting} waiting`}
+            {waiting === 0 && " — everyone\u2019s in!"}
+          </p>
+          <svg className="w-4 h-4 text-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
       )}
 
-      {/* Budget + Submit */}
-      <div className="bg-surface border border-border-light rounded-2xl shadow-xs overflow-hidden">
-        {/* Budget */}
-        <details className="group">
-          <summary className="px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-subtle/50 transition-colors">
-            <span className="text-[11px] font-bold text-primary uppercase tracking-wider flex items-center gap-1.5">
-              💰 Budget per person
-            </span>
-            <span className="flex items-center gap-1.5 text-xs font-bold text-primary">
-              {budgetMin >= 100000 ? `₹${(budgetMin / 100000).toFixed(1)}L` : `₹${(budgetMin / 1000).toFixed(0)}K`} – {budgetMax >= 100000 ? `₹${(budgetMax / 100000).toFixed(1)}L` : `₹${(budgetMax / 1000).toFixed(0)}K`}
-              <svg className="w-3.5 h-3.5 text-text-tertiary transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-              </svg>
-            </span>
-          </summary>
-          <div className="px-4 pb-4 pt-1">
-            <p className="text-[11px] text-text-tertiary mb-1 text-center">
-              Helps find the group&apos;s sweet spot for stays & activities
+      {/* Submit dates */}
+      {error && (
+        <div className="bg-status-out-bg border border-status-out/15 rounded-lg px-3 py-2">
+          <p className="text-status-out text-xs">{error}</p>
+        </div>
+      )}
+      {!showBudgetStep ? (
+        <button onClick={() => {
+          if (selectedDates.size === 0) return;
+          setShowBudgetStep(true);
+        }} disabled={selectedDates.size === 0}
+          className="w-full bg-primary text-white rounded-xl px-4 py-3 text-sm font-semibold shadow-sm hover:bg-primary-hover active:scale-[0.98] transition-all disabled:opacity-50">
+          {hasSubmitted ? "Update my dates" : "Next: Set budget"}
+        </button>
+      ) : (
+        /* Budget step — full page */
+        <div className="bg-surface border border-border-light rounded-2xl p-5 shadow-sm space-y-5 animate-in">
+          <div className="text-center">
+            <span className="text-2xl">💰</span>
+            <h3 className="font-heading text-base font-bold text-text mt-2">
+              What&apos;s your budget?
+            </h3>
+            <p className="text-xs text-text-tertiary mt-1">
+              Set your range per person — helps find the group&apos;s sweet spot for stays & activities
             </p>
-            <p className="text-xs text-primary font-bold mb-3 text-center">
-              ~₹{new Intl.NumberFormat("en-IN").format(Math.round((budgetMin + budgetMax) / 2))} per person
-            </p>
-            <div className="relative h-10 mb-1 mx-2">
-              {/* Track */}
+          </div>
+
+          {/* Min / Max text inputs */}
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <label className="block text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1.5">Minimum</label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-text-tertiary text-sm">₹</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={budgetMin > 0 ? new Intl.NumberFormat("en-IN").format(budgetMin) : ""}
+                  onChange={(e) => {
+                    const v = Number(e.target.value.replace(/[^0-9]/g, ""));
+                    if (!isNaN(v) && v >= 0 && v < budgetMax) setBudgetMin(v);
+                  }}
+                  className="w-full rounded-xl border border-border bg-background pl-7 pr-3 py-3 text-sm font-medium text-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                />
+              </div>
+            </div>
+            <div className="flex-1">
+              <label className="block text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1.5">Maximum</label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-text-tertiary text-sm">₹</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={budgetMax > 0 ? new Intl.NumberFormat("en-IN").format(budgetMax) : ""}
+                  onChange={(e) => {
+                    const v = Number(e.target.value.replace(/[^0-9]/g, ""));
+                    if (!isNaN(v) && v > budgetMin) setBudgetMax(v);
+                  }}
+                  className="w-full rounded-xl border border-border bg-background pl-7 pr-3 py-3 text-sm font-medium text-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Slider */}
+          <div>
+            <div className="relative h-10 mx-1">
               <div className="absolute top-1/2 -translate-y-1/2 left-0 right-0 h-[6px] rounded-full bg-subtle-hover" />
-              {/* Filled range */}
               <div className="absolute top-1/2 -translate-y-1/2 h-[6px] rounded-full bg-primary/25"
                 style={{ left: `${((budgetMin - BUDGET_FLOOR) / (BUDGET_CEIL - BUDGET_FLOOR)) * 100}%`, width: `${((budgetMax - budgetMin) / (BUDGET_CEIL - BUDGET_FLOOR)) * 100}%` }} />
-              {/* Sliders */}
               <input type="range" min={BUDGET_FLOOR} max={BUDGET_CEIL} step={BUDGET_STEP} value={budgetMin}
                 onChange={(e) => { const v = Number(e.target.value); if (v < budgetMax) setBudgetMin(v); }} className="range-slider" />
               <input type="range" min={BUDGET_FLOOR} max={BUDGET_CEIL} step={BUDGET_STEP} value={budgetMax}
                 onChange={(e) => { const v = Number(e.target.value); if (v > budgetMin) setBudgetMax(v); }} className="range-slider" />
             </div>
-            <div className="flex justify-between text-[10px] text-text-tertiary mx-2">
+            <div className="flex justify-between text-[10px] text-text-tertiary mx-1 mt-1">
               <span>₹2K</span><span>₹2L</span>
             </div>
           </div>
-        </details>
 
-        {/* Submit */}
-        <div className="p-4 pt-0">
-          {error && (
-            <div className="bg-status-out-bg border border-status-out/15 rounded-lg px-3 py-2 mb-3">
-              <p className="text-status-out text-xs">{error}</p>
-            </div>
-          )}
-          <button onClick={handleSave} disabled={saving || selectedDates.size === 0}
-            className="w-full bg-primary text-white rounded-xl px-4 py-3 text-sm font-semibold shadow-sm hover:bg-primary-hover active:scale-[0.98] transition-all disabled:opacity-50">
-            {saving ? "Saving..." : hasSubmitted ? "Update my dates" : "Done"}
-          </button>
+          {/* Estimated */}
+          <p className="text-center text-sm text-text-secondary">
+            Estimated <span className="font-bold text-primary">₹{new Intl.NumberFormat("en-IN").format(Math.round((budgetMin + budgetMax) / 2))}</span> per person
+          </p>
+
+          {/* Actions */}
+          <div className="flex gap-3">
+            <button onClick={() => setShowBudgetStep(false)}
+              className="flex-1 border border-border rounded-xl px-4 py-3 text-sm font-medium text-text-secondary hover:bg-subtle active:scale-[0.98] transition-all">
+              Back
+            </button>
+            <button onClick={handleSave} disabled={saving}
+              className="flex-[2] bg-primary text-white rounded-xl px-4 py-3 text-sm font-semibold shadow-sm hover:bg-primary-hover active:scale-[0.98] transition-all disabled:opacity-50">
+              {saving ? "Saving..." : "Submit dates & budget"}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Best overlap result */}
       {best && (
