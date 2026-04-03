@@ -351,6 +351,7 @@ html.dark ::selection {
       var(--shadow-xl),
       0 0 0 1px var(--color-border-light),
       inset 0 0 0 1px var(--color-border-light);
+    overflow: hidden;
     display: flex;
     flex-direction: column;
     transform: translateZ(0);
