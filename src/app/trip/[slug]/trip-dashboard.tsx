@@ -144,9 +144,6 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
           <div className="text-center mb-6">
             <p className="text-text-secondary text-sm mb-2">You&apos;ve been invited to plan</p>
             <h1 className="font-heading text-2xl font-bold text-text">{trip.name}</h1>
-            {trip.budget && (
-              <p className="text-text-secondary text-sm mt-1">Budget: {trip.budget}</p>
-            )}
             <div className="flex items-center justify-center gap-2 mt-2 text-xs text-text-tertiary">
               <span className="inline-flex items-center gap-1">
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -223,9 +220,6 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
         <div className="flex items-start justify-between mb-4">
           <div>
             <h1 className="font-heading text-xl font-bold text-text">{trip.name}</h1>
-            {trip.budget && (
-              <p className="text-text-tertiary text-xs mt-0.5">{trip.budget}</p>
-            )}
           </div>
           <span className="text-xs bg-primary-light text-primary px-2.5 py-1 rounded-full font-semibold">
             {trip.trip_days} days

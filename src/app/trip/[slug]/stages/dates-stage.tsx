@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Trip, Member } from "@/lib/types";
-import { findBestOverlap } from "@/lib/overlap";
+import { findBestOverlap, findBudgetOverlap } from "@/lib/overlap";
 import { MemberList, WaitingBanner } from "./member-list";
 import { LockButton } from "./lock-button";
 import Calendar from "./calendar";
@@ -29,6 +29,13 @@ export function DatesStage({
   const [error, setError] = useState("");
   const hasSubmitted = !!currentMember.availability_start;
 
+  // Budget state
+  const [budgetMin, setBudgetMin] = useState(currentMember.budget_min ?? 5000);
+  const [budgetMax, setBudgetMax] = useState(currentMember.budget_max ?? 15000);
+  const BUDGET_FLOOR = 2000;
+  const BUDGET_CEIL = 25000;
+  const BUDGET_STEP = 1000;
+
   // Mark-available state
   const [markChecked, setMarkChecked] = useState<Record<string, boolean>>({});
   const [markingAvailable, setMarkingAvailable] = useState(false);
@@ -36,6 +43,11 @@ export function DatesStage({
   const { best, dateMap } = useMemo(
     () => findBestOverlap(members, trip.trip_days),
     [members, trip.trip_days]
+  );
+
+  const budgetOverlap = useMemo(
+    () => findBudgetOverlap(members),
+    [members]
   );
 
   // Waiting members eligible for mark-available
@@ -97,6 +109,8 @@ export function DatesStage({
       .update({
         availability_start: startDate,
         availability_end: endDate,
+        budget_min: budgetMin,
+        budget_max: budgetMax,
         status: "responded",
       })
       .eq("id", currentMember.id);
@@ -220,6 +234,64 @@ export function DatesStage({
             />
           </div>
         </div>
+        {/* Budget range slider */}
+        <div className="pt-1">
+          <label className="block text-[11px] font-semibold text-text-tertiary uppercase tracking-wider mb-3">
+            Budget per person
+          </label>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-bold text-primary">
+              {budgetMin >= 1000 ? `₹${(budgetMin / 1000).toFixed(0)}K` : `₹${budgetMin}`}
+            </span>
+            <span className="text-[10px] text-text-tertiary">to</span>
+            <span className="text-sm font-bold text-primary">
+              {budgetMax >= 1000 ? `₹${(budgetMax / 1000).toFixed(0)}K` : `₹${budgetMax}`}
+            </span>
+          </div>
+          <div className="relative h-8 mb-1">
+            {/* Track */}
+            <div className="absolute top-1/2 -translate-y-1/2 h-2 w-full rounded-full bg-subtle-hover" />
+            {/* Filled range */}
+            <div
+              className="absolute top-1/2 -translate-y-1/2 h-2 rounded-full bg-primary/30"
+              style={{
+                left: `${((budgetMin - BUDGET_FLOOR) / (BUDGET_CEIL - BUDGET_FLOOR)) * 100}%`,
+                width: `${((budgetMax - budgetMin) / (BUDGET_CEIL - BUDGET_FLOOR)) * 100}%`,
+              }}
+            />
+            {/* Min thumb */}
+            <input
+              type="range"
+              min={BUDGET_FLOOR}
+              max={BUDGET_CEIL}
+              step={BUDGET_STEP}
+              value={budgetMin}
+              onChange={(e) => {
+                const v = Number(e.target.value);
+                if (v < budgetMax) setBudgetMin(v);
+              }}
+              className="range-slider"
+            />
+            {/* Max thumb */}
+            <input
+              type="range"
+              min={BUDGET_FLOOR}
+              max={BUDGET_CEIL}
+              step={BUDGET_STEP}
+              value={budgetMax}
+              onChange={(e) => {
+                const v = Number(e.target.value);
+                if (v > budgetMin) setBudgetMax(v);
+              }}
+              className="range-slider"
+            />
+          </div>
+          <div className="flex justify-between text-[10px] text-text-tertiary">
+            <span>₹2K</span>
+            <span>₹25K</span>
+          </div>
+        </div>
+
         {error && (
           <div className="bg-status-out-bg border border-status-out/15 rounded-lg px-3 py-2">
             <p className="text-status-out text-xs">{error}</p>
@@ -230,7 +302,7 @@ export function DatesStage({
           disabled={saving || !startDate || !endDate}
           className="w-full bg-primary text-white rounded-xl px-4 py-3 text-sm font-semibold shadow-sm hover:bg-primary-hover active:scale-[0.98] transition-all disabled:opacity-50"
         >
-          {saving ? "Saving..." : hasSubmitted ? "Update dates" : "Submit dates"}
+          {saving ? "Saving..." : hasSubmitted ? "Update dates & budget" : "Submit dates & budget"}
         </button>
       </div>
 
@@ -254,6 +326,40 @@ export function DatesStage({
           <p className="text-text-secondary text-sm mt-1">
             {best.minCount} of {members.filter(m => m.availability_start).length} people available: {best.memberNames.join(", ")}
           </p>
+        </div>
+      )}
+
+      {/* Budget sweet spot */}
+      {budgetOverlap && (
+        <div className="bg-primary-light/50 border border-primary/10 rounded-2xl p-4 shadow-xs">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <svg className="w-3.5 h-3.5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
+              </svg>
+            </div>
+            <p className="text-[11px] font-bold text-primary uppercase tracking-wider">
+              Group budget sweet spot
+            </p>
+          </div>
+          {/* Visual bar */}
+          <div className="relative h-3 rounded-full bg-subtle-hover mb-2">
+            <div
+              className="absolute inset-y-0 rounded-full bg-primary/40"
+              style={{
+                left: `${((budgetOverlap.min - BUDGET_FLOOR) / (BUDGET_CEIL - BUDGET_FLOOR)) * 100}%`,
+                width: `${((budgetOverlap.max - budgetOverlap.min) / (BUDGET_CEIL - BUDGET_FLOOR)) * 100}%`,
+              }}
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <p className="font-heading text-base font-bold text-text">
+              ₹{(budgetOverlap.min / 1000).toFixed(0)}K – ₹{(budgetOverlap.max / 1000).toFixed(0)}K
+            </p>
+            <p className="text-text-tertiary text-xs">
+              {budgetOverlap.count} members
+            </p>
+          </div>
         </div>
       )}
 

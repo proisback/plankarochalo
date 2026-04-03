@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import type { Trip, Member } from "@/lib/types";
+import { findBudgetOverlap } from "@/lib/overlap";
 
 export function ReadyStage({
   trip,
@@ -14,6 +15,11 @@ export function ReadyStage({
 }) {
   const [copied, setCopied] = useState(false);
   const confirmedIn = members.filter((m) => m.status === "confirmed_in");
+  const budgetOverlap = useMemo(() => findBudgetOverlap(members), [members]);
+
+  const budgetLabel = budgetOverlap
+    ? `₹${(budgetOverlap.min / 1000).toFixed(0)}K–₹${(budgetOverlap.max / 1000).toFixed(0)}K per person`
+    : null;
 
   const dateRange =
     trip.locked_dates_start && trip.locked_dates_end
@@ -25,7 +31,7 @@ export function ReadyStage({
     "",
     `📍 *Destination:* ${trip.locked_destination}`,
     `📅 *Dates:* ${dateRange} (${trip.trip_days} days)`,
-    trip.budget ? `💰 *Budget:* ${trip.budget}` : null,
+    budgetLabel ? `💰 *Budget:* ${budgetLabel}` : null,
     "",
     `👥 *Who's going (${confirmedIn.length}):*`,
     ...confirmedIn.map((m) => `  • ${m.name}`),
@@ -91,12 +97,12 @@ export function ReadyStage({
           </div>
         </div>
 
-        {trip.budget && (
+        {budgetLabel && (
           <div className="flex items-center gap-2 text-sm text-text-secondary mb-4 pb-4 border-b border-border-light">
             <svg className="w-4 h-4 text-text-tertiary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
             </svg>
-            {trip.budget}
+            Budget: {budgetLabel}
           </div>
         )}
 

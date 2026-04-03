@@ -120,3 +120,22 @@ export function findBestOverlap(
 
   return { best: bestWindow, dateMap };
 }
+
+/**
+ * Find the budget overlap ("sweet spot") across all members who submitted a range.
+ * Returns the intersection of all ranges, or null if < 2 submissions or no overlap.
+ */
+export function findBudgetOverlap(
+  members: Member[]
+): { min: number; max: number; count: number } | null {
+  const withBudget = members.filter(
+    (m) => m.budget_min != null && m.budget_max != null
+  );
+  if (withBudget.length < 2) return null;
+
+  const overlapMin = Math.max(...withBudget.map((m) => m.budget_min!));
+  const overlapMax = Math.min(...withBudget.map((m) => m.budget_max!));
+
+  if (overlapMin > overlapMax) return null;
+  return { min: overlapMin, max: overlapMax, count: withBudget.length };
+}

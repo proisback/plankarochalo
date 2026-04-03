@@ -7,15 +7,6 @@ import { generateSlug } from "@/lib/slug";
 
 const DURATION_OPTIONS = Array.from({ length: 14 }, (_, i) => i + 1);
 
-function formatINR(value: string): string {
-  const num = value.replace(/[^0-9]/g, "");
-  if (!num) return "";
-  return new Intl.NumberFormat("en-IN").format(Number(num));
-}
-
-function rawNumber(value: string): string {
-  return value.replace(/[^0-9]/g, "");
-}
 const DEADLINE_OPTIONS = [
   { value: "none", label: "No deadline" },
   { value: "24h", label: "24 hours" },
@@ -29,7 +20,6 @@ export function CreateTripForm() {
 
   const [name, setName] = useState("");
   const [tripDays, setTripDays] = useState(3);
-  const [budget, setBudget] = useState("");
   const [votingDeadline, setVotingDeadline] = useState("none");
   const [proxyMembers, setProxyMembers] = useState<
     { name: string; start: string; end: string }[]
@@ -61,7 +51,7 @@ export function CreateTripForm() {
         slug,
         organizer_id: user.id,
         trip_days: tripDays,
-        budget: rawNumber(budget) ? `₹${formatINR(budget)} per person` : null,
+        budget: null,
         voting_deadline: votingDeadline,
       })
       .select()
@@ -145,28 +135,6 @@ export function CreateTripForm() {
             </option>
           ))}
         </select>
-      </div>
-
-      {/* Budget */}
-      <div className="space-y-1.5">
-        <label htmlFor="budget" className="block text-sm font-semibold text-text">
-          Budget per person <span className="text-text-tertiary font-normal">(optional)</span>
-        </label>
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-            <span className="text-text-tertiary text-sm font-medium">INR</span>
-          </div>
-          <input
-            id="budget"
-            type="text"
-            inputMode="numeric"
-            placeholder="e.g. 10,000"
-            value={budget ? formatINR(budget) : ""}
-            onChange={(e) => setBudget(rawNumber(e.target.value))}
-            maxLength={20}
-            className="w-full rounded-xl border border-border bg-background pl-12 pr-4 py-3 text-sm placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-          />
-        </div>
       </div>
 
       {/* Voting Deadline */}

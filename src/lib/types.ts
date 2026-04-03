@@ -41,6 +41,8 @@ export interface Member {
   constraint_note: string | null;
   constraint_start: string | null;
   constraint_end: string | null;
+  budget_min: number | null;
+  budget_max: number | null;
   is_proxy: boolean;
   created_at: string;
 }
