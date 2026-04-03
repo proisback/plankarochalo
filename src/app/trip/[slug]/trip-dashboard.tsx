@@ -157,26 +157,25 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
           </div>
 
           {/* How it works */}
-          <div className="flex gap-2 mb-2">
-            {[
-              { icon: "M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z", label: "Add your name" },
-              { icon: "M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5", label: "Pick free dates" },
-              { icon: "M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z", label: "Trip confirmed!" },
-            ].map((step, i) => (
-              <div
-                key={i}
-                className="flex-1 text-center bg-surface border border-border-light rounded-xl py-3.5 px-2 shadow-xs"
-              >
-                <svg className="w-5 h-5 mx-auto text-primary mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d={step.icon} />
-                </svg>
-                <span className="text-[10px] text-text-secondary font-medium leading-tight block">
-                  {step.label}
-                </span>
-              </div>
-            ))}
+          <div className="bg-surface border border-border-light rounded-2xl p-4 mb-6 shadow-xs">
+            <p className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider mb-3">How it works</p>
+            <div className="space-y-3">
+              {[
+                { emoji: "👋", title: "Join the trip", desc: "Add your name — takes 10 seconds" },
+                { emoji: "📅", title: "Pick your dates & budget", desc: "Mark when you're free + set your budget range" },
+                { emoji: "📍", title: "Vote on destination", desc: "Choose where to go — everyone gets a vote" },
+                { emoji: "✅", title: "Trip confirmed", desc: "Dates locked, destination picked, you're all set" },
+              ].map((step, i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <span className="text-lg shrink-0 mt-0.5">{step.emoji}</span>
+                  <div>
+                    <p className="text-sm font-semibold text-text">{step.title}</p>
+                    <p className="text-xs text-text-tertiary">{step.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-          <p className="text-center text-text-tertiary text-[10px] mb-6">Takes less than a minute</p>
 
           <div className="bg-surface rounded-2xl p-5 shadow-md border border-border-light">
             <JoinPrompt tripId={trip.id} trip={trip} onJoined={handleJoined} />
