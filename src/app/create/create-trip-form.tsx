@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { generateSlug } from "@/lib/slug";
-import { DatePickerInput } from "@/app/date-picker-input";
 
 const DURATION_OPTIONS = Array.from({ length: 14 }, (_, i) => i + 1);
 
@@ -29,8 +28,6 @@ export function CreateTripForm() {
     { name: string; start: string; end: string }[]
   >([]);
   const [pName, setPName] = useState("");
-  const [pStart, setPStart] = useState("");
-  const [pEnd, setPEnd] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -263,27 +260,20 @@ export function CreateTripForm() {
             </div>
           </div>
 
-          {/* Known Constraints */}
+          {/* Pre-add members */}
           <div className="space-y-3">
             <div>
               <label className="block text-sm font-semibold text-text">
-                Known constraints <span className="text-text-tertiary font-normal">(optional)</span>
+                Pre-add members <span className="text-text-tertiary font-normal">(optional)</span>
               </label>
               <p className="text-xs text-text-tertiary mt-0.5">
-                Pre-add members who won&apos;t use the tool
+                Add people who won&apos;t join via link — you can mark their dates later
               </p>
             </div>
 
             {proxyMembers.map((p, i) => (
               <div key={i} className="flex items-center gap-2 bg-subtle rounded-xl px-3 py-2">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold truncate text-text">{p.name}</p>
-                  {p.start && p.end && (
-                    <p className="text-[11px] text-status-waiting font-medium">
-                      {new Date(p.start).toLocaleDateString("en-IN", { month: "short", day: "numeric" })} – {new Date(p.end).toLocaleDateString("en-IN", { month: "short", day: "numeric" })} unavailable
-                    </p>
-                  )}
-                </div>
+                <p className="text-sm font-semibold truncate text-text flex-1">{p.name}</p>
                 <button type="button" onClick={() => setProxyMembers((prev) => prev.filter((_, j) => j !== i))}
                   className="w-6 h-6 rounded-lg hover:bg-subtle-active flex items-center justify-center text-text-tertiary hover:text-text transition-all">
                   <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -293,30 +283,18 @@ export function CreateTripForm() {
               </div>
             ))}
 
-            <div className="bg-subtle/50 border border-border-light rounded-xl p-3 space-y-2">
+            <div className="flex gap-2">
               <input type="text" placeholder="Member name" value={pName} onChange={(e) => setPName(e.target.value)}
-                className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm placeholder:text-text-tertiary focus:outline-none focus:ring-1 focus:ring-primary/20 transition-all" />
-              <div className="flex gap-2 items-end">
-                <div className="flex-1">
-                  <label className="block text-[9px] text-text-tertiary uppercase tracking-wider mb-0.5">From</label>
-                  <DatePickerInput value={pStart} onChange={setPStart} placeholder="From" />
-                </div>
-                <div className="flex-1">
-                  <label className="block text-[9px] text-text-tertiary uppercase tracking-wider mb-0.5">To</label>
-                  <DatePickerInput value={pEnd} onChange={setPEnd} min={pStart} placeholder="To" />
-                </div>
-                <button type="button" disabled={!pName.trim()}
-                  onClick={() => {
-                    if (!pName.trim()) return;
-                    setProxyMembers((prev) => [...prev, { name: pName.trim(), start: pStart, end: pEnd }]);
-                    setPName(""); setPStart(""); setPEnd("");
-                  }}
-                  className="shrink-0 w-8 h-8 rounded-lg bg-accent text-white hover:bg-accent-hover active:scale-90 transition-all disabled:bg-subtle-active disabled:text-text-tertiary flex items-center justify-center">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                  </svg>
-                </button>
-              </div>
+                className="flex-1 rounded-xl border border-border bg-surface px-3 py-2 text-sm placeholder:text-text-tertiary focus:outline-none focus:ring-1 focus:ring-primary/20 transition-all" />
+              <button type="button" disabled={!pName.trim()}
+                onClick={() => {
+                  if (!pName.trim()) return;
+                  setProxyMembers((prev) => [...prev, { name: pName.trim(), start: "", end: "" }]);
+                  setPName("");
+                }}
+                className="shrink-0 px-3 rounded-xl bg-accent text-white text-sm font-semibold hover:bg-accent-hover active:scale-95 transition-all disabled:bg-subtle-active disabled:text-text-tertiary">
+                Add
+              </button>
             </div>
           </div>
         </div>
