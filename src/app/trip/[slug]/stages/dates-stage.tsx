@@ -196,24 +196,24 @@ export function DatesStage({
 
       {/* From / To inputs + submit */}
       <div className="bg-surface border border-border-light rounded-2xl p-4 space-y-3 shadow-xs overflow-hidden">
-        <div className="grid grid-cols-2 gap-2 min-w-0">
-          <div className="min-w-0">
+        <div className="space-y-2">
+          <div>
             <label className="block text-[11px] font-semibold text-text-tertiary uppercase tracking-wider mb-1.5">From</label>
             <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full min-w-0 rounded-xl border border-border bg-background px-2 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
             />
           </div>
-          <div className="min-w-0">
+          <div>
             <label className="block text-[11px] font-semibold text-text-tertiary uppercase tracking-wider mb-1.5">To</label>
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
               min={startDate}
-              className="w-full min-w-0 rounded-xl border border-border bg-background px-2 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
             />
           </div>
         </div>

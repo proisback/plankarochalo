@@ -196,12 +196,13 @@ function EditProxyForm({
             <label className="block text-[11px] font-semibold text-text-tertiary uppercase tracking-wider mb-1">
               Unavailable dates
             </label>
-            <div className="grid grid-cols-2 gap-2 min-w-0">
+            <div className="space-y-2">
               <input
                 type="date"
                 value={constraintStart}
                 onChange={(e) => setConstraintStart(e.target.value)}
                 className={inputClass}
+                placeholder="From"
               />
               <input
                 type="date"
@@ -209,15 +210,16 @@ function EditProxyForm({
                 onChange={(e) => setConstraintEnd(e.target.value)}
                 min={constraintStart}
                 className={inputClass}
+                placeholder="To"
               />
             </div>
           </div>
 
-          <div className="bg-accent/5 rounded-xl p-3 overflow-hidden">
+          <div className="bg-accent/5 rounded-xl p-3">
             <label className="block text-[11px] font-semibold text-accent uppercase tracking-wider mb-1.5">
               Available dates (submit on their behalf)
             </label>
-            <div className="grid grid-cols-2 gap-2 min-w-0">
+            <div className="space-y-2">
               <input
                 type="date"
                 value={availStart}
