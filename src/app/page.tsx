@@ -39,8 +39,8 @@ export default async function Home() {
             <span className="text-gradient">Chalo.</span>
           </h1>
 
-          <p className="text-text-secondary text-[15px] leading-relaxed mt-3 max-w-[280px] mx-auto">
-            One link. Pick dates. Choose destination. Lock in your group trip.
+          <p className="text-text-secondary text-[15px] leading-relaxed mt-3 max-w-[300px] mx-auto">
+            Turn WhatsApp chaos into a confirmed trip. Vote on dates, destinations & budget together.
           </p>
         </div>
 

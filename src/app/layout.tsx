@@ -2,15 +2,25 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Plan Karo Chalo — Group Trip Coordination",
+  title: "Plan Karo Chalo — Group Trip Planner",
   description:
-    "Stop drowning in WhatsApp messages. Align dates, pick a destination, and lock in your group trip — all from one link.",
+    "Turn WhatsApp chaos into a confirmed trip. Vote on dates, destinations & budget together — all from one link. No app download needed.",
   metadataBase: new URL("https://plankarochalo.com"),
+  manifest: "/manifest.json",
+  icons: {
+    icon: "/favicon.svg",
+    apple: "/icon-192.svg",
+  },
   openGraph: {
-    title: "Plan Karo Chalo",
+    title: "Plan Karo Chalo — Group Trip Planner",
     description:
-      "Align dates, pick a destination, and lock in your group trip — all from one link.",
+      "Turn WhatsApp chaos into a confirmed trip. Vote on dates, destinations & budget together.",
     type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "Plan Karo Chalo",
+    description: "Turn WhatsApp chaos into a confirmed trip.",
   },
 };
 
