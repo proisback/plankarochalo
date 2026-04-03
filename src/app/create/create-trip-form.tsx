@@ -8,6 +8,16 @@ import { DatePickerInput } from "@/app/date-picker-input";
 
 const DURATION_OPTIONS = Array.from({ length: 14 }, (_, i) => i + 1);
 
+const TRIP_NAME_SUGGESTIONS = [
+  "Goa Birthday Bash",
+  "Manali Snow Trip",
+  "Pondicherry Long Weekend",
+  "Coorg Coffee Trail",
+  "Rajasthan Road Trip",
+  "Kerala Backwaters",
+  "Ladakh Adventure",
+];
+
 const DEADLINE_OPTIONS = [
   { value: "none", label: "No deadline" },
   { value: "24h", label: "24 hours" },
@@ -30,7 +40,18 @@ export function CreateTripForm() {
   >([]);
   const [pName, setPName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [created, setCreated] = useState(false);
   const [error, setError] = useState("");
+  const [placeholderIdx, setPlaceholderIdx] = useState(0);
+
+  // Rotating placeholder suggestions
+  useEffect(() => {
+    if (name) return; // Stop rotating once user starts typing
+    const interval = setInterval(() => {
+      setPlaceholderIdx((i) => (i + 1) % TRIP_NAME_SUGGESTIONS.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [name]);
 
   useEffect(() => {
     async function loadName() {
@@ -110,7 +131,10 @@ export function CreateTripForm() {
       );
     }
 
-    router.push(`/trip/${slug}`);
+    // Show success state before redirecting
+    setLoading(false);
+    setCreated(true);
+    setTimeout(() => router.push(`/trip/${slug}`), 800);
   }
 
   const selectStyle = { backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2378716C' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19.5 8.25l-7.5 7.5-7.5-7.5'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center", backgroundSize: "16px" };
@@ -147,7 +171,7 @@ export function CreateTripForm() {
         <input
           id="name"
           type="text"
-          placeholder="e.g. Goa June 2026"
+          placeholder={TRIP_NAME_SUGGESTIONS[placeholderIdx]}
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
@@ -186,10 +210,22 @@ export function CreateTripForm() {
 
       <button
         type="submit"
-        disabled={loading || !name.trim() || !organizerName.trim()}
-        className="w-full bg-gradient-to-r from-primary to-[#F4845F] text-white rounded-2xl px-5 py-4 text-sm font-bold font-heading shadow-md hover:shadow-lg active:scale-[0.98] transition-all disabled:opacity-50 disabled:shadow-sm flex items-center justify-center gap-2"
+        disabled={loading || created || !name.trim() || !organizerName.trim()}
+        className={[
+          "w-full rounded-2xl px-5 py-4 text-sm font-bold font-heading shadow-md transition-all flex items-center justify-center gap-2",
+          created
+            ? "bg-accent text-white shadow-lg scale-[1.02]"
+            : "bg-gradient-to-r from-primary to-[#F5A623] text-white hover:shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:shadow-sm",
+        ].join(" ")}
       >
-        {loading ? (
+        {created ? (
+          <span className="flex items-center gap-2 animate-pop">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+            </svg>
+            Created!
+          </span>
+        ) : loading ? (
           <span className="flex items-center gap-2">
             <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
