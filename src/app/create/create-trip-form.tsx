@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { generateSlug } from "@/lib/slug";
@@ -14,12 +14,15 @@ const DEADLINE_OPTIONS = [
   { value: "72h", label: "72 hours" },
 ];
 
-export function CreateTripForm() {
+export function CreateTripForm({ onCreated }: { onCreated?: () => void }) {
   const router = useRouter();
   const supabase = createClient();
 
+  const [organizerName, setOrganizerName] = useState("");
   const [name, setName] = useState("");
   const [tripDays, setTripDays] = useState(3);
+  const [dateWindowStart, setDateWindowStart] = useState("");
+  const [dateWindowEnd, setDateWindowEnd] = useState("");
   const [votingDeadline, setVotingDeadline] = useState("none");
   const [proxyMembers, setProxyMembers] = useState<
     { name: string; start: string; end: string }[]
@@ -29,6 +32,18 @@ export function CreateTripForm() {
   const [pEnd, setPEnd] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Pre-fill organizer name from auth
+  useEffect(() => {
+    async function loadName() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const defaultName = user.user_metadata?.full_name || user.email?.split("@")[0] || "";
+        setOrganizerName(defaultName);
+      }
+    }
+    loadName();
+  }, [supabase]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -52,6 +67,8 @@ export function CreateTripForm() {
         organizer_id: user.id,
         trip_days: tripDays,
         budget: null,
+        date_window_start: dateWindowStart || null,
+        date_window_end: dateWindowEnd || null,
         voting_deadline: votingDeadline,
       })
       .select()
@@ -66,7 +83,7 @@ export function CreateTripForm() {
     const { error: memberError } = await supabase.from("members").insert({
       trip_id: trip.id,
       user_id: user.id,
-      name: user.user_metadata?.full_name || user.email?.split("@")[0] || "Organizer",
+      name: organizerName.trim(),
       is_organizer: true,
       status: "responded",
     });
@@ -95,11 +112,29 @@ export function CreateTripForm() {
       );
     }
 
+    onCreated?.();
     router.push(`/trip/${slug}`);
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+      {/* Organizer Name */}
+      <div className="space-y-1.5">
+        <label htmlFor="organizerName" className="block text-sm font-semibold text-text">
+          Your name
+        </label>
+        <input
+          id="organizerName"
+          type="text"
+          placeholder="e.g. Rahul"
+          value={organizerName}
+          onChange={(e) => setOrganizerName(e.target.value)}
+          required
+          maxLength={50}
+          className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+        />
+      </div>
+
       {/* Trip Name */}
       <div className="space-y-1.5">
         <label htmlFor="name" className="block text-sm font-semibold text-text">
@@ -137,6 +172,41 @@ export function CreateTripForm() {
         </select>
       </div>
 
+      {/* Date Window */}
+      <div className="space-y-1.5">
+        <label className="block text-sm font-semibold text-text">
+          Date window <span className="text-text-tertiary font-normal">(optional)</span>
+        </label>
+        <p className="text-xs text-text-tertiary">
+          Restrict when members can pick dates
+        </p>
+        <div className="space-y-2">
+          <div>
+            <label className="block text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1">
+              Earliest date
+            </label>
+            <input
+              type="date"
+              value={dateWindowStart}
+              onChange={(e) => setDateWindowStart(e.target.value)}
+              className="w-full min-w-0 rounded-xl border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1">
+              Latest date
+            </label>
+            <input
+              type="date"
+              value={dateWindowEnd}
+              onChange={(e) => setDateWindowEnd(e.target.value)}
+              min={dateWindowStart}
+              className="w-full min-w-0 rounded-xl border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+            />
+          </div>
+        </div>
+      </div>
+
       {/* Voting Deadline */}
       <div className="space-y-1.5">
         <label className="block text-sm font-semibold text-text">
@@ -172,7 +242,6 @@ export function CreateTripForm() {
           </p>
         </div>
 
-        {/* Added constraints list */}
         {proxyMembers.map((p, i) => (
           <div
             key={i}
@@ -185,24 +254,13 @@ export function CreateTripForm() {
                   <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
                   </svg>
-                  {new Date(p.start).toLocaleDateString("en-IN", {
-                    month: "short",
-                    day: "numeric",
-                  })}{" "}
-                  –{" "}
-                  {new Date(p.end).toLocaleDateString("en-IN", {
-                    month: "short",
-                    day: "numeric",
-                  })}{" "}
-                  unavailable
+                  {new Date(p.start).toLocaleDateString("en-IN", { month: "short", day: "numeric" })} – {new Date(p.end).toLocaleDateString("en-IN", { month: "short", day: "numeric" })} unavailable
                 </p>
               )}
             </div>
             <button
               type="button"
-              onClick={() =>
-                setProxyMembers((prev) => prev.filter((_, j) => j !== i))
-              }
+              onClick={() => setProxyMembers((prev) => prev.filter((_, j) => j !== i))}
               className="w-7 h-7 rounded-lg hover:bg-subtle-active flex items-center justify-center text-text-tertiary hover:text-text transition-all"
             >
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -212,7 +270,6 @@ export function CreateTripForm() {
           </div>
         ))}
 
-        {/* Add constraint form */}
         <div className="bg-subtle/70 border border-border-light rounded-2xl p-4 space-y-2.5">
           <p className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">
             Add a member&apos;s unavailable dates
@@ -233,7 +290,7 @@ export function CreateTripForm() {
                 type="date"
                 value={pStart}
                 onChange={(e) => setPStart(e.target.value)}
-                className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                className="w-full min-w-0 rounded-xl border border-border bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
               />
             </div>
             <div>
@@ -245,7 +302,7 @@ export function CreateTripForm() {
                 value={pEnd}
                 onChange={(e) => setPEnd(e.target.value)}
                 min={pStart}
-                className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                className="w-full min-w-0 rounded-xl border border-border bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
               />
             </div>
           </div>
@@ -254,10 +311,7 @@ export function CreateTripForm() {
             disabled={!pName.trim()}
             onClick={() => {
               if (!pName.trim()) return;
-              setProxyMembers((prev) => [
-                ...prev,
-                { name: pName.trim(), start: pStart, end: pEnd },
-              ]);
+              setProxyMembers((prev) => [...prev, { name: pName.trim(), start: pStart, end: pEnd }]);
               setPName("");
               setPStart("");
               setPEnd("");
@@ -280,7 +334,7 @@ export function CreateTripForm() {
 
       <button
         type="submit"
-        disabled={loading || !name.trim()}
+        disabled={loading || !name.trim() || !organizerName.trim()}
         className="w-full bg-gradient-to-r from-primary to-[#F4845F] text-white rounded-2xl px-5 py-4 text-sm font-bold font-heading shadow-md hover:shadow-lg active:scale-[0.98] transition-all disabled:opacity-50 disabled:shadow-sm flex items-center justify-center gap-2"
       >
         {loading ? (

@@ -7,6 +7,8 @@ interface CalendarProps {
   endDate: string;
   onSelect: (date: string) => void;
   dateMap: Map<string, string[]>;
+  windowStart?: string;
+  windowEnd?: string;
 }
 
 const DAYS_OF_WEEK = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"] as const;
@@ -28,11 +30,20 @@ function isPast(dateKey: string, todayKey: string): boolean {
   return dateKey < todayKey;
 }
 
+function isOutsideWindow(dateKey: string, windowStart?: string, windowEnd?: string): boolean {
+  if (!windowStart && !windowEnd) return false;
+  if (windowStart && dateKey < windowStart) return true;
+  if (windowEnd && dateKey > windowEnd) return true;
+  return false;
+}
+
 export default function Calendar({
   startDate,
   endDate,
   onSelect,
   dateMap,
+  windowStart,
+  windowEnd,
 }: CalendarProps) {
   const today = useMemo(() => new Date(), []);
   const todayKey = useMemo(
@@ -89,7 +100,9 @@ export default function Calendar({
 
     const base = "w-10 h-10 flex items-center justify-center rounded-xl text-sm transition-all duration-150";
 
-    if (past) {
+    const outsideWindow = isOutsideWindow(dateKey, windowStart, windowEnd);
+
+    if (past || outsideWindow) {
       return `${base} opacity-30 cursor-default text-muted`;
     }
 
@@ -126,6 +139,7 @@ export default function Calendar({
   function handleDayClick(day: number) {
     const dateKey = toDateKey(viewYear, viewMonth, day);
     if (isPast(dateKey, todayKey)) return;
+    if (isOutsideWindow(dateKey, windowStart, windowEnd)) return;
     onSelect(dateKey);
   }
 
@@ -180,7 +194,7 @@ export default function Calendar({
               key={day}
               type="button"
               onClick={() => handleDayClick(day)}
-              disabled={isPast(toDateKey(viewYear, viewMonth, day), todayKey)}
+              disabled={isPast(toDateKey(viewYear, viewMonth, day), todayKey) || isOutsideWindow(toDateKey(viewYear, viewMonth, day), windowStart, windowEnd)}
               className={getCellClasses(day)}
             >
               {day}

@@ -24,6 +24,8 @@ export interface Trip {
   locked_dates_start: string | null;
   locked_dates_end: string | null;
   locked_destination: string | null;
+  date_window_start: string | null;
+  date_window_end: string | null;
   voting_deadline: string;
   created_at: string;
 }
