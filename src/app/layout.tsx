@@ -50,7 +50,7 @@ export default function RootLayout({
         <meta name="theme-color" content="#FAF9F7" media="(prefers-color-scheme: light)" />
         <meta name="theme-color" content="#141316" media="(prefers-color-scheme: dark)" />
       </head>
-      <body className="antialiased min-h-screen">
+      <body className="antialiased min-h-screen grain">
         <div className="phone-frame-wrapper">
           <div className="phone-frame">
             <div className="phone-content">

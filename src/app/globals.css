@@ -1,19 +1,23 @@
 @import "tailwindcss";
 
 @theme {
-  /* ── Primary ────────────────────────────────── */
-  --color-primary: #E86A33;
-  --color-primary-hover: #D45A26;
-  --color-primary-light: #FFF3ED;
-  --color-primary-glow: rgba(232, 106, 51, 0.15);
+  /* ── Primary (sunset orange) ─────────────────── */
+  --color-primary: #E8622B;
+  --color-primary-hover: #D4531E;
+  --color-primary-light: #FFF1EB;
+  --color-primary-glow: rgba(232, 98, 43, 0.18);
 
-  /* ── Accent ─────────────────────────────────── */
-  --color-accent: #2D6A4F;
-  --color-accent-hover: #24593F;
-  --color-accent-light: #ECFDF5;
+  /* ── Accent (jungle green) ──────────────────── */
+  --color-accent: #1D7A54;
+  --color-accent-hover: #156843;
+  --color-accent-light: #E6FBF0;
+
+  /* ── Pop (warm gold — third accent) ─────────── */
+  --color-pop: #F5A623;
+  --color-pop-light: #FFF8EC;
 
   /* ── Surfaces ───────────────────────────────── */
-  --color-background: #FAF9F7;
+  --color-background: #FAFAF7;
   --color-surface: #FFFFFF;
 
   /* ── Text (warm stone tones) ────────────────── */
@@ -63,12 +67,12 @@
   --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --font-heading: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
 
-  /* ── Shadows (warm, layered) ────────────────── */
-  --shadow-xs: 0 1px 2px rgba(28, 25, 23, 0.04);
-  --shadow-sm: 0 1px 3px rgba(28, 25, 23, 0.06), 0 2px 8px rgba(28, 25, 23, 0.02);
-  --shadow-md: 0 4px 16px rgba(28, 25, 23, 0.07), 0 2px 4px rgba(28, 25, 23, 0.03);
-  --shadow-lg: 0 12px 32px rgba(28, 25, 23, 0.1), 0 4px 8px rgba(28, 25, 23, 0.04);
-  --shadow-xl: 0 20px 48px rgba(28, 25, 23, 0.14), 0 8px 16px rgba(28, 25, 23, 0.06);
+  /* ── Shadows (warm, dimensional) ─────────────── */
+  --shadow-xs: 0 1px 2px rgba(28, 25, 23, 0.05);
+  --shadow-sm: 0 2px 4px rgba(28, 25, 23, 0.05), 0 4px 12px rgba(28, 25, 23, 0.03);
+  --shadow-md: 0 4px 8px rgba(28, 25, 23, 0.06), 0 8px 24px rgba(28, 25, 23, 0.04);
+  --shadow-lg: 0 8px 16px rgba(28, 25, 23, 0.08), 0 16px 40px rgba(28, 25, 23, 0.06);
+  --shadow-xl: 0 16px 32px rgba(28, 25, 23, 0.12), 0 24px 56px rgba(28, 25, 23, 0.08);
 }
 
 /* ═══════════════════════════════════════════════
@@ -156,12 +160,32 @@ body {
 @keyframes fade-in-up {
   from {
     opacity: 0;
-    transform: translateY(16px);
+    transform: translateY(20px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+@keyframes pop-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  70% {
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-3deg); }
+  75% { transform: rotate(3deg); }
 }
 
 @keyframes fade-in {
@@ -190,9 +214,9 @@ body {
   100% { background-position: 200% 0; }
 }
 
-/* Entrance utility */
+/* Entrance utilities */
 .animate-in {
-  animation: fade-in-up 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: fade-in-up 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
 .animate-fade {
@@ -200,7 +224,15 @@ body {
 }
 
 .animate-scale {
-  animation: scale-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: scale-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.animate-pop {
+  animation: pop-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.animate-wiggle {
+  animation: wiggle 0.5s ease-in-out;
 }
 
 .animate-pulse-soft {
@@ -210,7 +242,7 @@ body {
 /* Stagger container: children animate in sequence */
 .stagger > * {
   opacity: 0;
-  animation: fade-in-up 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fade-in-up 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 .stagger > *:nth-child(1) { animation-delay: 0ms; }
 .stagger > *:nth-child(2) { animation-delay: 80ms; }
@@ -229,32 +261,44 @@ body {
    UTILITIES
    ═══════════════════════════════════════════════ */
 
-/* Card with hover lift */
+/* Card with hover lift — playful spring */
 .card-hover {
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-              box-shadow 0.2s ease;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.25s ease;
 }
 .card-hover:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px) scale(1.005);
 }
 .card-hover:active {
-  transform: translateY(0) scale(0.98);
+  transform: translateY(0) scale(0.97);
 }
 
 /* Gradient text */
 .text-gradient {
-  background: linear-gradient(135deg, #E86A33 0%, #F4845F 100%);
+  background: linear-gradient(135deg, #E8622B 0%, #F5A623 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-/* Hero background with warm radial gradients */
+/* Hero background — warm atmosphere with depth */
 .bg-hero {
   background:
-    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(232, 106, 51, 0.07), transparent),
-    radial-gradient(ellipse 60% 40% at 80% 110%, rgba(45, 106, 79, 0.04), transparent),
+    radial-gradient(ellipse 70% 50% at 30% -10%, rgba(232, 98, 43, 0.08), transparent),
+    radial-gradient(ellipse 50% 40% at 80% 100%, rgba(29, 122, 84, 0.05), transparent),
+    radial-gradient(ellipse 40% 30% at 10% 80%, rgba(245, 166, 35, 0.04), transparent),
     var(--color-background);
+}
+
+/* Subtle grain texture overlay */
+.grain::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 /* Smooth scrollbar */
@@ -305,7 +349,7 @@ textarea:hover {
 /* ── Dark mode utility overrides ─────────────── */
 
 html.dark .text-gradient {
-  background: linear-gradient(135deg, #F07A45 0%, #F4A57A 100%);
+  background: linear-gradient(135deg, #F07A45 0%, #F5C167 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

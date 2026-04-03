@@ -22,36 +22,37 @@ export default async function Home() {
         <ThemeToggle />
       </div>
 
-      {/* Decorative gradient blobs */}
-      <div className="absolute top-[-10%] right-[-5%] w-[400px] h-[400px] rounded-full bg-primary/[0.04] blur-[80px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] left-[-5%] w-[300px] h-[300px] rounded-full bg-accent/[0.03] blur-[60px] pointer-events-none" />
+      {/* Decorative gradient blobs — layered for depth */}
+      <div className="absolute top-[-15%] right-[-10%] w-[500px] h-[500px] rounded-full bg-primary/[0.06] blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-[-15%] left-[-10%] w-[400px] h-[400px] rounded-full bg-accent/[0.04] blur-[80px] pointer-events-none" />
+      <div className="absolute top-[40%] left-[-20%] w-[300px] h-[300px] rounded-full bg-pop/[0.03] blur-[70px] pointer-events-none" />
 
       <div className="w-full max-w-sm relative z-10 stagger">
         {/* Badge */}
         <div className="text-center mb-8">
-          <span className="inline-flex items-center gap-1.5 bg-primary/10 text-primary rounded-full px-3.5 py-1.5 text-xs font-semibold tracking-wide mb-5">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse-soft" />
-            Stop the WhatsApp chaos
+          <span className="inline-flex items-center gap-2 bg-primary/8 text-primary rounded-full px-4 py-2 text-xs font-bold tracking-wide mb-6 shadow-xs">
+            <span className="text-sm">🔥</span>
+            No more &quot;bhai dates batao&quot;
           </span>
 
-          <h1 className="font-heading text-[2.5rem] leading-[1.1] font-extrabold tracking-tight text-text">
+          <h1 className="font-heading text-[2.75rem] leading-[1.05] font-extrabold tracking-tight text-text">
             Plan Karo{" "}
             <span className="text-gradient">Chalo.</span>
           </h1>
 
-          <p className="text-text-secondary text-[15px] leading-relaxed mt-3 max-w-[300px] mx-auto">
-            Turn WhatsApp chaos into a confirmed trip. Vote on dates, destinations & budget together.
+          <p className="text-text-secondary text-[15px] leading-relaxed mt-4 max-w-[300px] mx-auto">
+            One link. Everyone votes on dates, destination & budget. Trip confirmed. That simple.
           </p>
         </div>
 
         {/* Login card */}
-        <div className="bg-surface rounded-2xl p-6 shadow-md border border-border-light">
+        <div className="bg-surface rounded-2xl p-6 shadow-lg border border-border-light/80">
           <LoginForm />
         </div>
 
-        {/* Footer hint */}
+        {/* Social proof */}
         <p className="text-center text-text-tertiary text-xs mt-6">
-          No account needed for trip members
+          No app download needed &middot; Works on WhatsApp
         </p>
       </div>
     </main>
