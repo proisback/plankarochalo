@@ -378,7 +378,8 @@ export function DestinationStage({
         <p className="text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-2">
           Popular picks <span className="font-normal normal-case">— tap to add</span>
         </p>
-        <div className="flex gap-3 overflow-x-auto pb-3 -mx-1 px-1 scroll-smooth scroll-thin" style={{ WebkitOverflowScrolling: "touch" }}>
+        <div className="overflow-x-auto pb-3 -mx-1 px-1 scroll-thin" style={{ WebkitOverflowScrolling: "touch" }}>
+          <div className="flex gap-3 scroll-peek-once">
           {POPULAR_DESTINATIONS.map((dest) => {
             const alreadyAdded = options.some(
               (o) => o.name.toLowerCase() === dest.name.toLowerCase()
@@ -429,6 +430,7 @@ export function DestinationStage({
               </button>
             );
           })}
+          </div>
         </div>
       </div>
 

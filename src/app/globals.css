@@ -219,6 +219,17 @@ body {
   to { width: 0%; }
 }
 
+@keyframes scroll-peek {
+  0% { transform: translateX(0); }
+  40% { transform: translateX(-18px); }
+  100% { transform: translateX(0); }
+}
+
+.scroll-peek-once {
+  animation: scroll-peek 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.6s both;
+  animation-iteration-count: 1;
+}
+
 /* Entrance utilities */
 .animate-in {
   animation: fade-in-up 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
