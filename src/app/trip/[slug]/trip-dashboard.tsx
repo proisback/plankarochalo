@@ -145,7 +145,7 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
             <p className="text-text-secondary text-sm mb-2">You&apos;ve been invited to plan</p>
             <h1 className="font-heading text-2xl font-bold text-text">{trip.name}</h1>
             {trip.budget && (
-              <p className="text-text-secondary text-sm mt-1">{trip.budget}</p>
+              <p className="text-text-secondary text-sm mt-1">Budget: {trip.budget}</p>
             )}
             <div className="flex items-center justify-center gap-2 mt-2 text-xs text-text-tertiary">
               <span className="inline-flex items-center gap-1">

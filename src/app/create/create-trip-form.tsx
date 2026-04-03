@@ -5,7 +5,17 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { generateSlug } from "@/lib/slug";
 
-const DURATION_OPTIONS = [2, 3, 4, 5, 7];
+const DURATION_OPTIONS = Array.from({ length: 14 }, (_, i) => i + 1);
+
+function formatINR(value: string): string {
+  const num = value.replace(/[^0-9]/g, "");
+  if (!num) return "";
+  return new Intl.NumberFormat("en-IN").format(Number(num));
+}
+
+function rawNumber(value: string): string {
+  return value.replace(/[^0-9]/g, "");
+}
 const DEADLINE_OPTIONS = [
   { value: "none", label: "No deadline" },
   { value: "24h", label: "24 hours" },
@@ -51,7 +61,7 @@ export function CreateTripForm() {
         slug,
         organizer_id: user.id,
         trip_days: tripDays,
-        budget: budget.trim() || null,
+        budget: rawNumber(budget) ? `₹${formatINR(budget)} per person` : null,
         voting_deadline: votingDeadline,
       })
       .select()
@@ -119,45 +129,42 @@ export function CreateTripForm() {
 
       {/* Trip Duration */}
       <div className="space-y-1.5">
-        <label className="block text-sm font-semibold text-text">
-          How many days?
+        <label htmlFor="tripDays" className="block text-sm font-semibold text-text">
+          Trip duration
         </label>
-        <div className="flex gap-2">
+        <select
+          id="tripDays"
+          value={tripDays}
+          onChange={(e) => setTripDays(Number(e.target.value))}
+          className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm font-medium text-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all appearance-none"
+          style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2378716C' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19.5 8.25l-7.5 7.5-7.5-7.5'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center", backgroundSize: "16px" }}
+        >
           {DURATION_OPTIONS.map((d) => (
-            <button
-              key={d}
-              type="button"
-              onClick={() => setTripDays(d)}
-              className={[
-                "flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95",
-                tripDays === d
-                  ? "bg-primary text-white shadow-sm"
-                  : "bg-subtle border border-border text-text hover:bg-subtle-hover",
-              ].join(" ")}
-            >
-              {d}
-            </button>
+            <option key={d} value={d}>
+              {d} {d === 1 ? "day" : "days"}
+            </option>
           ))}
-        </div>
+        </select>
       </div>
 
       {/* Budget */}
       <div className="space-y-1.5">
         <label htmlFor="budget" className="block text-sm font-semibold text-text">
-          Budget range <span className="text-text-tertiary font-normal">(optional)</span>
+          Budget per person <span className="text-text-tertiary font-normal">(optional)</span>
         </label>
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-            <span className="text-text-tertiary text-sm">₹</span>
+            <span className="text-text-tertiary text-sm font-medium">INR</span>
           </div>
           <input
             id="budget"
             type="text"
-            placeholder="e.g. 5,000-10,000 per person"
-            value={budget}
-            onChange={(e) => setBudget(e.target.value)}
-            maxLength={100}
-            className="w-full rounded-xl border border-border bg-background pl-8 pr-4 py-3 text-sm placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+            inputMode="numeric"
+            placeholder="e.g. 10,000"
+            value={budget ? formatINR(budget) : ""}
+            onChange={(e) => setBudget(rawNumber(e.target.value))}
+            maxLength={20}
+            className="w-full rounded-xl border border-border bg-background pl-12 pr-4 py-3 text-sm placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
           />
         </div>
       </div>
