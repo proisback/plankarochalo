@@ -37,11 +37,11 @@ export function LockButton({
       {/* full-screen modal overlay */}
       {showConfirm && (
         <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm animate-fade"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-background/80 backdrop-blur-md animate-fade"
           onClick={() => setShowConfirm(false)}
         >
           <div
-            className="max-w-sm w-full mx-4 mb-4 sm:mb-0 bg-surface rounded-2xl p-6 shadow-xl animate-in"
+            className="max-w-sm w-full mx-4 mb-4 sm:mb-0 bg-surface rounded-2xl p-6 shadow-xl border border-border-light animate-in"
             onClick={(e) => e.stopPropagation()}
           >
             {/* icon */}
