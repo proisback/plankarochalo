@@ -171,7 +171,7 @@ function EditProxyForm({
   }
 
   const inputClass =
-    "w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all";
+    "w-full min-w-0 rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all";
 
   return (
     <div className="border-t border-border-light px-4 py-3 space-y-3 bg-subtle/50 animate-in">

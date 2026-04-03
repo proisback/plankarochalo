@@ -258,7 +258,7 @@ export function CreateTripForm() {
                 type="date"
                 value={pStart}
                 onChange={(e) => setPStart(e.target.value)}
-                className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                className="w-full min-w-0 rounded-xl border border-border bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
               />
             </div>
             <div>
@@ -270,7 +270,7 @@ export function CreateTripForm() {
                 value={pEnd}
                 onChange={(e) => setPEnd(e.target.value)}
                 min={pStart}
-                className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                className="w-full min-w-0 rounded-xl border border-border bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
               />
             </div>
           </div>
