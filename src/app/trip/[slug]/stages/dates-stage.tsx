@@ -26,7 +26,9 @@ export function DatesStage({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [updatingDays, setUpdatingDays] = useState(false);
-  const [showBudgetStep, setShowBudgetStep] = useState(false);
+  const [showBudgetSheet, setShowBudgetSheet] = useState(false);
+  const [datesSaved, setDatesSaved] = useState(false);
+  const [savingBudget, setSavingBudget] = useState(false);
 
   // Selected dates — initialize from existing data
   const [selectedDates, setSelectedDates] = useState<Set<string>>(() => {
@@ -98,7 +100,7 @@ export function DatesStage({
     setUpdatingDays(false);
   }
 
-  async function handleSave() {
+  async function handleSaveDates() {
     if (selectedDates.size === 0) return;
     setSaving(true);
     setError("");
@@ -107,6 +109,7 @@ export function DatesStage({
     const earliest = sorted[0];
     const latest = sorted[sorted.length - 1];
 
+    // Save dates with default budget — member can adjust budget next
     const { error: saveError } = await supabase
       .from("members")
       .update({
@@ -115,14 +118,30 @@ export function DatesStage({
         constraint_note: JSON.stringify(sorted),
         constraint_start: null,
         constraint_end: null,
-        budget_min: budgetMin,
-        budget_max: budgetMax,
+        budget_min: currentMember.budget_min ?? 5000,
+        budget_max: currentMember.budget_max ?? 30000,
         status: "responded",
       })
       .eq("id", currentMember.id);
 
-    if (saveError) setError(saveError.message);
     setSaving(false);
+    if (saveError) {
+      setError(saveError.message);
+    } else {
+      setDatesSaved(true);
+      // Show budget bottom sheet after a brief moment
+      setTimeout(() => setShowBudgetSheet(true), 600);
+    }
+  }
+
+  async function handleSaveBudget() {
+    setSavingBudget(true);
+    await supabase
+      .from("members")
+      .update({ budget_min: budgetMin, budget_max: budgetMax })
+      .eq("id", currentMember.id);
+    setSavingBudget(false);
+    setShowBudgetSheet(false);
   }
 
   async function handleLockDates() {
@@ -193,71 +212,71 @@ export function DatesStage({
         </div>
       )}
 
-      {/* Submit dates */}
+      {/* Save dates button */}
       {error && (
         <div className="bg-status-out-bg border border-status-out/15 rounded-lg px-3 py-2">
           <p className="text-status-out text-xs">{error}</p>
         </div>
       )}
-      {!showBudgetStep ? (
-        <button onClick={() => {
-          if (selectedDates.size === 0) return;
-          setShowBudgetStep(true);
-        }} disabled={selectedDates.size === 0}
-          className="w-full bg-primary text-white rounded-xl px-4 py-3 text-sm font-semibold shadow-sm hover:bg-primary-hover active:scale-[0.98] transition-all disabled:opacity-50">
-          {hasSubmitted ? "Update my dates" : "Next: Set budget"}
-        </button>
+
+      {datesSaved ? (
+        <div className="bg-accent-light/60 border border-accent/10 rounded-xl px-4 py-3 text-center animate-pop">
+          <p className="text-sm font-semibold text-accent flex items-center justify-center gap-1.5">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+            </svg>
+            Dates saved!
+          </p>
+        </div>
       ) : (
-        /* Budget step — full page */
-        <div className="bg-surface border border-border-light rounded-2xl p-5 shadow-sm space-y-5 animate-in">
-          <div className="text-center">
-            <span className="text-2xl">💰</span>
-            <h3 className="font-heading text-base font-bold text-text mt-2">
-              What&apos;s your budget?
-            </h3>
-            <p className="text-xs text-text-tertiary mt-1">
-              Set your range per person — helps find the group&apos;s sweet spot for stays & activities
-            </p>
-          </div>
+        <button onClick={handleSaveDates} disabled={saving || selectedDates.size === 0}
+          className="w-full bg-primary text-white rounded-xl px-4 py-3 text-sm font-semibold shadow-sm hover:bg-primary-hover active:scale-[0.98] transition-all disabled:opacity-50">
+          {saving ? "Saving..." : hasSubmitted ? "Update my dates" : "Save my dates"}
+        </button>
+      )}
 
-          {/* Min / Max text inputs */}
-          <div className="flex gap-3">
-            <div className="flex-1">
-              <label className="block text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1.5">Minimum</label>
-              <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-text-tertiary text-sm">₹</span>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={budgetMin > 0 ? new Intl.NumberFormat("en-IN").format(budgetMin) : ""}
-                  onChange={(e) => {
-                    const v = Number(e.target.value.replace(/[^0-9]/g, ""));
-                    if (!isNaN(v) && v >= 0 && v < budgetMax) setBudgetMin(v);
-                  }}
-                  className="w-full rounded-xl border border-border bg-background pl-7 pr-3 py-3 text-sm font-medium text-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                />
+      {/* Budget bottom sheet — slides up AFTER dates are saved */}
+      {showBudgetSheet && (
+        <div className="fixed inset-0 z-40 flex items-end justify-center bg-background/60 backdrop-blur-sm animate-fade" onClick={() => setShowBudgetSheet(false)}>
+          <div className="w-full max-w-sm mx-4 mb-4 bg-surface rounded-2xl shadow-xl border border-border-light p-5 space-y-4 animate-in" onClick={(e) => e.stopPropagation()}>
+            {/* Swipe indicator */}
+            <div className="flex justify-center"><div className="w-8 h-1 rounded-full bg-border" /></div>
+
+            <div className="text-center">
+              <p className="text-xs text-text-tertiary font-medium uppercase tracking-wider">One more thing</p>
+              <h3 className="font-heading text-base font-bold text-text mt-1">
+                💰 Set your budget range
+              </h3>
+              <p className="text-xs text-text-tertiary mt-1">
+                Helps find the group&apos;s sweet spot for stays & activities
+              </p>
+            </div>
+
+            {/* Min / Max inputs */}
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <label className="block text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1">Min</label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-text-tertiary text-sm">₹</span>
+                  <input type="text" inputMode="numeric"
+                    value={budgetMin > 0 ? new Intl.NumberFormat("en-IN").format(budgetMin) : ""}
+                    onChange={(e) => { const v = Number(e.target.value.replace(/[^0-9]/g, "")); if (!isNaN(v) && v >= 0 && v < budgetMax) setBudgetMin(v); }}
+                    className="w-full rounded-xl border border-border bg-background pl-7 pr-3 py-2.5 text-sm font-medium text-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                </div>
+              </div>
+              <div className="flex-1">
+                <label className="block text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1">Max</label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-text-tertiary text-sm">₹</span>
+                  <input type="text" inputMode="numeric"
+                    value={budgetMax > 0 ? new Intl.NumberFormat("en-IN").format(budgetMax) : ""}
+                    onChange={(e) => { const v = Number(e.target.value.replace(/[^0-9]/g, "")); if (!isNaN(v) && v > budgetMin) setBudgetMax(v); }}
+                    className="w-full rounded-xl border border-border bg-background pl-7 pr-3 py-2.5 text-sm font-medium text-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                </div>
               </div>
             </div>
-            <div className="flex-1">
-              <label className="block text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1.5">Maximum</label>
-              <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-text-tertiary text-sm">₹</span>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={budgetMax > 0 ? new Intl.NumberFormat("en-IN").format(budgetMax) : ""}
-                  onChange={(e) => {
-                    const v = Number(e.target.value.replace(/[^0-9]/g, ""));
-                    if (!isNaN(v) && v > budgetMin) setBudgetMax(v);
-                  }}
-                  className="w-full rounded-xl border border-border bg-background pl-7 pr-3 py-3 text-sm font-medium text-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                />
-              </div>
-            </div>
-          </div>
 
-          {/* Slider */}
-          <div>
+            {/* Slider */}
             <div className="relative h-10 mx-1">
               <div className="absolute top-1/2 -translate-y-1/2 left-0 right-0 h-[6px] rounded-full bg-subtle-hover" />
               <div className="absolute top-1/2 -translate-y-1/2 h-[6px] rounded-full bg-primary/25"
@@ -267,25 +286,22 @@ export function DatesStage({
               <input type="range" min={BUDGET_FLOOR} max={BUDGET_CEIL} step={BUDGET_STEP} value={budgetMax}
                 onChange={(e) => { const v = Number(e.target.value); if (v > budgetMin) setBudgetMax(v); }} className="range-slider" />
             </div>
-            <div className="flex justify-between text-[10px] text-text-tertiary mx-1 mt-1">
+            <div className="flex justify-between text-[10px] text-text-tertiary mx-1">
               <span>₹2K</span><span>₹2L</span>
             </div>
-          </div>
 
-          {/* Estimated */}
-          <p className="text-center text-sm text-text-secondary">
-            Estimated <span className="font-bold text-primary">₹{new Intl.NumberFormat("en-IN").format(Math.round((budgetMin + budgetMax) / 2))}</span> per person
-          </p>
+            <p className="text-center text-xs text-text-secondary">
+              ~<span className="font-bold text-primary">₹{new Intl.NumberFormat("en-IN").format(Math.round((budgetMin + budgetMax) / 2))}</span> per person
+            </p>
 
-          {/* Actions */}
-          <div className="flex gap-3">
-            <button onClick={() => setShowBudgetStep(false)}
-              className="flex-1 border border-border rounded-xl px-4 py-3 text-sm font-medium text-text-secondary hover:bg-subtle active:scale-[0.98] transition-all">
-              Back
+            <button onClick={handleSaveBudget} disabled={savingBudget}
+              className="w-full bg-primary text-white rounded-xl px-4 py-3 text-sm font-semibold shadow-sm hover:bg-primary-hover active:scale-[0.98] transition-all disabled:opacity-50">
+              {savingBudget ? "Saving..." : "Save budget"}
             </button>
-            <button onClick={handleSave} disabled={saving}
-              className="flex-[2] bg-primary text-white rounded-xl px-4 py-3 text-sm font-semibold shadow-sm hover:bg-primary-hover active:scale-[0.98] transition-all disabled:opacity-50">
-              {saving ? "Saving..." : "Submit dates & budget"}
+
+            <button onClick={() => setShowBudgetSheet(false)}
+              className="w-full text-xs text-text-tertiary hover:text-text-secondary transition-colors text-center py-1">
+              Skip — use default (₹5K–₹30K)
             </button>
           </div>
         </div>
