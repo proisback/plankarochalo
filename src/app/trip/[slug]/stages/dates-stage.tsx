@@ -8,6 +8,7 @@ import { MemberList, WaitingBanner } from "./member-list";
 import { LockButton } from "./lock-button";
 import Calendar from "./calendar";
 import { DeadlineBanner } from "./deadline-banner";
+import { DatePickerInput } from "@/app/date-picker-input";
 
 export function DatesStage({
   trip,
@@ -281,13 +282,11 @@ export function DatesStage({
           <div className="space-y-2">
             <div>
               <label className="block text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1">From</label>
-              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
-                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm hover:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+              <DatePickerInput value={startDate} onChange={setStartDate} placeholder="Pick start date" />
             </div>
             <div>
               <label className="block text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1">To</label>
-              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} min={startDate}
-                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm hover:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+              <DatePickerInput value={endDate} onChange={setEndDate} min={startDate} placeholder="Pick end date" />
             </div>
           </div>
         </div>
@@ -327,13 +326,11 @@ export function DatesStage({
             <div className="flex gap-2 items-end">
               <div className="flex-1">
                 <label className="block text-[9px] text-text-tertiary uppercase tracking-wider mb-0.5">From</label>
-                <input type="date" value={newUnavailStart} onChange={(e) => setNewUnavailStart(e.target.value)}
-                  className="w-full min-w-0 rounded-lg border border-border bg-background px-2 py-1.5 text-xs hover:border-status-out/30 focus:outline-none focus:ring-1 focus:ring-status-out/15 transition-all" />
+                <DatePickerInput value={newUnavailStart} onChange={setNewUnavailStart} placeholder="From" />
               </div>
               <div className="flex-1">
                 <label className="block text-[9px] text-text-tertiary uppercase tracking-wider mb-0.5">To</label>
-                <input type="date" value={newUnavailEnd} onChange={(e) => setNewUnavailEnd(e.target.value)} min={newUnavailStart}
-                  className="w-full min-w-0 rounded-lg border border-border bg-background px-2 py-1.5 text-xs hover:border-status-out/30 focus:outline-none focus:ring-1 focus:ring-status-out/15 transition-all" />
+                <DatePickerInput value={newUnavailEnd} onChange={setNewUnavailEnd} min={newUnavailStart} placeholder="To" />
               </div>
               <button type="button" disabled={!newUnavailStart || !newUnavailEnd}
                 onClick={() => {

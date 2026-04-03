@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { generateSlug } from "@/lib/slug";
+import { DatePickerInput } from "@/app/date-picker-input";
 
 const DURATION_OPTIONS = Array.from({ length: 14 }, (_, i) => i + 1);
 
@@ -229,11 +230,11 @@ export function CreateTripForm() {
             <div className="space-y-2">
               <div>
                 <label className="block text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1">Earliest</label>
-                <input type="date" value={dateWindowStart} onChange={(e) => setDateWindowStart(e.target.value)} className={dateInputClass} />
+                <DatePickerInput value={dateWindowStart} onChange={setDateWindowStart} placeholder="Earliest date" />
               </div>
               <div>
                 <label className="block text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1">Latest</label>
-                <input type="date" value={dateWindowEnd} onChange={(e) => setDateWindowEnd(e.target.value)} min={dateWindowStart} className={dateInputClass} />
+                <DatePickerInput value={dateWindowEnd} onChange={setDateWindowEnd} min={dateWindowStart} placeholder="Latest date" />
               </div>
             </div>
           </div>
@@ -298,13 +299,11 @@ export function CreateTripForm() {
               <div className="flex gap-2 items-end">
                 <div className="flex-1">
                   <label className="block text-[9px] text-text-tertiary uppercase tracking-wider mb-0.5">From</label>
-                  <input type="date" value={pStart} onChange={(e) => setPStart(e.target.value)}
-                    className="w-full min-w-0 rounded-lg border border-border bg-surface px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary/20 transition-all" />
+                  <DatePickerInput value={pStart} onChange={setPStart} placeholder="From" />
                 </div>
                 <div className="flex-1">
                   <label className="block text-[9px] text-text-tertiary uppercase tracking-wider mb-0.5">To</label>
-                  <input type="date" value={pEnd} onChange={(e) => setPEnd(e.target.value)} min={pStart}
-                    className="w-full min-w-0 rounded-lg border border-border bg-surface px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary/20 transition-all" />
+                  <DatePickerInput value={pEnd} onChange={setPEnd} min={pStart} placeholder="To" />
                 </div>
                 <button type="button" disabled={!pName.trim()}
                   onClick={() => {

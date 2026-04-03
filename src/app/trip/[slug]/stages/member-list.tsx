@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Member, MemberStatus, TripStatus } from "@/lib/types";
+import { DatePickerInput } from "@/app/date-picker-input";
 
 /* -- status badge config -- */
 const STATUS_CONFIG: Record<
@@ -197,21 +198,8 @@ function EditProxyForm({
               Unavailable dates
             </label>
             <div className="space-y-2">
-              <input
-                type="date"
-                value={constraintStart}
-                onChange={(e) => setConstraintStart(e.target.value)}
-                className={inputClass}
-                placeholder="From"
-              />
-              <input
-                type="date"
-                value={constraintEnd}
-                onChange={(e) => setConstraintEnd(e.target.value)}
-                min={constraintStart}
-                className={inputClass}
-                placeholder="To"
-              />
+              <DatePickerInput value={constraintStart} onChange={setConstraintStart} placeholder="From" />
+              <DatePickerInput value={constraintEnd} onChange={setConstraintEnd} min={constraintStart} placeholder="To" />
             </div>
           </div>
 
@@ -220,18 +208,8 @@ function EditProxyForm({
               Available dates (submit on their behalf)
             </label>
             <div className="space-y-2">
-              <input
-                type="date"
-                value={availStart}
-                onChange={(e) => setAvailStart(e.target.value)}
-                className={inputClass}
-              />
-              <input
-                type="date"
-                value={availEnd}
-                onChange={(e) => setAvailEnd(e.target.value)}
-                min={availStart}
-                className={inputClass}
+              <DatePickerInput value={availStart} onChange={setAvailStart} placeholder="Start date" />
+              <DatePickerInput value={availEnd} onChange={setAvailEnd} min={availStart} placeholder="End date"
               />
             </div>
           </div>
