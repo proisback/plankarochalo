@@ -192,7 +192,7 @@ export function CommitmentStage({
         </div>
       ) : (
         <div className="text-center space-y-3">
-          {/* Hold button */}
+          {/* Hold button — instruction is INSIDE the button */}
           <button
             onMouseDown={startHold}
             onMouseUp={cancelHold}
@@ -201,30 +201,30 @@ export function CommitmentStage({
             onTouchEnd={cancelHold}
             onTouchCancel={cancelHold}
             disabled={saving}
-            className="relative w-full rounded-2xl py-4 font-heading text-base font-bold overflow-hidden transition-all active:scale-[0.98] disabled:opacity-50 bg-text text-surface"
+            className="relative w-full rounded-2xl py-5 overflow-hidden transition-all active:scale-[0.98] disabled:opacity-50 bg-text text-surface"
           >
             {/* Fill progress */}
             <div
               className="absolute inset-0 bg-accent transition-all duration-100 ease-linear"
               style={{ width: `${holdProgress}%` }}
             />
-            <span className="relative z-10 flex items-center justify-center gap-2">
+            <span className="relative z-10 flex flex-col items-center">
               {holdProgress > 0 && holdProgress < 100 ? (
-                <>
+                <span className="flex items-center gap-2 font-heading text-base font-bold">
                   <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
                   Keep holding...
-                </>
+                </span>
               ) : (
-                "Hold to confirm"
+                <>
+                  <span className="font-heading text-base font-bold">Hold to confirm</span>
+                  <span className="text-[12px] text-white/60 mt-0.5">Press and hold for 2 seconds</span>
+                </>
               )}
             </span>
           </button>
-          <p className="text-[10px] text-text-tertiary">
-            Press and hold for 2 seconds
-          </p>
 
           {/* I'm out — subtle link */}
           <button

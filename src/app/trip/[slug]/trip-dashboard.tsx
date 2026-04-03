@@ -246,8 +246,8 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
         <ProgressBar currentStage={trip.status} />
         {trip.status !== "ready" && <ShareLink slug={trip.slug} />}
 
-        {/* Locked decisions banners */}
-        {trip.locked_dates_start && trip.locked_dates_end && (
+        {/* Locked decisions banners — only show on stages that don't display this info themselves */}
+        {trip.status === "destination_open" && trip.locked_dates_start && trip.locked_dates_end && (
           <div className="bg-status-confirmed-bg/60 border border-status-confirmed/10 rounded-xl px-4 py-3 flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-lg bg-status-confirmed/10 flex items-center justify-center shrink-0">
               <svg className="w-3.5 h-3.5 text-status-confirmed" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -256,19 +256,6 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
             </div>
             <p className="text-status-confirmed text-sm font-medium">
               Dates: {new Date(trip.locked_dates_start).toLocaleDateString("en-IN", { month: "short", day: "numeric" })} — {new Date(trip.locked_dates_end).toLocaleDateString("en-IN", { month: "short", day: "numeric" })}
-            </p>
-          </div>
-        )}
-        {trip.locked_destination && (
-          <div className="bg-status-confirmed-bg/60 border border-status-confirmed/10 rounded-xl px-4 py-3 flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-status-confirmed/10 flex items-center justify-center shrink-0">
-              <svg className="w-3.5 h-3.5 text-status-confirmed" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-              </svg>
-            </div>
-            <p className="text-status-confirmed text-sm font-medium">
-              {trip.locked_destination}
             </p>
           </div>
         )}
