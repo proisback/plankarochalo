@@ -272,10 +272,28 @@ body {
   background: rgba(28, 25, 23, 0.2);
 }
 
-/* Force date inputs to respect container width */
+/* Input polish */
 input[type="date"] {
   min-width: 0;
   max-width: 100%;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="number"],
+input[type="date"],
+select,
+textarea {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+input[type="text"]:hover,
+input[type="email"]:hover,
+input[type="number"]:hover,
+input[type="date"]:hover,
+select:hover,
+textarea:hover {
+  border-color: var(--color-primary-glow);
 }
 
 /* Selection */

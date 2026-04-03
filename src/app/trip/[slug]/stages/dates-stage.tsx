@@ -199,7 +199,7 @@ export function DatesStage({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div>
         <h2 className="font-heading text-lg font-bold text-text">
           {currentMember.name}, when works for you?
@@ -268,190 +268,133 @@ export function DatesStage({
         windowEnd={trip.date_window_end ?? undefined}
       />
 
-      {/* Available In */}
-      <div className="bg-accent-light/40 border border-accent/10 rounded-2xl p-4 space-y-3 overflow-hidden">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
-            <svg className="w-3 h-3 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+      {/* Date & Budget Form */}
+      <div className="bg-surface border border-border-light rounded-2xl shadow-xs overflow-hidden">
+        {/* Available dates */}
+        <div className="p-4 space-y-2">
+          <p className="text-[11px] font-bold text-accent uppercase tracking-wider flex items-center gap-1.5">
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
             </svg>
-          </div>
-          <p className="text-[11px] font-bold text-accent uppercase tracking-wider">Available in</p>
-        </div>
-        <div className="space-y-2">
-          <div>
-            <label className="block text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1">From</label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-full rounded-xl border border-accent/20 bg-surface px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all"
-            />
-          </div>
-          <div>
-            <label className="block text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1">To</label>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              min={startDate}
-              className="w-full rounded-xl border border-accent/20 bg-surface px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Unavailable In */}
-      <div className="bg-status-out-bg/30 border border-status-out/8 rounded-2xl p-4 space-y-3 overflow-hidden">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-status-out/8 flex items-center justify-center shrink-0">
-              <svg className="w-3 h-3 text-status-out" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
+            Available dates
+          </p>
+          <div className="space-y-2">
+            <div>
+              <label className="block text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1">From</label>
+              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
+                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm hover:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
             </div>
-            <p className="text-[11px] font-bold text-status-out uppercase tracking-wider">Unavailable in</p>
+            <div>
+              <label className="block text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1">To</label>
+              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} min={startDate}
+                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm hover:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+            </div>
           </div>
-          <span className="text-[10px] text-text-tertiary">optional</span>
         </div>
 
-        {/* Existing blocked ranges */}
-        {unavailRanges.map((r, i) => (
-          <div key={i} className="flex items-center gap-2 bg-status-out-bg/60 rounded-xl px-3 py-2">
-            <svg className="w-3.5 h-3.5 text-status-out shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-            </svg>
-            <p className="text-xs text-status-out font-medium flex-1">
-              {new Date(r.start).toLocaleDateString("en-IN", { month: "short", day: "numeric" })} – {new Date(r.end).toLocaleDateString("en-IN", { month: "short", day: "numeric" })}
-            </p>
-            <button
-              type="button"
-              onClick={() => setUnavailRanges((prev) => prev.filter((_, j) => j !== i))}
-              className="text-status-out/50 hover:text-status-out transition-colors"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        {/* Unavailable dates (collapsible) */}
+        <details className="border-t border-border-light group">
+          <summary className="px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-subtle/50 transition-colors">
+            <span className="text-[11px] font-bold text-status-out uppercase tracking-wider flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
-            </button>
-          </div>
-        ))}
-
-        {/* Add new unavailable range */}
-        <div className="space-y-2">
-          <div>
-            <label className="block text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1">From</label>
-            <input
-              type="date"
-              value={newUnavailStart}
-              onChange={(e) => setNewUnavailStart(e.target.value)}
-              className="w-full min-w-0 rounded-xl border border-status-out/15 bg-surface px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-status-out/15 focus:border-status-out/40 transition-all"
-            />
-          </div>
-          <div>
-            <label className="block text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1">To</label>
-            <input
-              type="date"
-              value={newUnavailEnd}
-              onChange={(e) => setNewUnavailEnd(e.target.value)}
-              min={newUnavailStart}
-              className="w-full min-w-0 rounded-xl border border-status-out/15 bg-surface px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-status-out/15 focus:border-status-out/40 transition-all"
-            />
-          </div>
-          <button
-            type="button"
-            disabled={!newUnavailStart || !newUnavailEnd}
-            onClick={() => {
-              if (!newUnavailStart || !newUnavailEnd) return;
-              setUnavailRanges((prev) => [...prev, { start: newUnavailStart, end: newUnavailEnd }]);
-              setNewUnavailStart("");
-              setNewUnavailEnd("");
-            }}
-            className="w-full text-xs font-semibold py-2 rounded-xl bg-status-out/8 text-status-out hover:bg-status-out/12 active:scale-[0.98] transition-all disabled:opacity-40 flex items-center justify-center gap-1"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              Unavailable dates
+              {unavailRanges.length > 0 && (
+                <span className="text-[9px] bg-status-out/10 text-status-out px-1.5 py-0.5 rounded-full font-bold ml-1">
+                  {unavailRanges.length}
+                </span>
+              )}
+            </span>
+            <span className="text-[10px] text-text-tertiary group-open:hidden">optional</span>
+            <svg className="w-3.5 h-3.5 text-text-tertiary transition-transform group-open:rotate-180 hidden group-open:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
             </svg>
-            Add blocked dates
+          </summary>
+          <div className="px-4 pb-4 space-y-2">
+            {unavailRanges.map((r, i) => (
+              <div key={i} className="flex items-center gap-2 bg-status-out-bg/50 rounded-lg px-3 py-1.5">
+                <p className="text-xs text-status-out font-medium flex-1">
+                  {new Date(r.start).toLocaleDateString("en-IN", { month: "short", day: "numeric" })} – {new Date(r.end).toLocaleDateString("en-IN", { month: "short", day: "numeric" })}
+                </p>
+                <button type="button" onClick={() => setUnavailRanges((prev) => prev.filter((_, j) => j !== i))}
+                  className="text-status-out/40 hover:text-status-out transition-colors">
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            ))}
+            <div className="flex gap-2 items-end">
+              <div className="flex-1">
+                <label className="block text-[9px] text-text-tertiary uppercase tracking-wider mb-0.5">From</label>
+                <input type="date" value={newUnavailStart} onChange={(e) => setNewUnavailStart(e.target.value)}
+                  className="w-full min-w-0 rounded-lg border border-border bg-background px-2 py-1.5 text-xs hover:border-status-out/30 focus:outline-none focus:ring-1 focus:ring-status-out/15 transition-all" />
+              </div>
+              <div className="flex-1">
+                <label className="block text-[9px] text-text-tertiary uppercase tracking-wider mb-0.5">To</label>
+                <input type="date" value={newUnavailEnd} onChange={(e) => setNewUnavailEnd(e.target.value)} min={newUnavailStart}
+                  className="w-full min-w-0 rounded-lg border border-border bg-background px-2 py-1.5 text-xs hover:border-status-out/30 focus:outline-none focus:ring-1 focus:ring-status-out/15 transition-all" />
+              </div>
+              <button type="button" disabled={!newUnavailStart || !newUnavailEnd}
+                onClick={() => {
+                  if (!newUnavailStart || !newUnavailEnd) return;
+                  setUnavailRanges((prev) => [...prev, { start: newUnavailStart, end: newUnavailEnd }]);
+                  setNewUnavailStart(""); setNewUnavailEnd("");
+                }}
+                className="shrink-0 w-8 h-8 rounded-lg bg-status-out/8 text-status-out hover:bg-status-out/15 active:scale-90 transition-all disabled:opacity-30 flex items-center justify-center">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </details>
+
+        {/* Budget (collapsible) */}
+        <details className="border-t border-border-light group" open>
+          <summary className="px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-subtle/50 transition-colors">
+            <span className="text-[11px] font-bold text-primary uppercase tracking-wider flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
+              </svg>
+              Budget per person
+            </span>
+            <span className="text-xs font-bold text-primary">
+              {budgetMin >= 100000 ? `₹${(budgetMin / 100000).toFixed(1)}L` : `₹${(budgetMin / 1000).toFixed(0)}K`} – {budgetMax >= 100000 ? `₹${(budgetMax / 100000).toFixed(1)}L` : `₹${(budgetMax / 1000).toFixed(0)}K`}
+            </span>
+          </summary>
+          <div className="px-4 pb-4">
+            <p className="text-[11px] text-text-tertiary mb-3 text-center">
+              Estimated ₹{new Intl.NumberFormat("en-IN").format(Math.round((budgetMin + budgetMax) / 2))} per person
+            </p>
+            <div className="relative h-8 mb-1">
+              <div className="absolute top-1/2 -translate-y-1/2 h-2 w-full rounded-full bg-subtle-hover" />
+              <div className="absolute top-1/2 -translate-y-1/2 h-2 rounded-full bg-primary/30"
+                style={{ left: `${((budgetMin - BUDGET_FLOOR) / (BUDGET_CEIL - BUDGET_FLOOR)) * 100}%`, width: `${((budgetMax - budgetMin) / (BUDGET_CEIL - BUDGET_FLOOR)) * 100}%` }} />
+              <input type="range" min={BUDGET_FLOOR} max={BUDGET_CEIL} step={BUDGET_STEP} value={budgetMin}
+                onChange={(e) => { const v = Number(e.target.value); if (v < budgetMax) setBudgetMin(v); }} className="range-slider" />
+              <input type="range" min={BUDGET_FLOOR} max={BUDGET_CEIL} step={BUDGET_STEP} value={budgetMax}
+                onChange={(e) => { const v = Number(e.target.value); if (v > budgetMin) setBudgetMax(v); }} className="range-slider" />
+            </div>
+            <div className="flex justify-between text-[10px] text-text-tertiary">
+              <span>₹2K</span><span>₹2L</span>
+            </div>
+          </div>
+        </details>
+
+        {/* Submit */}
+        <div className="p-4 pt-0">
+          {error && (
+            <div className="bg-status-out-bg border border-status-out/15 rounded-lg px-3 py-2 mb-3">
+              <p className="text-status-out text-xs">{error}</p>
+            </div>
+          )}
+          <button onClick={handleSave} disabled={saving || !startDate || !endDate}
+            className="w-full bg-primary text-white rounded-xl px-4 py-3 text-sm font-semibold shadow-sm hover:bg-primary-hover active:scale-[0.98] transition-all disabled:opacity-50">
+            {saving ? "Saving..." : hasSubmitted ? "Update dates & budget" : "Submit dates & budget"}
           </button>
         </div>
-      </div>
-
-      {/* Budget + Submit */}
-      <div className="bg-surface border border-border-light rounded-2xl p-4 space-y-3 shadow-xs overflow-hidden">
-
-        {/* Budget range slider */}
-        <div className="pt-1">
-          <label className="block text-[11px] font-semibold text-text-tertiary uppercase tracking-wider mb-3">
-            Budget per person
-          </label>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-bold text-primary">
-              {budgetMin >= 100000 ? `₹${(budgetMin / 100000).toFixed(1)}L` : budgetMin >= 1000 ? `₹${(budgetMin / 1000).toFixed(0)}K` : `₹${budgetMin}`}
-            </span>
-            <span className="text-[10px] text-text-tertiary">to</span>
-            <span className="text-sm font-bold text-primary">
-              {budgetMax >= 100000 ? `₹${(budgetMax / 100000).toFixed(1)}L` : budgetMax >= 1000 ? `₹${(budgetMax / 1000).toFixed(0)}K` : `₹${budgetMax}`}
-            </span>
-          </div>
-          <p className="text-[11px] text-text-tertiary mb-2 text-center">
-            Estimated ₹{new Intl.NumberFormat("en-IN").format(Math.round((budgetMin + budgetMax) / 2))} per person
-          </p>
-          <div className="relative h-8 mb-1">
-            {/* Track */}
-            <div className="absolute top-1/2 -translate-y-1/2 h-2 w-full rounded-full bg-subtle-hover" />
-            {/* Filled range */}
-            <div
-              className="absolute top-1/2 -translate-y-1/2 h-2 rounded-full bg-primary/30"
-              style={{
-                left: `${((budgetMin - BUDGET_FLOOR) / (BUDGET_CEIL - BUDGET_FLOOR)) * 100}%`,
-                width: `${((budgetMax - budgetMin) / (BUDGET_CEIL - BUDGET_FLOOR)) * 100}%`,
-              }}
-            />
-            {/* Min thumb */}
-            <input
-              type="range"
-              min={BUDGET_FLOOR}
-              max={BUDGET_CEIL}
-              step={BUDGET_STEP}
-              value={budgetMin}
-              onChange={(e) => {
-                const v = Number(e.target.value);
-                if (v < budgetMax) setBudgetMin(v);
-              }}
-              className="range-slider"
-            />
-            {/* Max thumb */}
-            <input
-              type="range"
-              min={BUDGET_FLOOR}
-              max={BUDGET_CEIL}
-              step={BUDGET_STEP}
-              value={budgetMax}
-              onChange={(e) => {
-                const v = Number(e.target.value);
-                if (v > budgetMin) setBudgetMax(v);
-              }}
-              className="range-slider"
-            />
-          </div>
-          <div className="flex justify-between text-[10px] text-text-tertiary">
-            <span>₹2K</span>
-            <span>₹2L</span>
-          </div>
-        </div>
-
-        {error && (
-          <div className="bg-status-out-bg border border-status-out/15 rounded-lg px-3 py-2">
-            <p className="text-status-out text-xs">{error}</p>
-          </div>
-        )}
-        <button
-          onClick={handleSave}
-          disabled={saving || !startDate || !endDate}
-          className="w-full bg-primary text-white rounded-xl px-4 py-3 text-sm font-semibold shadow-sm hover:bg-primary-hover active:scale-[0.98] transition-all disabled:opacity-50"
-        >
-          {saving ? "Saving..." : hasSubmitted ? "Update dates & budget" : "Submit dates & budget"}
-        </button>
       </div>
 
       {/* Best overlap result */}

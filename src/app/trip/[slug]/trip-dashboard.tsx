@@ -192,7 +192,7 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
         <div className="flex items-center justify-between mb-5">
           <button
             onClick={() => window.history.back()}
-            className="text-xs text-text-secondary border border-border rounded-lg px-3 py-1.5 hover:bg-subtle active:scale-95 transition-all flex items-center gap-1"
+            className="text-xs text-text-secondary border border-border rounded-xl px-3 py-1.5 hover:bg-subtle active:scale-95 transition-all flex items-center gap-1"
           >
             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
@@ -204,7 +204,7 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
             {isOrganizer && (
               <a
                 href="/create"
-                className="text-xs text-text-secondary border border-border rounded-lg px-3 py-1.5 hover:bg-subtle active:scale-95 transition-all flex items-center gap-1"
+                className="text-xs text-text-secondary border border-border rounded-xl px-3 py-1.5 hover:bg-subtle active:scale-95 transition-all flex items-center gap-1"
               >
                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
