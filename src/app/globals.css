@@ -314,6 +314,19 @@ html.dark ::selection {
   min-height: 100vh;
 }
 
+.phone-frame {
+  display: contents;
+}
+
+.phone-content {
+  min-height: 100vh;
+}
+
+.phone-notch,
+.phone-home {
+  display: none;
+}
+
 /* Desktop: iPhone-shaped container */
 @media (min-width: 768px) {
   body {
