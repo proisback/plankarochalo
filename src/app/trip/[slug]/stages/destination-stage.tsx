@@ -333,7 +333,7 @@ export function DestinationStage({
         <p className="text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-2">
           Popular picks <span className="font-normal normal-case">— tap to add</span>
         </p>
-        <div className="flex gap-2.5 overflow-x-auto pb-2 -mx-1 px-1" style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
+        <div className="flex gap-3 overflow-x-auto pb-3 -mx-1 px-1 scroll-smooth scroll-thin" style={{ WebkitOverflowScrolling: "touch" }}>
           {POPULAR_DESTINATIONS.map((dest) => {
             const alreadyAdded = options.some(
               (o) => o.name.toLowerCase() === dest.name.toLowerCase()
@@ -357,19 +357,19 @@ export function DestinationStage({
                   setAdding(false);
                 }}
                 className={[
-                  "w-28 shrink-0 rounded-xl overflow-hidden transition-all",
+                  "w-36 shrink-0 rounded-xl overflow-hidden transition-all",
                   alreadyAdded
                     ? "opacity-50"
                     : "active:scale-95 hover:shadow-sm",
                 ].join(" ")}
               >
-                <div className="relative w-28 h-[72px]">
+                <div className="relative w-36 h-[80px]">
                   <Image
                     src={dest.image}
                     alt={dest.name}
                     fill
                     className="object-cover"
-                    sizes="112px"
+                    sizes="144px"
                   />
                   {alreadyAdded && (
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center">

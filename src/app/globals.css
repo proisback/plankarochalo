@@ -342,6 +342,21 @@ details[open] > :not(summary) {
   animation: none !important;
 }
 
+/* Horizontal scroll with thin visible scrollbar */
+.scroll-thin::-webkit-scrollbar {
+  height: 4px;
+}
+.scroll-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scroll-thin::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 2px;
+}
+.scroll-thin::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-tertiary);
+}
+
 /* ═══════════════════════════════════════════════
    RANGE SLIDER
    ═══════════════════════════════════════════════ */
