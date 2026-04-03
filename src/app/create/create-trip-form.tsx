@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { generateSlug } from "@/lib/slug";
+import { DatePickerInput } from "@/app/date-picker-input";
 
 const DURATION_OPTIONS = Array.from({ length: 14 }, (_, i) => i + 1);
 
