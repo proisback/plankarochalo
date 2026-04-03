@@ -367,45 +367,47 @@ details[open] > :not(summary) {
   background: transparent;
   pointer-events: none;
   position: absolute;
-  top: 0;
+  top: 50%;
   left: 0;
   width: 100%;
-  height: 100%;
+  height: 0;
   margin: 0;
   padding: 0;
+  transform: translateY(-50%);
 }
 
 .range-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: var(--color-primary);
   border: 3px solid var(--color-surface);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
   cursor: pointer;
   pointer-events: auto;
+  margin-top: -4px;
 }
 
 .range-slider::-moz-range-thumb {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: var(--color-primary);
   border: 3px solid var(--color-surface);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
   cursor: pointer;
   pointer-events: auto;
 }
 
 .range-slider::-webkit-slider-runnable-track {
-  height: 8px;
+  height: 0;
   background: transparent;
 }
 
 .range-slider::-moz-range-track {
-  height: 8px;
+  height: 0;
   background: transparent;
 }
 

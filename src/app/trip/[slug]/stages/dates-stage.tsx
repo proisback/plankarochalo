@@ -189,14 +189,11 @@ export function DatesStage({
 
       {/* Budget + Submit */}
       <div className="bg-surface border border-border-light rounded-2xl shadow-xs overflow-hidden">
-        {/* Budget (collapsible) */}
+        {/* Budget */}
         <details className="group">
           <summary className="px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-subtle/50 transition-colors">
             <span className="text-[11px] font-bold text-primary uppercase tracking-wider flex items-center gap-1.5">
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
-              </svg>
-              Budget per person
+              💰 Budget per person
             </span>
             <span className="flex items-center gap-1.5 text-xs font-bold text-primary">
               {budgetMin >= 100000 ? `₹${(budgetMin / 100000).toFixed(1)}L` : `₹${(budgetMin / 1000).toFixed(0)}K`} – {budgetMax >= 100000 ? `₹${(budgetMax / 100000).toFixed(1)}L` : `₹${(budgetMax / 1000).toFixed(0)}K`}
@@ -205,20 +202,26 @@ export function DatesStage({
               </svg>
             </span>
           </summary>
-          <div className="px-4 pb-4">
-            <p className="text-[11px] text-text-tertiary mb-3 text-center">
-              Estimated ₹{new Intl.NumberFormat("en-IN").format(Math.round((budgetMin + budgetMax) / 2))} per person
+          <div className="px-4 pb-4 pt-1">
+            <p className="text-[11px] text-text-tertiary mb-1 text-center">
+              Helps find the group&apos;s sweet spot for stays & activities
             </p>
-            <div className="relative h-8 mb-1">
-              <div className="absolute top-1/2 -translate-y-1/2 h-2 w-full rounded-full bg-subtle-hover" />
-              <div className="absolute top-1/2 -translate-y-1/2 h-2 rounded-full bg-primary/30"
+            <p className="text-xs text-primary font-bold mb-3 text-center">
+              ~₹{new Intl.NumberFormat("en-IN").format(Math.round((budgetMin + budgetMax) / 2))} per person
+            </p>
+            <div className="relative h-10 mb-1 mx-2">
+              {/* Track */}
+              <div className="absolute top-1/2 -translate-y-1/2 left-0 right-0 h-[6px] rounded-full bg-subtle-hover" />
+              {/* Filled range */}
+              <div className="absolute top-1/2 -translate-y-1/2 h-[6px] rounded-full bg-primary/25"
                 style={{ left: `${((budgetMin - BUDGET_FLOOR) / (BUDGET_CEIL - BUDGET_FLOOR)) * 100}%`, width: `${((budgetMax - budgetMin) / (BUDGET_CEIL - BUDGET_FLOOR)) * 100}%` }} />
+              {/* Sliders */}
               <input type="range" min={BUDGET_FLOOR} max={BUDGET_CEIL} step={BUDGET_STEP} value={budgetMin}
                 onChange={(e) => { const v = Number(e.target.value); if (v < budgetMax) setBudgetMin(v); }} className="range-slider" />
               <input type="range" min={BUDGET_FLOOR} max={BUDGET_CEIL} step={BUDGET_STEP} value={budgetMax}
                 onChange={(e) => { const v = Number(e.target.value); if (v > budgetMin) setBudgetMax(v); }} className="range-slider" />
             </div>
-            <div className="flex justify-between text-[10px] text-text-tertiary">
+            <div className="flex justify-between text-[10px] text-text-tertiary mx-2">
               <span>₹2K</span><span>₹2L</span>
             </div>
           </div>
