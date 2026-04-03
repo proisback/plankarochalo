@@ -3,6 +3,7 @@ import type { Member } from "./types";
 interface OverlapWindow {
   start: Date;
   end: Date;
+  days: number;
   minCount: number;
   totalCount: number;
   memberNames: string[];
@@ -21,7 +22,7 @@ interface OverlapWindow {
 export function findBestOverlap(
   members: Member[],
   tripDays: number
-): { best: OverlapWindow | null; dateMap: Map<string, string[]> } {
+): { best: OverlapWindow | null; fallback: OverlapWindow | null; dateMap: Map<string, string[]> } {
   // Build date→member name map
   const dateMap = new Map<string, string[]>();
 
@@ -70,7 +71,7 @@ export function findBestOverlap(
     .filter(([, names]) => names.length >= 2)
     .sort(([a], [b]) => a.localeCompare(b));
 
-  if (overlapDates.length === 0) return { best: null, dateMap };
+  if (overlapDates.length === 0) return { best: null, fallback: null, dateMap };
 
   // Find consecutive runs
   const runs: { dates: [string, string[]][] }[] = [];
@@ -116,6 +117,7 @@ export function findBestOverlap(
         bestWindow = {
           start: new Date(windowDates[0][0]),
           end: new Date(windowDates[windowDates.length - 1][0]),
+          days: tripDays,
           minCount,
           totalCount,
           memberNames: allDayMembers,
@@ -124,7 +126,8 @@ export function findBestOverlap(
     }
   }
 
-  // Fallback: if no window fits, return the longest run
+  // Fallback: if no window fits tripDays, find the longest consecutive run
+  let fallbackWindow: OverlapWindow | null = null;
   if (!bestWindow && runs.length > 0) {
     const longestRun = runs.reduce((a, b) =>
       a.dates.length > b.dates.length ? a : b
@@ -135,16 +138,17 @@ export function findBestOverlap(
       memberSets.every((s) => s.has(name))
     );
 
-    bestWindow = {
+    fallbackWindow = {
       start: new Date(windowDates[0][0]),
       end: new Date(windowDates[windowDates.length - 1][0]),
+      days: windowDates.length,
       minCount: Math.min(...windowDates.map(([, n]) => n.length)),
       totalCount: windowDates.reduce((sum, [, n]) => sum + n.length, 0),
       memberNames: allDayMembers,
     };
   }
 
-  return { best: bestWindow, dateMap };
+  return { best: bestWindow, fallback: fallbackWindow, dateMap };
 }
 
 /**
