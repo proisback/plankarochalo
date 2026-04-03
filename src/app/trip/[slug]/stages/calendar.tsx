@@ -53,6 +53,7 @@ export default function Calendar({
   const [viewMonth, setViewMonth] = useState(today.getMonth());
   const [rangeMode, setRangeMode] = useState(false);
   const [rangeStart, setRangeStart] = useState<string | null>(null);
+  const [confirmClear, setConfirmClear] = useState(false);
 
   const monthLabel = useMemo(() => {
     const d = new Date(viewYear, viewMonth, 1);
@@ -250,15 +251,34 @@ export default function Calendar({
       </div>
 
       {/* Footer */}
-      <div className="mt-3 flex items-center justify-between">
-        <p className="text-xs text-accent font-semibold">
-          {selectedDates.size} {selectedDates.size === 1 ? "date" : "dates"} selected
-        </p>
-        {selectedDates.size > 0 && (
-          <button type="button" onClick={() => { for (const d of selectedDates) onToggleDate(d); }}
-            className="text-xs text-status-out hover:text-status-out/80 font-medium transition-colors">
-            Clear all
-          </button>
+      <div className="mt-3">
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-accent font-semibold">
+            {selectedDates.size} {selectedDates.size === 1 ? "date" : "dates"} selected
+          </p>
+          {selectedDates.size > 0 && !confirmClear && (
+            <button type="button" onClick={() => setConfirmClear(true)}
+              className="text-xs text-text-tertiary hover:text-status-out font-medium transition-colors">
+              Clear all
+            </button>
+          )}
+        </div>
+        {confirmClear && (
+          <div className="mt-2 bg-status-out-bg/50 border border-status-out/10 rounded-lg px-3 py-2 flex items-center justify-between">
+            <p className="text-xs text-status-out font-medium">Clear all {selectedDates.size} dates?</p>
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={() => {
+                for (const d of selectedDates) onToggleDate(d);
+                setConfirmClear(false);
+              }} className="text-xs font-semibold text-status-out hover:text-status-out/80 transition-colors">
+                Yes, clear
+              </button>
+              <button type="button" onClick={() => setConfirmClear(false)}
+                className="text-xs font-medium text-text-tertiary hover:text-text-secondary transition-colors">
+                Cancel
+              </button>
+            </div>
+          </div>
         )}
       </div>
 

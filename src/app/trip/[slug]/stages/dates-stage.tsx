@@ -231,7 +231,7 @@ export function DatesStage({
       ) : (
         <button onClick={handleSaveDates} disabled={saving || selectedDates.size === 0}
           className="w-full bg-primary text-white rounded-xl px-4 py-3 text-sm font-semibold shadow-sm hover:bg-primary-hover active:scale-[0.98] transition-all disabled:opacity-50">
-          {saving ? "Saving..." : hasSubmitted ? "Update my dates" : "Save my dates"}
+          {saving ? "Saving..." : hasSubmitted ? "Update my dates ✓" : "Save my dates ✓"}
         </button>
       )}
 
