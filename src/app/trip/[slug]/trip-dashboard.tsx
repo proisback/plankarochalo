@@ -12,6 +12,7 @@ import { CommitmentStage } from "./stages/commitment-stage";
 import { ReadyStage } from "./stages/ready-stage";
 import { ThemeToggle } from "@/app/theme-toggle";
 import { ReturnPrompt } from "./return-prompt";
+import { SinceYouLeft } from "./since-you-left";
 
 
 export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
@@ -245,6 +246,11 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
         <div className="space-y-4 stagger">
         <ProgressBar currentStage={trip.status} />
         {trip.status !== "ready" && <ShareLink slug={trip.slug} />}
+
+        {/* Since you were here — return visit updates */}
+        {currentMember && (
+          <SinceYouLeft trip={trip} members={members} currentMember={currentMember} />
+        )}
 
         {/* Locked decisions banners — only show on stages that don't display this info themselves */}
         {trip.status === "destination_open" && trip.locked_dates_start && trip.locked_dates_end && (
