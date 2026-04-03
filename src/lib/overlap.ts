@@ -31,15 +31,32 @@ export function findBestOverlap(
     const start = new Date(m.availability_start);
     const end = new Date(m.availability_end);
 
-    // Build constraint range to exclude
-    const constraintStart = m.constraint_start ? new Date(m.constraint_start) : null;
-    const constraintEnd = m.constraint_end ? new Date(m.constraint_end) : null;
+    // Build constraint ranges to exclude (supports multiple via JSON in constraint_note)
+    const constraintRanges: { start: Date; end: Date }[] = [];
+    if (m.constraint_note) {
+      try {
+        const parsed = JSON.parse(m.constraint_note);
+        if (Array.isArray(parsed)) {
+          for (const r of parsed) {
+            if (r.start && r.end) {
+              constraintRanges.push({ start: new Date(r.start), end: new Date(r.end) });
+            }
+          }
+        }
+      } catch {
+        // Not JSON — fall back to single constraint pair
+        if (m.constraint_start && m.constraint_end) {
+          constraintRanges.push({ start: new Date(m.constraint_start), end: new Date(m.constraint_end) });
+        }
+      }
+    } else if (m.constraint_start && m.constraint_end) {
+      constraintRanges.push({ start: new Date(m.constraint_start), end: new Date(m.constraint_end) });
+    }
 
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      // Skip dates within the member's unavailable constraint window
-      if (constraintStart && constraintEnd && d >= constraintStart && d <= constraintEnd) {
-        continue;
-      }
+      // Skip dates within ANY of the member's unavailable constraint windows
+      const isBlocked = constraintRanges.some((r) => d >= r.start && d <= r.end);
+      if (isBlocked) continue;
 
       const key = d.toISOString().split("T")[0];
       const existing = dateMap.get(key) || [];

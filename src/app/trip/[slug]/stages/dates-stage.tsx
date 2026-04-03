@@ -29,9 +29,22 @@ export function DatesStage({
   const [error, setError] = useState("");
   const hasSubmitted = !!currentMember.availability_start;
 
-  // Unavailable dates (constraint)
-  const [unavailStart, setUnavailStart] = useState(currentMember.constraint_start || "");
-  const [unavailEnd, setUnavailEnd] = useState(currentMember.constraint_end || "");
+  // Unavailable date ranges (multiple)
+  const [unavailRanges, setUnavailRanges] = useState<{ start: string; end: string }[]>(() => {
+    // Parse existing constraint_note JSON or fall back to single constraint pair
+    if (currentMember.constraint_note) {
+      try {
+        const parsed = JSON.parse(currentMember.constraint_note);
+        if (Array.isArray(parsed)) return parsed;
+      } catch { /* not JSON, fall through */ }
+    }
+    if (currentMember.constraint_start && currentMember.constraint_end) {
+      return [{ start: currentMember.constraint_start, end: currentMember.constraint_end }];
+    }
+    return [];
+  });
+  const [newUnavailStart, setNewUnavailStart] = useState("");
+  const [newUnavailEnd, setNewUnavailEnd] = useState("");
 
   // Budget state
   const [budgetMin, setBudgetMin] = useState(currentMember.budget_min ?? 5000);
@@ -116,10 +129,12 @@ export function DatesStage({
       status: "responded",
     };
 
-    if (unavailStart && unavailEnd) {
-      updates.constraint_start = unavailStart;
-      updates.constraint_end = unavailEnd;
-      updates.constraint_note = `${new Date(unavailStart).toLocaleDateString("en-IN", { month: "short", day: "numeric" })} – ${new Date(unavailEnd).toLocaleDateString("en-IN", { month: "short", day: "numeric" })} unavailable`;
+    if (unavailRanges.length > 0) {
+      // Store first range in dedicated columns for backwards compatibility
+      updates.constraint_start = unavailRanges[0].start;
+      updates.constraint_end = unavailRanges[0].end;
+      // Store ALL ranges as JSON in constraint_note
+      updates.constraint_note = JSON.stringify(unavailRanges);
     } else {
       updates.constraint_start = null;
       updates.constraint_end = null;
@@ -243,80 +258,116 @@ export function DatesStage({
         windowEnd={trip.date_window_end ?? undefined}
       />
 
-      {/* From / To inputs + submit */}
-      <div className="bg-surface border border-border-light rounded-2xl p-4 space-y-3 shadow-xs overflow-hidden">
+      {/* Available In */}
+      <div className="bg-accent-light/40 border border-accent/10 rounded-2xl p-4 space-y-3 overflow-hidden">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
+            <svg className="w-3 h-3 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+            </svg>
+          </div>
+          <p className="text-[11px] font-bold text-accent uppercase tracking-wider">Available in</p>
+        </div>
         <div className="space-y-2">
           <div>
-            <label className="block text-[11px] font-semibold text-text-tertiary uppercase tracking-wider mb-1.5">From</label>
+            <label className="block text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1">From</label>
             <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+              className="w-full rounded-xl border border-accent/20 bg-surface px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all"
             />
           </div>
           <div>
-            <label className="block text-[11px] font-semibold text-text-tertiary uppercase tracking-wider mb-1.5">To</label>
+            <label className="block text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1">To</label>
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
               min={startDate}
-              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+              className="w-full rounded-xl border border-accent/20 bg-surface px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all"
             />
           </div>
         </div>
-        {/* Unavailable dates */}
-        <div className="pt-1">
-          <label className="block text-[11px] font-semibold text-text-tertiary uppercase tracking-wider mb-1.5">
-            Dates you&apos;re NOT available <span className="normal-case font-normal">(optional)</span>
-          </label>
-          <p className="text-[11px] text-text-tertiary mb-2">
-            Have a gap in your availability? Mark when you can&apos;t go.
-          </p>
-          <div className="space-y-2">
-            <div>
-              <label className="block text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1">
-                Unavailable from
-              </label>
-              <input
-                type="date"
-                value={unavailStart}
-                onChange={(e) => setUnavailStart(e.target.value)}
-                className="w-full min-w-0 rounded-xl border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-status-out/20 focus:border-status-out transition-all"
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1">
-                Unavailable to
-              </label>
-              <input
-                type="date"
-                value={unavailEnd}
-                onChange={(e) => setUnavailEnd(e.target.value)}
-                min={unavailStart}
-                className="w-full min-w-0 rounded-xl border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-status-out/20 focus:border-status-out transition-all"
-              />
-            </div>
-          </div>
-          {unavailStart && unavailEnd && (
-            <div className="mt-2 flex items-center gap-2 bg-status-out-bg/50 rounded-lg px-3 py-2">
-              <svg className="w-3.5 h-3.5 text-status-out shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+      </div>
+
+      {/* Unavailable In */}
+      <div className="bg-status-out-bg/30 border border-status-out/8 rounded-2xl p-4 space-y-3 overflow-hidden">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-lg bg-status-out/8 flex items-center justify-center shrink-0">
+              <svg className="w-3 h-3 text-status-out" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
-              <p className="text-xs text-status-out font-medium">
-                {new Date(unavailStart).toLocaleDateString("en-IN", { month: "short", day: "numeric" })} – {new Date(unavailEnd).toLocaleDateString("en-IN", { month: "short", day: "numeric" })} blocked
-              </p>
-              <button
-                type="button"
-                onClick={() => { setUnavailStart(""); setUnavailEnd(""); }}
-                className="ml-auto text-status-out/60 hover:text-status-out text-xs"
-              >
-                Clear
-              </button>
             </div>
-          )}
+            <p className="text-[11px] font-bold text-status-out uppercase tracking-wider">Unavailable in</p>
+          </div>
+          <span className="text-[10px] text-text-tertiary">optional</span>
         </div>
+
+        {/* Existing blocked ranges */}
+        {unavailRanges.map((r, i) => (
+          <div key={i} className="flex items-center gap-2 bg-status-out-bg/60 rounded-xl px-3 py-2">
+            <svg className="w-3.5 h-3.5 text-status-out shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+            </svg>
+            <p className="text-xs text-status-out font-medium flex-1">
+              {new Date(r.start).toLocaleDateString("en-IN", { month: "short", day: "numeric" })} – {new Date(r.end).toLocaleDateString("en-IN", { month: "short", day: "numeric" })}
+            </p>
+            <button
+              type="button"
+              onClick={() => setUnavailRanges((prev) => prev.filter((_, j) => j !== i))}
+              className="text-status-out/50 hover:text-status-out transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        ))}
+
+        {/* Add new unavailable range */}
+        <div className="space-y-2">
+          <div>
+            <label className="block text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1">From</label>
+            <input
+              type="date"
+              value={newUnavailStart}
+              onChange={(e) => setNewUnavailStart(e.target.value)}
+              className="w-full min-w-0 rounded-xl border border-status-out/15 bg-surface px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-status-out/15 focus:border-status-out/40 transition-all"
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1">To</label>
+            <input
+              type="date"
+              value={newUnavailEnd}
+              onChange={(e) => setNewUnavailEnd(e.target.value)}
+              min={newUnavailStart}
+              className="w-full min-w-0 rounded-xl border border-status-out/15 bg-surface px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-status-out/15 focus:border-status-out/40 transition-all"
+            />
+          </div>
+          <button
+            type="button"
+            disabled={!newUnavailStart || !newUnavailEnd}
+            onClick={() => {
+              if (!newUnavailStart || !newUnavailEnd) return;
+              setUnavailRanges((prev) => [...prev, { start: newUnavailStart, end: newUnavailEnd }]);
+              setNewUnavailStart("");
+              setNewUnavailEnd("");
+            }}
+            className="w-full text-xs font-semibold py-2 rounded-xl bg-status-out/8 text-status-out hover:bg-status-out/12 active:scale-[0.98] transition-all disabled:opacity-40 flex items-center justify-center gap-1"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            Add blocked dates
+          </button>
+        </div>
+      </div>
+
+      {/* Budget + Submit */}
+      <div className="bg-surface border border-border-light rounded-2xl p-4 space-y-3 shadow-xs overflow-hidden">
 
         {/* Budget range slider */}
         <div className="pt-1">
