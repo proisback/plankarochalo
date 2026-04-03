@@ -49,10 +49,7 @@ export function MyTripsClient({ userId }: { userId: string }) {
   }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <main className="min-h-screen p-6 bg-hero relative">
-      <div className="absolute top-4 right-4 z-20">
-        <ThemeToggle />
-      </div>
+    <main className="min-h-screen p-6 bg-hero">
       <div className="max-w-lg mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -62,17 +59,20 @@ export function MyTripsClient({ userId }: { userId: string }) {
               {trips.length > 0 ? `${trips.length} ${trips.length === 1 ? "trip" : "trips"}` : "Your trip dashboard"}
             </p>
           </div>
-          {!showCreate && (
-            <button
-              onClick={() => setShowCreate(true)}
-              className="bg-primary text-white rounded-xl px-4 py-2 text-sm font-semibold shadow-sm hover:bg-primary-hover active:scale-[0.98] transition-all flex items-center gap-1.5"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-              </svg>
-              New trip
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            {!showCreate && (
+              <button
+                onClick={() => setShowCreate(true)}
+                className="bg-primary text-white rounded-xl px-4 py-2 text-sm font-semibold shadow-sm hover:bg-primary-hover active:scale-[0.98] transition-all flex items-center gap-1.5"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+                New trip
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Create form (collapsible) */}
