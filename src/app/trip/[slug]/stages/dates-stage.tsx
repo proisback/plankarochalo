@@ -150,16 +150,7 @@ export function DatesStage({
           Tap the dates that work for you
         </h2>
         <p className="text-text-secondary text-sm mt-0.5">
-          {selectedDates.size === 0
-            ? `Select your available dates — we need a ${trip.trip_days}-day window.`
-            : hasSubmitted && waiting > 0
-              ? `${selectedDates.size} dates selected. Waiting for ${waiting} more ${waiting === 1 ? "person" : "people"}.`
-              : hasSubmitted && waiting === 0
-                ? `${selectedDates.size} dates selected. Everyone's in!`
-                : `${selectedDates.size} dates selected.`}
-        </p>
-        <p className="text-xs text-accent font-medium mt-1">
-          {responded} of {members.length} {responded === 1 ? "person has" : "people have"} marked dates
+          Select your available dates — we need a {trip.trip_days}-day window.
         </p>
       </div>
 
@@ -186,6 +177,25 @@ export function DatesStage({
         windowStart={trip.date_window_start ?? undefined}
         windowEnd={trip.date_window_end ?? undefined}
       />
+
+      {/* Status card */}
+      {selectedDates.size > 0 && (
+        <div className="bg-accent-light/40 border border-accent/10 rounded-xl px-4 py-3 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-semibold text-text">
+              {selectedDates.size} {selectedDates.size === 1 ? "date" : "dates"} selected
+              {hasSubmitted && waiting === 0 && " — everyone\u2019s in!"}
+            </p>
+            <p className="text-xs text-accent font-medium mt-0.5">
+              {responded} of {members.length} {responded === 1 ? "person has" : "people have"} marked dates
+              {waiting > 0 && ` · ${waiting} waiting`}
+            </p>
+          </div>
+          <svg className="w-5 h-5 text-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+      )}
 
       {/* Budget + Submit */}
       <div className="bg-surface border border-border-light rounded-2xl shadow-xs overflow-hidden">
