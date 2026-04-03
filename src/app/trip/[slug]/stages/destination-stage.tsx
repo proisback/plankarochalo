@@ -6,6 +6,20 @@ import type { Trip, Member, DestinationOption } from "@/lib/types";
 import { MemberList, WaitingBanner } from "./member-list";
 import { LockButton } from "./lock-button";
 import { DeadlineBanner } from "./deadline-banner";
+import Image from "next/image";
+
+const POPULAR_DESTINATIONS = [
+  { name: "Goa", tag: "Beach", emoji: "🏖️", image: "https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=300&h=200&fit=crop&q=60" },
+  { name: "Manali", tag: "Mountains", emoji: "🏔️", image: "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=300&h=200&fit=crop&q=60" },
+  { name: "Jaipur", tag: "Heritage", emoji: "🏯", image: "https://images.unsplash.com/photo-1477587458883-47145ed94245?w=300&h=200&fit=crop&q=60" },
+  { name: "Rishikesh", tag: "Adventure", emoji: "🌊", image: "https://images.unsplash.com/photo-1600100397608-e4b89e76b684?w=300&h=200&fit=crop&q=60" },
+  { name: "Coorg", tag: "Nature", emoji: "🌿", image: "https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?w=300&h=200&fit=crop&q=60" },
+  { name: "Udaipur", tag: "Lakes", emoji: "🏯", image: "https://images.unsplash.com/photo-1602301084751-71de24b90486?w=300&h=200&fit=crop&q=60" },
+  { name: "Kerala", tag: "Backwaters", emoji: "🌴", image: "https://images.unsplash.com/photo-1602158123667-8bc5e5ea5178?w=300&h=200&fit=crop&q=60" },
+  { name: "Ladakh", tag: "Adventure", emoji: "🏔️", image: "https://images.unsplash.com/photo-1626015365107-84c5a6e42154?w=300&h=200&fit=crop&q=60" },
+  { name: "Ooty", tag: "Hill Station", emoji: "🌿", image: "https://images.unsplash.com/photo-1609766857041-ed402ea8069a?w=300&h=200&fit=crop&q=60" },
+  { name: "Andaman", tag: "Islands", emoji: "🏖️", image: "https://images.unsplash.com/photo-1589179899560-df0a3e5b3b06?w=300&h=200&fit=crop&q=60" },
+];
 
 export function DestinationStage({
   trip,
@@ -313,6 +327,65 @@ export function DestinationStage({
           </div>
         </form>
       )}
+
+      {/* Popular picks */}
+      <div>
+        <p className="text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-2">
+          Popular picks <span className="font-normal normal-case">— tap to add</span>
+        </p>
+        <div className="flex gap-2.5 overflow-x-auto pb-2 -mx-1 px-1" style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
+          {POPULAR_DESTINATIONS.map((dest) => {
+            const alreadyAdded = options.some(
+              (o) => o.name.toLowerCase() === dest.name.toLowerCase()
+            );
+            return (
+              <button
+                key={dest.name}
+                type="button"
+                disabled={alreadyAdded || adding}
+                onClick={async () => {
+                  setAdding(true);
+                  setError("");
+                  const { error: insertError } = await supabase.from("destination_options").insert({
+                    trip_id: trip.id,
+                    name: dest.name,
+                    note: dest.tag,
+                    emoji: dest.emoji,
+                    added_by: currentMember.id,
+                  });
+                  if (insertError) setError(insertError.message);
+                  setAdding(false);
+                }}
+                className={[
+                  "w-28 shrink-0 rounded-xl overflow-hidden transition-all",
+                  alreadyAdded
+                    ? "opacity-50"
+                    : "active:scale-95 hover:shadow-sm",
+                ].join(" ")}
+              >
+                <div className="relative w-28 h-[72px]">
+                  <Image
+                    src={dest.image}
+                    alt={dest.name}
+                    fill
+                    className="object-cover"
+                    sizes="112px"
+                  />
+                  {alreadyAdded && (
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                      <span className="text-white text-[10px] font-bold">Added</span>
+                    </div>
+                  )}
+                </div>
+                <div className="bg-surface border border-border-light border-t-0 rounded-b-xl px-2 py-1.5">
+                  <p className="text-xs font-semibold text-text truncate">{dest.emoji} {dest.name}</p>
+                  <p className="text-[10px] text-text-tertiary">{dest.tag}</p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       {error && (
         <div className="bg-status-out-bg border border-status-out/15 rounded-lg px-3 py-2">
