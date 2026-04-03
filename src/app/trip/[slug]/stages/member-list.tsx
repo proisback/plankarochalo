@@ -561,6 +561,96 @@ export function MemberList({
   );
 }
 
+/* -- Nudge Modal -- */
+function NudgeModal({
+  tripName,
+  slug,
+  tripStatus,
+  onClose,
+}: {
+  tripName: string;
+  slug: string;
+  tripStatus?: TripStatus;
+  onClose: () => void;
+}) {
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+
+  const url = `${typeof window !== "undefined" ? window.location.origin : ""}/trip/${slug}`;
+  const action =
+    tripStatus === "dates_open" ? "add your dates"
+    : tripStatus === "destination_open" ? "vote on the destination"
+    : tripStatus === "commitment" ? "confirm if you're in"
+    : "check in";
+
+  const nudges = [
+    { emoji: "🔥", label: "Urgent", msg: `${action === "vote on the destination" ? "Vote" : "Respond"} kar do warna trip cancel 😭` },
+    { emoji: "⚡", label: "Quick", msg: `2 mins ka kaam hai. Trip bacha lo.` },
+    { emoji: "🥺", label: "Guilt", msg: `Your silence is delaying vacation happiness.` },
+    { emoji: "👀", label: "Shady", msg: `This trip is waiting on flaky energy 👀` },
+    { emoji: "✨", label: "Sweet", msg: `One tap away from vacation happiness.` },
+    { emoji: "👻", label: "Spooky", msg: `The group chat is haunted by your absence.` },
+  ];
+
+  async function handleCopy(idx: number) {
+    const nudge = nudges[idx];
+    const full = `${nudge.msg}\n\n${tripName} — ${action} here: ${url}`;
+    await navigator.clipboard.writeText(full);
+    setCopiedIdx(idx);
+    setTimeout(() => setCopiedIdx(null), 1500);
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-background/80 backdrop-blur-md animate-fade"
+      onClick={onClose}
+    >
+      <div
+        className="max-w-sm w-full mx-4 mb-4 sm:mb-0 bg-surface rounded-2xl shadow-xl border border-border-light animate-in overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 pt-5 pb-3">
+          <div>
+            <h3 className="font-heading text-base font-bold text-text flex items-center gap-1.5">
+              Nudge your group <span className="text-lg">👋</span>
+            </h3>
+            <p className="text-xs text-text-tertiary mt-0.5">Tap to copy — link included automatically</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-text-tertiary hover:bg-subtle-hover hover:text-text transition-all"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Nudge options */}
+        <div className="px-4 pb-5 space-y-2">
+          {nudges.map((n, i) => (
+            <button
+              key={i}
+              onClick={() => handleCopy(i)}
+              className={[
+                "w-full text-left rounded-xl px-4 py-3 border transition-all active:scale-[0.98]",
+                copiedIdx === i
+                  ? "bg-status-confirmed-bg border-status-confirmed/20"
+                  : "bg-subtle/50 border-border-light hover:bg-subtle hover:border-border",
+              ].join(" ")}
+            >
+              <p className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: copiedIdx === i ? "var(--color-status-confirmed)" : "var(--color-status-pending)" }}>
+                {n.emoji} {copiedIdx === i ? "Copied!" : n.label}
+              </p>
+              <p className="text-sm text-text">{n.msg}</p>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* -- WaitingBanner -- */
 export function WaitingBanner({
   members,
@@ -575,50 +665,43 @@ export function WaitingBanner({
   tripName?: string;
   slug?: string;
 }) {
-  const [copied, setCopied] = useState(false);
+  const [showNudge, setShowNudge] = useState(false);
   const waiting = members.filter((m) => !hasResponded(m, tripStatus));
   if (waiting.length === 0) return null;
 
-  async function handleCopyReminder() {
-    const url = `${typeof window !== "undefined" ? window.location.origin : ""}/trip/${slug}`;
-    const action =
-      tripStatus === "dates_open" ? "add your dates"
-      : tripStatus === "destination_open" ? "vote on the destination"
-      : tripStatus === "commitment" ? "confirm if you're in"
-      : "check in";
-    const msg = `Hey! We're planning ${tripName} — ${action} here: ${url}\nTakes 30 seconds!`;
-    await navigator.clipboard.writeText(msg);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
-
   return (
-    <div className="bg-status-waiting-bg/60 border border-status-waiting/10 rounded-xl px-4 py-3 space-y-2">
-      <div className="flex items-center gap-2.5">
-        <div className="w-7 h-7 rounded-lg bg-status-waiting/10 flex items-center justify-center shrink-0">
-          <svg className="w-3.5 h-3.5 text-status-waiting" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
+    <>
+      <div className="bg-status-waiting-bg/60 border border-status-waiting/10 rounded-xl px-4 py-3 space-y-2">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-status-waiting/10 flex items-center justify-center shrink-0">
+            <svg className="w-3.5 h-3.5 text-status-waiting" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <p className="text-status-waiting text-sm font-medium">
+            Waiting on {waiting.length}{" "}
+            {waiting.length === 1 ? "person" : "people"}:{" "}
+            <span className="font-normal">{waiting.map((m) => m.name).join(", ")}</span>
+          </p>
         </div>
-        <p className="text-status-waiting text-sm font-medium">
-          Waiting on {waiting.length}{" "}
-          {waiting.length === 1 ? "person" : "people"}:{" "}
-          <span className="font-normal">{waiting.map((m) => m.name).join(", ")}</span>
-        </p>
+        {isOrganizer && slug && tripName && (
+          <button
+            onClick={() => setShowNudge(true)}
+            className="w-full text-xs font-semibold py-2 rounded-lg bg-status-waiting/10 text-status-waiting hover:bg-status-waiting/15 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5"
+          >
+            <span>👋</span> Nudge your group
+          </button>
+        )}
       </div>
-      {isOrganizer && slug && tripName && (
-        <button
-          onClick={handleCopyReminder}
-          className={[
-            "w-full text-xs font-semibold py-2 rounded-lg transition-all active:scale-[0.98]",
-            copied
-              ? "bg-status-confirmed/10 text-status-confirmed"
-              : "bg-status-waiting/10 text-status-waiting hover:bg-status-waiting/15",
-          ].join(" ")}
-        >
-          {copied ? "Reminder copied!" : "Copy reminder for WhatsApp"}
-        </button>
+
+      {showNudge && tripName && slug && (
+        <NudgeModal
+          tripName={tripName}
+          slug={slug}
+          tripStatus={tripStatus}
+          onClose={() => setShowNudge(false)}
+        />
       )}
-    </div>
+    </>
   );
 }
