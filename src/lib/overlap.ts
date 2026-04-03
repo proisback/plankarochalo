@@ -31,7 +31,16 @@ export function findBestOverlap(
     const start = new Date(m.availability_start);
     const end = new Date(m.availability_end);
 
+    // Build constraint range to exclude
+    const constraintStart = m.constraint_start ? new Date(m.constraint_start) : null;
+    const constraintEnd = m.constraint_end ? new Date(m.constraint_end) : null;
+
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      // Skip dates within the member's unavailable constraint window
+      if (constraintStart && constraintEnd && d >= constraintStart && d <= constraintEnd) {
+        continue;
+      }
+
       const key = d.toISOString().split("T")[0];
       const existing = dateMap.get(key) || [];
       existing.push(m.name);
