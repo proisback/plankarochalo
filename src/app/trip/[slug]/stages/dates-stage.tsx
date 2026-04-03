@@ -28,6 +28,16 @@ export function DatesStage({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const hasSubmitted = !!currentMember.availability_start;
+  const [updatingDays, setUpdatingDays] = useState(false);
+
+  async function handleUpdateTripDays(newDays: number) {
+    setUpdatingDays(true);
+    await supabase
+      .from("trips")
+      .update({ trip_days: newDays })
+      .eq("id", trip.id);
+    setUpdatingDays(false);
+  }
 
   // Unavailable date ranges (multiple)
   const [unavailRanges, setUnavailRanges] = useState<{ start: string; end: string }[]>(() => {
@@ -464,6 +474,25 @@ export function DatesStage({
           <p className="text-text-secondary text-sm mt-1">
             {best.minCount} of {members.filter(m => m.availability_start).length} people available: {best.memberNames.join(", ")}
           </p>
+          {isOrganizer && (
+            <div className="mt-3 pt-2 border-t border-accent/10 flex items-center gap-2">
+              <span className="text-[11px] text-text-tertiary">Trip length:</span>
+              <select
+                defaultValue={trip.trip_days}
+                onChange={(e) => handleUpdateTripDays(Number(e.target.value))}
+                disabled={updatingDays}
+                className="rounded-lg border border-accent/20 bg-surface px-2 py-1 text-xs font-medium text-text focus:outline-none focus:ring-1 focus:ring-accent/20 transition-all appearance-none"
+                style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2378716C' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19.5 8.25l-7.5 7.5-7.5-7.5'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 6px center", backgroundSize: "12px", paddingRight: "22px" }}
+              >
+                {Array.from({ length: 14 }, (_, i) => i + 1).map((d) => (
+                  <option key={d} value={d}>{d} {d === 1 ? "day" : "days"}</option>
+                ))}
+              </select>
+              {updatingDays && (
+                <div className="w-3 h-3 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -477,12 +506,32 @@ export function DatesStage({
           <p className="text-text-secondary text-sm mt-1.5 leading-relaxed">
             Schedules don&apos;t line up yet. Ask the group to widen their available dates or reduce unavailable days — a little flexibility goes a long way!
           </p>
-          <div className="mt-3 flex items-center justify-center gap-1.5 text-xs text-status-out font-medium">
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" />
-            </svg>
+          <p className="text-text-tertiary text-xs mt-2">
             Try updating your dates above
-          </div>
+          </p>
+          {isOrganizer && (
+            <div className="mt-4 pt-3 border-t border-status-out/10">
+              <p className="text-xs font-semibold text-text-secondary mb-2">Or try a shorter trip</p>
+              <div className="flex items-center justify-center gap-2">
+                <select
+                  defaultValue={trip.trip_days}
+                  onChange={(e) => handleUpdateTripDays(Number(e.target.value))}
+                  disabled={updatingDays}
+                  className="rounded-xl border border-border bg-surface px-3 py-2 text-sm font-medium text-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all appearance-none"
+                  style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2378716C' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19.5 8.25l-7.5 7.5-7.5-7.5'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 8px center", backgroundSize: "14px", paddingRight: "28px" }}
+                >
+                  {Array.from({ length: 14 }, (_, i) => i + 1).map((d) => (
+                    <option key={d} value={d}>
+                      {d} {d === 1 ? "day" : "days"}
+                    </option>
+                  ))}
+                </select>
+                {updatingDays && (
+                  <div className="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
