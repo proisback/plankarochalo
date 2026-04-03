@@ -12,13 +12,13 @@ const POPULAR_DESTINATIONS = [
   { name: "Goa", tag: "Beach", emoji: "🏖️", image: "https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=300&h=200&fit=crop&q=60" },
   { name: "Manali", tag: "Mountains", emoji: "🏔️", image: "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=300&h=200&fit=crop&q=60" },
   { name: "Jaipur", tag: "Heritage", emoji: "🏯", image: "https://images.unsplash.com/photo-1477587458883-47145ed94245?w=300&h=200&fit=crop&q=60" },
-  { name: "Rishikesh", tag: "Adventure", emoji: "🌊", image: "https://images.unsplash.com/photo-1600100397608-e4b89e76b684?w=300&h=200&fit=crop&q=60" },
+  { name: "Rishikesh", tag: "Adventure", emoji: "🌊", image: "https://images.unsplash.com/photo-1587474260584-136574528ed5?w=300&h=200&fit=crop&q=60" },
   { name: "Coorg", tag: "Nature", emoji: "🌿", image: "https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?w=300&h=200&fit=crop&q=60" },
-  { name: "Udaipur", tag: "Lakes", emoji: "🏯", image: "https://images.unsplash.com/photo-1602301084751-71de24b90486?w=300&h=200&fit=crop&q=60" },
-  { name: "Kerala", tag: "Backwaters", emoji: "🌴", image: "https://images.unsplash.com/photo-1602158123667-8bc5e5ea5178?w=300&h=200&fit=crop&q=60" },
-  { name: "Ladakh", tag: "Adventure", emoji: "🏔️", image: "https://images.unsplash.com/photo-1626015365107-84c5a6e42154?w=300&h=200&fit=crop&q=60" },
+  { name: "Udaipur", tag: "Lakes", emoji: "🏯", image: "https://images.unsplash.com/photo-1570168007204-dfb528c6958f?w=300&h=200&fit=crop&q=60" },
+  { name: "Kerala", tag: "Backwaters", emoji: "🌴", image: "https://images.unsplash.com/photo-1593693397690-362cb9666fc2?w=300&h=200&fit=crop&q=60" },
+  { name: "Ladakh", tag: "Adventure", emoji: "🏔️", image: "https://images.unsplash.com/photo-1589308078059-be1415eab4c3?w=300&h=200&fit=crop&q=60" },
   { name: "Ooty", tag: "Hill Station", emoji: "🌿", image: "https://images.unsplash.com/photo-1609766857041-ed402ea8069a?w=300&h=200&fit=crop&q=60" },
-  { name: "Andaman", tag: "Islands", emoji: "🏖️", image: "https://images.unsplash.com/photo-1589179899560-df0a3e5b3b06?w=300&h=200&fit=crop&q=60" },
+  { name: "Andaman", tag: "Islands", emoji: "🏖️", image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=300&h=200&fit=crop&q=60" },
 ];
 
 export function DestinationStage({
