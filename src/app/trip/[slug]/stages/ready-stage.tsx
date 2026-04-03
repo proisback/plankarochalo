@@ -18,7 +18,7 @@ export function ReadyStage({
   const budgetOverlap = useMemo(() => findBudgetOverlap(members), [members]);
 
   const budgetLabel = budgetOverlap
-    ? `₹${(budgetOverlap.min / 1000).toFixed(0)}K–₹${(budgetOverlap.max / 1000).toFixed(0)}K per person`
+    ? `₹${budgetOverlap.min >= 100000 ? `${(budgetOverlap.min / 100000).toFixed(1)}L` : `${(budgetOverlap.min / 1000).toFixed(0)}K`}–₹${budgetOverlap.max >= 100000 ? `${(budgetOverlap.max / 100000).toFixed(1)}L` : `${(budgetOverlap.max / 1000).toFixed(0)}K`} per person`
     : null;
 
   const dateRange =

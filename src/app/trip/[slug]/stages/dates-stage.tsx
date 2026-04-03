@@ -29,11 +29,15 @@ export function DatesStage({
   const [error, setError] = useState("");
   const hasSubmitted = !!currentMember.availability_start;
 
+  // Unavailable dates (constraint)
+  const [unavailStart, setUnavailStart] = useState(currentMember.constraint_start || "");
+  const [unavailEnd, setUnavailEnd] = useState(currentMember.constraint_end || "");
+
   // Budget state
   const [budgetMin, setBudgetMin] = useState(currentMember.budget_min ?? 5000);
-  const [budgetMax, setBudgetMax] = useState(currentMember.budget_max ?? 15000);
+  const [budgetMax, setBudgetMax] = useState(currentMember.budget_max ?? 30000);
   const BUDGET_FLOOR = 2000;
-  const BUDGET_CEIL = 25000;
+  const BUDGET_CEIL = 200000;
   const BUDGET_STEP = 1000;
 
   // Mark-available state
@@ -104,15 +108,27 @@ export function DatesStage({
     setSaving(true);
     setError("");
 
+    const updates: Record<string, unknown> = {
+      availability_start: startDate,
+      availability_end: endDate,
+      budget_min: budgetMin,
+      budget_max: budgetMax,
+      status: "responded",
+    };
+
+    if (unavailStart && unavailEnd) {
+      updates.constraint_start = unavailStart;
+      updates.constraint_end = unavailEnd;
+      updates.constraint_note = `${new Date(unavailStart).toLocaleDateString("en-IN", { month: "short", day: "numeric" })} – ${new Date(unavailEnd).toLocaleDateString("en-IN", { month: "short", day: "numeric" })} unavailable`;
+    } else {
+      updates.constraint_start = null;
+      updates.constraint_end = null;
+      updates.constraint_note = null;
+    }
+
     const { error: saveError } = await supabase
       .from("members")
-      .update({
-        availability_start: startDate,
-        availability_end: endDate,
-        budget_min: budgetMin,
-        budget_max: budgetMax,
-        status: "responded",
-      })
+      .update(updates)
       .eq("id", currentMember.id);
 
     if (saveError) setError(saveError.message);
@@ -250,6 +266,58 @@ export function DatesStage({
             />
           </div>
         </div>
+        {/* Unavailable dates */}
+        <div className="pt-1">
+          <label className="block text-[11px] font-semibold text-text-tertiary uppercase tracking-wider mb-1.5">
+            Dates you&apos;re NOT available <span className="normal-case font-normal">(optional)</span>
+          </label>
+          <p className="text-[11px] text-text-tertiary mb-2">
+            Have a gap in your availability? Mark when you can&apos;t go.
+          </p>
+          <div className="space-y-2">
+            <div>
+              <label className="block text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1">
+                Unavailable from
+              </label>
+              <input
+                type="date"
+                value={unavailStart}
+                onChange={(e) => setUnavailStart(e.target.value)}
+                className="w-full min-w-0 rounded-xl border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-status-out/20 focus:border-status-out transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1">
+                Unavailable to
+              </label>
+              <input
+                type="date"
+                value={unavailEnd}
+                onChange={(e) => setUnavailEnd(e.target.value)}
+                min={unavailStart}
+                className="w-full min-w-0 rounded-xl border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-status-out/20 focus:border-status-out transition-all"
+              />
+            </div>
+          </div>
+          {unavailStart && unavailEnd && (
+            <div className="mt-2 flex items-center gap-2 bg-status-out-bg/50 rounded-lg px-3 py-2">
+              <svg className="w-3.5 h-3.5 text-status-out shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+              </svg>
+              <p className="text-xs text-status-out font-medium">
+                {new Date(unavailStart).toLocaleDateString("en-IN", { month: "short", day: "numeric" })} – {new Date(unavailEnd).toLocaleDateString("en-IN", { month: "short", day: "numeric" })} blocked
+              </p>
+              <button
+                type="button"
+                onClick={() => { setUnavailStart(""); setUnavailEnd(""); }}
+                className="ml-auto text-status-out/60 hover:text-status-out text-xs"
+              >
+                Clear
+              </button>
+            </div>
+          )}
+        </div>
+
         {/* Budget range slider */}
         <div className="pt-1">
           <label className="block text-[11px] font-semibold text-text-tertiary uppercase tracking-wider mb-3">
@@ -257,13 +325,16 @@ export function DatesStage({
           </label>
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-bold text-primary">
-              {budgetMin >= 1000 ? `₹${(budgetMin / 1000).toFixed(0)}K` : `₹${budgetMin}`}
+              {budgetMin >= 100000 ? `₹${(budgetMin / 100000).toFixed(1)}L` : budgetMin >= 1000 ? `₹${(budgetMin / 1000).toFixed(0)}K` : `₹${budgetMin}`}
             </span>
             <span className="text-[10px] text-text-tertiary">to</span>
             <span className="text-sm font-bold text-primary">
-              {budgetMax >= 1000 ? `₹${(budgetMax / 1000).toFixed(0)}K` : `₹${budgetMax}`}
+              {budgetMax >= 100000 ? `₹${(budgetMax / 100000).toFixed(1)}L` : budgetMax >= 1000 ? `₹${(budgetMax / 1000).toFixed(0)}K` : `₹${budgetMax}`}
             </span>
           </div>
+          <p className="text-[11px] text-text-tertiary mb-2 text-center">
+            Estimated ₹{new Intl.NumberFormat("en-IN").format(Math.round((budgetMin + budgetMax) / 2))} per person
+          </p>
           <div className="relative h-8 mb-1">
             {/* Track */}
             <div className="absolute top-1/2 -translate-y-1/2 h-2 w-full rounded-full bg-subtle-hover" />
@@ -304,7 +375,7 @@ export function DatesStage({
           </div>
           <div className="flex justify-between text-[10px] text-text-tertiary">
             <span>₹2K</span>
-            <span>₹25K</span>
+            <span>₹2L</span>
           </div>
         </div>
 
@@ -370,7 +441,7 @@ export function DatesStage({
           </div>
           <div className="flex items-center justify-between">
             <p className="font-heading text-base font-bold text-text">
-              ₹{(budgetOverlap.min / 1000).toFixed(0)}K – ₹{(budgetOverlap.max / 1000).toFixed(0)}K
+              ₹{budgetOverlap.min >= 100000 ? `${(budgetOverlap.min / 100000).toFixed(1)}L` : `${(budgetOverlap.min / 1000).toFixed(0)}K`} – ₹{budgetOverlap.max >= 100000 ? `${(budgetOverlap.max / 100000).toFixed(1)}L` : `${(budgetOverlap.max / 1000).toFixed(0)}K`}
             </p>
             <p className="text-text-tertiary text-xs">
               {budgetOverlap.count} members
