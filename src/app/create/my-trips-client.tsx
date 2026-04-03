@@ -14,23 +14,32 @@ const STATUS_MAP: Record<string, { label: string; color: string; dot: string }> 
 
 export function MyTripsClient({ userId }: { userId: string }) {
   const supabase = createClient();
-  const [trips, setTrips] = useState<(Trip & { member_count: number })[]>([]);
+  const [trips, setTrips] = useState<(Trip & { member_count: number; latest_member_name: string | null; latest_member_time: string | null })[]>([]);
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState("");
 
   async function loadTrips() {
     const { data } = await supabase
       .from("trips")
-      .select("*, members(count)")
+      .select("*, members(count), latest_member:members(name, created_at, status, availability_start, destination_vote)")
       .eq("organizer_id", userId)
       .order("created_at", { ascending: false });
 
     if (data) {
       setTrips(
-        data.map((t) => ({
-          ...t,
-          member_count: (t.members as unknown as { count: number }[])?.[0]?.count ?? 0,
-        }))
+        data.map((t) => {
+          const memberRows = t.latest_member as unknown as { name: string; created_at: string; status: string; availability_start: string | null; destination_vote: string | null }[] | null;
+          // Find most recently active member (newest created_at)
+          const sorted = (memberRows ?? []).sort((a, b) => b.created_at.localeCompare(a.created_at));
+          const latest = sorted[0] ?? null;
+
+          return {
+            ...t,
+            member_count: (t.members as unknown as { count: number }[])?.[0]?.count ?? 0,
+            latest_member_name: latest?.name ?? null,
+            latest_member_time: latest?.created_at ?? null,
+          };
+        })
       );
     }
     setLoading(false);
@@ -154,13 +163,37 @@ export function MyTripsClient({ userId }: { userId: string }) {
   );
 }
 
-function TripCard({ trip }: { trip: Trip & { member_count: number } }) {
+function timeAgo(dateStr: string): string {
+  const now = Date.now();
+  const then = new Date(dateStr).getTime();
+  const diff = now - then;
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return "yesterday";
+  if (days < 7) return `${days}d ago`;
+  return new Date(dateStr).toLocaleDateString("en-IN", { month: "short", day: "numeric" });
+}
+
+function TripCard({ trip }: { trip: Trip & { member_count: number; latest_member_name: string | null; latest_member_time: string | null } }) {
   const status = STATUS_MAP[trip.status] ?? { label: trip.status, color: "bg-subtle text-text-secondary", dot: "bg-text-tertiary" };
   const isCompleted = trip.status === "ready";
 
   const dateLabel = trip.locked_dates_start && trip.locked_dates_end
     ? `${new Date(trip.locked_dates_start).toLocaleDateString("en-IN", { month: "short", day: "numeric" })} – ${new Date(trip.locked_dates_end).toLocaleDateString("en-IN", { month: "short", day: "numeric" })}`
     : null;
+
+  // Build last activity text
+  let activityText: string;
+  if (trip.latest_member_name && trip.latest_member_time && trip.latest_member_time !== trip.created_at) {
+    const ago = timeAgo(trip.latest_member_time);
+    activityText = `${ago} — ${trip.latest_member_name} joined`;
+  } else {
+    activityText = `Created ${new Date(trip.created_at).toLocaleDateString("en-IN", { month: "short", day: "numeric" })}`;
+  }
 
   return (
     <a
@@ -198,10 +231,15 @@ function TripCard({ trip }: { trip: Trip & { member_count: number } }) {
           </svg>
           {trip.member_count} {trip.member_count === 1 ? "member" : "members"}
         </span>
-        <span className="text-text-tertiary/60">
-          {new Date(trip.created_at).toLocaleDateString("en-IN", { month: "short", day: "numeric" })}
-        </span>
       </div>
+
+      {/* Last activity */}
+      <p className="mt-2 text-[11px] text-text-tertiary flex items-center gap-1">
+        <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        {activityText}
+      </p>
     </a>
   );
 }
