@@ -51,9 +51,21 @@ export default async function Home() {
         </div>
 
         {/* Social proof */}
-        <p className="text-center text-text-tertiary text-xs mt-6">
-          No app download needed &middot; Works on WhatsApp
-        </p>
+        <div className="mt-6 text-center space-y-2">
+          <p className="text-text-tertiary text-xs flex items-center justify-center gap-1.5">
+            <span className="flex -space-x-1.5">
+              {["bg-primary/20 text-primary", "bg-accent/20 text-accent", "bg-status-pending/20 text-status-pending", "bg-pop/20 text-pop"].map((c, i) => (
+                <span key={i} className={`w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold ring-2 ring-surface ${c}`}>
+                  {["R", "P", "A", "S"][i]}
+                </span>
+              ))}
+            </span>
+            Trusted by friend groups across India 🇮🇳
+          </p>
+          <p className="text-text-tertiary/60 text-[10px]">
+            No app download &middot; Works on WhatsApp &middot; Free forever
+          </p>
+        </div>
       </div>
     </main>
   );

@@ -61,9 +61,14 @@ export function LoginForm() {
 
   return (
     <div className="space-y-4">
-      <p className="text-center text-sm text-text-secondary">
-        Sign in to create and manage your trips
-      </p>
+      <div className="text-center">
+        <p className="text-sm font-medium text-text">
+          Create your trip in 10 seconds
+        </p>
+        <p className="text-xs text-text-tertiary mt-0.5">
+          No spam, ever. Just trip planning.
+        </p>
+      </div>
 
       <button
         onClick={handleGoogleLogin}
