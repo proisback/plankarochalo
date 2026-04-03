@@ -467,6 +467,25 @@ export function DatesStage({
         </div>
       )}
 
+      {/* No overlap found */}
+      {!best && members.filter(m => m.availability_start).length >= 2 && (
+        <div className="bg-status-out-bg/40 border border-status-out/10 rounded-2xl p-5 text-center shadow-xs">
+          <span className="text-3xl block mb-2">😔</span>
+          <p className="font-heading text-base font-bold text-text">
+            No {trip.trip_days}-day overlap found
+          </p>
+          <p className="text-text-secondary text-sm mt-1.5 leading-relaxed">
+            Schedules don&apos;t line up yet. Ask the group to widen their available dates or reduce unavailable days — a little flexibility goes a long way!
+          </p>
+          <div className="mt-3 flex items-center justify-center gap-1.5 text-xs text-status-out font-medium">
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" />
+            </svg>
+            Try updating your dates above
+          </div>
+        </div>
+      )}
+
       {/* Budget sweet spot */}
       {budgetOverlap && (
         <div className="bg-primary-light/50 border border-primary/10 rounded-2xl p-4 shadow-xs">
