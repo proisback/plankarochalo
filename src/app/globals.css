@@ -272,6 +272,12 @@ body {
   background: rgba(28, 25, 23, 0.2);
 }
 
+/* Force date inputs to respect container width */
+input[type="date"] {
+  min-width: 0;
+  max-width: 100%;
+}
+
 /* Selection */
 ::selection {
   background: rgba(232, 106, 51, 0.15);

@@ -171,7 +171,7 @@ function EditProxyForm({
   }
 
   const inputClass =
-    "w-full min-w-0 rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all";
+    "w-full min-w-0 rounded-xl border border-border bg-background px-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all";
 
   return (
     <div className="border-t border-border-light px-4 py-3 space-y-3 bg-subtle/50 animate-in">
@@ -196,7 +196,7 @@ function EditProxyForm({
             <label className="block text-[11px] font-semibold text-text-tertiary uppercase tracking-wider mb-1">
               Unavailable dates
             </label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2 min-w-0">
               <input
                 type="date"
                 value={constraintStart}
@@ -213,11 +213,11 @@ function EditProxyForm({
             </div>
           </div>
 
-          <div className="bg-accent/5 rounded-xl p-3">
+          <div className="bg-accent/5 rounded-xl p-3 overflow-hidden">
             <label className="block text-[11px] font-semibold text-accent uppercase tracking-wider mb-1.5">
               Available dates (submit on their behalf)
             </label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2 min-w-0">
               <input
                 type="date"
                 value={availStart}
