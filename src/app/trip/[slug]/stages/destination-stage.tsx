@@ -166,7 +166,28 @@ export function DestinationStage({
       .update({ destination_vote: newVote })
       .eq("id", currentMember.id);
 
-    if (voteError) setError(voteError.message);
+    if (voteError) {
+      setError(voteError.message);
+    } else if (newVote) {
+      // Auto-advance: check if all non-proxy members have voted
+      await onMembersUpdated?.();
+      const freshMembers = await supabase.from("members").select("*").eq("trip_id", trip.id);
+      const freshOptions = await supabase.from("destination_options").select("*").eq("trip_id", trip.id).order("vote_count", { ascending: false });
+      if (freshMembers.data && freshOptions.data) {
+        const nonProxy = freshMembers.data.filter(m => !m.is_proxy);
+        const allVoted = nonProxy.every(m => m.destination_vote);
+        const opts = freshOptions.data;
+        const topCount = opts.length > 0 ? opts[0].vote_count : 0;
+        const tied = opts.filter(o => o.vote_count === topCount && topCount > 0);
+        if (allVoted && tied.length === 1) {
+          // Clear winner + everyone voted → auto-lock
+          await supabase.from("trips").update({
+            status: "commitment",
+            locked_destination: `${opts[0].emoji} ${opts[0].name}`,
+          }).eq("id", trip.id);
+        }
+      }
+    }
     setVoting(false);
   }
 

@@ -129,8 +129,23 @@ export function DatesStage({
       setError(saveError.message);
     } else {
       setDatesSaved(true);
-      // Show budget bottom sheet after a brief moment
       setTimeout(() => setShowBudgetSheet(true), 600);
+
+      // Auto-advance: if all non-proxy members have now responded, auto-lock dates
+      await onMembersUpdated?.();
+      const freshMembers = await supabase.from("members").select("*").eq("trip_id", trip.id);
+      if (freshMembers.data) {
+        const nonProxy = freshMembers.data.filter(m => !m.is_proxy);
+        const allResponded = nonProxy.every(m => m.availability_start);
+        if (allResponded && best) {
+          // Everyone responded + overlap exists → auto-lock
+          await supabase.from("trips").update({
+            status: "destination_open",
+            locked_dates_start: best.start.toISOString().split("T")[0],
+            locked_dates_end: best.end.toISOString().split("T")[0],
+          }).eq("id", trip.id);
+        }
+      }
     }
   }
 

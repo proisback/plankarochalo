@@ -49,14 +49,29 @@ export function CommitmentStage({
       ? `${new Date(trip.locked_dates_start).toLocaleDateString("en-IN", { month: "short", day: "numeric" })} – ${new Date(trip.locked_dates_end).toLocaleDateString("en-IN", { month: "short", day: "numeric" })}`
       : "";
 
-  async function handleCommit(status: "confirmed_in" | "confirmed_out") {
+  async function handleCommit(commitStatus: "confirmed_in" | "confirmed_out") {
     setSaving(true);
     setError("");
     const { error: commitError } = await supabase
       .from("members")
-      .update({ status })
+      .update({ status: commitStatus })
       .eq("id", currentMember.id);
-    if (commitError) setError(commitError.message);
+    if (commitError) {
+      setError(commitError.message);
+    } else {
+      // Auto-advance: check if all non-proxy members have committed
+      await onMembersUpdated?.();
+      const freshMembers = await supabase.from("members").select("*").eq("trip_id", trip.id);
+      if (freshMembers.data) {
+        const nonProxy = freshMembers.data.filter(m => !m.is_proxy);
+        const allCommitted = nonProxy.every(m => m.status === "confirmed_in" || m.status === "confirmed_out");
+        const anyIn = freshMembers.data.some(m => m.status === "confirmed_in");
+        if (allCommitted && anyIn) {
+          // Everyone responded + at least 1 going → auto-lock trip
+          await supabase.from("trips").update({ status: "ready" }).eq("id", trip.id);
+        }
+      }
+    }
     setSaving(false);
   }
 
