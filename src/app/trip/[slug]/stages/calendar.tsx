@@ -142,9 +142,9 @@ export default function Calendar({
       return `${base} bg-primary text-white font-bold ring-2 ring-primary/30 cursor-pointer`;
     }
 
-    // Already selected + in best overlap window — strongest signal
+    // Already selected + in best overlap window — gold border highlights the match
     if (isSelected && isInOverlap) {
-      return `${base} bg-[#1B6B42] text-white font-bold cursor-pointer hover:bg-[#166038]`;
+      return `${base} bg-accent text-white font-bold cursor-pointer hover:bg-accent-hover border-2 border-pop shadow-sm`;
     }
 
     // Already selected (not in overlap)
@@ -154,7 +154,7 @@ export default function Calendar({
 
     // In best overlap window but not selected by this user
     if (isInOverlap) {
-      return `${base} bg-pop/25 text-[#9B7510] font-bold cursor-pointer hover:bg-pop/35`;
+      return `${base} bg-pop/30 text-[#8B6914] font-bold cursor-pointer hover:bg-pop/40 border-2 border-pop/50`;
     }
 
     // Heatmap (others' selections)
