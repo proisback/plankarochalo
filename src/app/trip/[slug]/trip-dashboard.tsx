@@ -233,13 +233,18 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
         </div>
 
         {/* Header */}
-        <div className="flex items-start justify-between mb-4">
-          <div>
+        <div className="mb-4">
+          {currentMember && (
+            <p className="text-sm text-text-secondary mb-0.5">
+              Hey {currentMember.name.split(" ")[0]} 👋
+            </p>
+          )}
+          <div className="flex items-start justify-between">
             <h1 className="font-heading text-xl font-bold text-text">{trip.name}</h1>
+            <span className="text-xs bg-primary-light text-primary px-2.5 py-1 rounded-full font-semibold shrink-0 ml-2">
+              {trip.trip_days} days
+            </span>
           </div>
-          <span className="text-xs bg-primary-light text-primary px-2.5 py-1 rounded-full font-semibold">
-            {trip.trip_days} days
-          </span>
         </div>
 
         {/* Content with consistent spacing */}
