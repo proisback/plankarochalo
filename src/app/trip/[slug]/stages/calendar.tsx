@@ -142,9 +142,9 @@ export default function Calendar({
       return `${base} bg-primary text-white font-bold ring-2 ring-primary/30 cursor-pointer`;
     }
 
-    // Already selected + in best overlap window
+    // Already selected + in best overlap window — strongest signal
     if (isSelected && isInOverlap) {
-      return `${base} bg-accent text-white font-bold cursor-pointer hover:bg-accent-hover ring-2 ring-pop/50`;
+      return `${base} bg-[#1B6B42] text-white font-bold cursor-pointer hover:bg-[#166038]`;
     }
 
     // Already selected (not in overlap)
@@ -154,7 +154,7 @@ export default function Calendar({
 
     // In best overlap window but not selected by this user
     if (isInOverlap) {
-      return `${base} bg-pop/15 text-pop font-semibold ring-1 ring-pop/25 cursor-pointer hover:ring-2 hover:ring-pop/40`;
+      return `${base} bg-pop/25 text-[#9B7510] font-bold cursor-pointer hover:bg-pop/35`;
     }
 
     // Heatmap (others' selections)
@@ -304,8 +304,8 @@ export default function Calendar({
         </span>
         {overlapStart && overlapEnd && (
           <span className="flex items-center gap-1.5">
-            <span className="inline-block h-2.5 w-2.5 rounded bg-pop/30 ring-1 ring-pop/40" />
-            Best window
+            <span className="inline-block h-2.5 w-2.5 rounded bg-pop/40" />
+            Best match
           </span>
         )}
         <span className="flex items-center gap-1.5">
