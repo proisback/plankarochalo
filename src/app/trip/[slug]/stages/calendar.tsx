@@ -9,6 +9,8 @@ interface CalendarProps {
   dateMap: Map<string, string[]>;
   windowStart?: string;
   windowEnd?: string;
+  overlapStart?: string;
+  overlapEnd?: string;
 }
 
 const DAYS_OF_WEEK = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"] as const;
@@ -42,6 +44,8 @@ export default function Calendar({
   dateMap,
   windowStart,
   windowEnd,
+  overlapStart,
+  overlapEnd,
 }: CalendarProps) {
   const today = useMemo(() => new Date(), []);
   const todayKey = useMemo(
@@ -125,7 +129,7 @@ export default function Calendar({
     const isToday = dateKey === todayKey;
     const isSelected = selectedDates.has(dateKey);
     const isRangeAnchor = dateKey === rangeStart;
-    const inPendingRange = rangeMode && rangeStart && !isRangeAnchor && isInRange(dateKey, rangeStart, null);
+    const isInOverlap = overlapStart && overlapEnd && dateKey >= overlapStart && dateKey <= overlapEnd;
 
     const base = "w-full aspect-square flex items-center justify-center rounded-xl text-sm font-medium transition-all duration-100";
 
@@ -138,9 +142,19 @@ export default function Calendar({
       return `${base} bg-primary text-white font-bold ring-2 ring-primary/30 cursor-pointer`;
     }
 
-    // Already selected
+    // Already selected + in best overlap window
+    if (isSelected && isInOverlap) {
+      return `${base} bg-accent text-white font-bold cursor-pointer hover:bg-accent-hover ring-2 ring-pop/50`;
+    }
+
+    // Already selected (not in overlap)
     if (isSelected) {
       return `${base} bg-accent text-white font-bold cursor-pointer hover:bg-accent-hover`;
+    }
+
+    // In best overlap window but not selected by this user
+    if (isInOverlap) {
+      return `${base} bg-pop/15 text-pop font-semibold ring-1 ring-pop/25 cursor-pointer hover:ring-2 hover:ring-pop/40`;
     }
 
     // Heatmap (others' selections)
@@ -283,11 +297,17 @@ export default function Calendar({
       </div>
 
       {/* Legend */}
-      <div className="mt-2 flex items-center justify-center gap-4 text-[10px] text-text-tertiary font-medium">
+      <div className="mt-2 flex items-center justify-center gap-4 text-[10px] text-text-tertiary font-medium flex-wrap">
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-2.5 w-2.5 rounded bg-accent" />
           You
         </span>
+        {overlapStart && overlapEnd && (
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block h-2.5 w-2.5 rounded bg-pop/30 ring-1 ring-pop/40" />
+            Best window
+          </span>
+        )}
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-2.5 w-2.5 rounded bg-heat-low" />
           1 other

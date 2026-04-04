@@ -196,6 +196,8 @@ export function DatesStage({
         dateMap={dateMap}
         windowStart={trip.date_window_start ?? undefined}
         windowEnd={trip.date_window_end ?? undefined}
+        overlapStart={best ? best.start.toISOString().split("T")[0] : undefined}
+        overlapEnd={best ? best.end.toISOString().split("T")[0] : undefined}
       />
 
       {/* Group response status */}

@@ -208,7 +208,7 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
         {/* Nav */}
         <div className="flex items-center justify-between mb-5">
           <button
-            onClick={() => window.history.back()}
+            onClick={() => { window.location.href = "/create"; }}
             className="text-xs text-text-secondary border border-border rounded-xl px-3 py-1.5 hover:bg-subtle active:scale-95 transition-all flex items-center gap-1"
           >
             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
