@@ -278,8 +278,8 @@ export function DatesStage({
 
             {/* Slider */}
             <div className="relative h-10 mx-1">
-              <div className="absolute top-1/2 -translate-y-1/2 left-0 right-0 h-[6px] rounded-full bg-subtle-hover" />
-              <div className="absolute top-1/2 -translate-y-1/2 h-[6px] rounded-full bg-primary/25"
+              <div className="absolute top-1/2 -translate-y-1/2 left-0 right-0 h-[10px] rounded-full bg-subtle-hover" />
+              <div className="absolute top-1/2 -translate-y-1/2 h-[10px] rounded-full bg-primary/25"
                 style={{ left: `${((budgetMin - BUDGET_FLOOR) / (BUDGET_CEIL - BUDGET_FLOOR)) * 100}%`, width: `${((budgetMax - budgetMin) / (BUDGET_CEIL - BUDGET_FLOOR)) * 100}%` }} />
               <input type="range" min={BUDGET_FLOOR} max={BUDGET_CEIL} step={BUDGET_STEP} value={budgetMin}
                 onChange={(e) => { const v = Number(e.target.value); if (v < budgetMax) setBudgetMin(v); }} className="range-slider" />

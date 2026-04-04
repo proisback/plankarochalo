@@ -100,7 +100,7 @@ export function DatePickerInput({
 
       {/* Dropdown calendar */}
       {open && (
-        <div className="absolute z-40 top-full mt-1 left-0 right-0 bg-surface border border-border-light rounded-2xl shadow-lg p-3 animate-scale">
+        <div className="absolute z-40 top-full mt-1 left-0 right-0 bg-surface border border-border-light rounded-2xl shadow-lg p-3 animate-scale max-h-[60vh] overflow-y-auto">
           {/* Month nav */}
           <div className="flex items-center justify-between mb-2">
             <button type="button" onClick={prev} className="w-7 h-7 rounded-lg flex items-center justify-center text-text-secondary hover:bg-subtle-hover active:scale-90 transition-all">
@@ -141,7 +141,7 @@ export function DatePickerInput({
                   disabled={disabled}
                   onClick={() => handlePick(day)}
                   className={[
-                    "h-8 w-full rounded-lg text-xs font-medium transition-all",
+                    "h-10 w-full rounded-lg text-xs font-medium transition-all",
                     disabled
                       ? "text-text-tertiary/40 cursor-default"
                       : selected
