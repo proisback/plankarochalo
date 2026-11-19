@@ -1,29 +1,80 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import { Anek_Latin, Anek_Devanagari, IBM_Plex_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
+import { InkFilter } from "@/components/brand";
+import { site } from "@/lib/site";
 import "./globals.css";
 
+// One Indian type family across both scripts (Ek Type's Anek), with the width
+// axis so headlines can run condensed like platform signage. Mono for data.
+const anek = Anek_Latin({
+  subsets: ["latin"],
+  axes: ["wdth"],
+  variable: "--font-anek",
+  display: "swap",
+});
+
+const anekDeva = Anek_Devanagari({
+  subsets: ["devanagari"],
+  axes: ["wdth"],
+  variable: "--font-anek-deva",
+  display: "swap",
+  preload: false,
+});
+
+const plexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-plex-mono",
+  display: "swap",
+});
+
+const title = "Plan Karo Chalo · Get the trip out of the group chat";
+
 export const metadata: Metadata = {
-  title: "Plan Karo Chalo — Group Trip Planner",
-  description:
-    "Turn WhatsApp chaos into a confirmed trip. Vote on dates, destinations & budget together — all from one link. No app download needed.",
-  metadataBase: new URL("https://plankarochalo.com"),
+  metadataBase: new URL(site.url),
+  title: {
+    default: title,
+    template: "%s · Plan Karo Chalo",
+  },
+  description: site.description,
+  applicationName: site.name,
   manifest: "/manifest.json",
   icons: {
-    icon: "/icon-192.png",
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
     apple: "/icon-192.png",
   },
   openGraph: {
-    title: "Plan Karo Chalo — Group Trip Planner",
-    description:
-      "Turn WhatsApp chaos into a confirmed trip. Vote on dates, destinations & budget together.",
+    title,
+    description: site.description,
     type: "website",
+    siteName: site.name,
+    locale: "en_IN",
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: "Plan Karo Chalo: a group trip ticket marked confirmed" }],
   },
   twitter: {
-    card: "summary",
-    title: "Plan Karo Chalo",
-    description: "Turn WhatsApp chaos into a confirmed trip.",
+    card: "summary_large_image",
+    title,
+    description: site.description,
+    images: ["/og.png"],
   },
 };
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#F4F3EE" },
+    { media: "(prefers-color-scheme: dark)", color: "#12110D" },
+  ],
+};
+
+// Applies the saved theme before first paint so there is no flash.
+const themeScript = `(function(){try{var t=localStorage.getItem("theme");var d=t==="dark"||(t!=="light"&&window.matchMedia("(prefers-color-scheme:dark)").matches);if(d)document.documentElement.classList.add("dark")}catch(e){}})()`;
 
 export default function RootLayout({
   children,
@@ -31,35 +82,23 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html
+      lang="en-IN"
+      className={`${anek.variable} ${anekDeva.variable} ${plexMono.variable}`}
+      suppressHydrationWarning
+    >
       <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem("theme");var d=t==="dark"||(t!=="light"&&window.matchMedia("(prefers-color-scheme:dark)").matches);if(d)document.documentElement.classList.add("dark")}catch(e){}})()`,
-          }}
-        />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap"
-          rel="stylesheet"
-        />
-        <meta name="theme-color" content="#FAF9F7" media="(prefers-color-scheme: light)" />
-        <meta name="theme-color" content="#141316" media="(prefers-color-scheme: dark)" />
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className="antialiased min-h-screen grain">
-        <div className="phone-frame-wrapper">
-          <div className="phone-frame">
-            <div className="phone-content">
-              {children}
-            </div>
-            <div className="phone-home" />
-          </div>
-        </div>
+      <body className="min-h-dvh antialiased grain">
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[70] btn btn-brand btn-sm"
+        >
+          Skip to content
+        </a>
+        <InkFilter />
+        {children}
         <Analytics />
       </body>
     </html>

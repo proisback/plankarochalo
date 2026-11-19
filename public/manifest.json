@@ -1,33 +1,16 @@
 {
   "name": "Plan Karo Chalo",
-  "short_name": "PlanKaro",
-  "description": "Turn WhatsApp chaos into a confirmed trip. Vote on dates, destinations & budget together.",
+  "short_name": "Plan Karo",
+  "description": "One link in the group chat. Everyone taps the dates they are free, votes on a place, and commits.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "theme_color": "#E86A33",
-  "background_color": "#FAF9F7",
+  "theme_color": "#FFC91F",
+  "background_color": "#F4F3EE",
   "icons": [
-    {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
-  ],
-  "share_target": {
-    "action": "/create/new",
-    "method": "GET",
-    "params": {
-      "title": "name",
-      "text": "text",
-      "url": "url"
-    }
-  }
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
 }
