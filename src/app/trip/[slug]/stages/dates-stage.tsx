@@ -1,13 +1,228 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { Trip, Member } from "@/lib/types";
-import { findBestOverlap, findBudgetOverlap } from "@/lib/overlap";
-import { MemberList, WaitingBanner } from "./member-list";
-import { LockButton } from "./lock-button";
+import type { Member, Trip } from "@/lib/types";
+import { stageProgress } from "@/lib/types";
+import { advanceTrip } from "@/lib/advance";
+import { eachDay, formatDayLong, formatRange, memberDays } from "@/lib/dates";
+import { UserFacingError, friendlyError } from "@/lib/errors";
+import { firstName, formatBudgetRange, formatRupeesShort, plural } from "@/lib/format";
+import { budgetAnswers, findBestOverlap, findBudgetOverlap } from "@/lib/overlap";
+import { Icon, Spinner } from "@/components/icons";
+import { Sheet } from "@/components/sheet";
+import { StageStatus } from "../stage-status";
 import Calendar from "./calendar";
 import { DeadlineBanner } from "./deadline-banner";
+import { LockButton } from "./lock-button";
+import { MemberList } from "./member-list";
+
+const NO_LIMIT = 200_000;
+const BUDGETS: { value: number; label: string }[] = [
+  ...[5_000, 10_000, 20_000, 40_000].map((value) => ({ value, label: formatRupeesShort(value) })),
+  { value: NO_LIMIT, label: "No limit" },
+];
+const TRIP_LENGTHS = Array.from({ length: 14 }, (_, i) => i + 1);
+
+/* ── Save bar ──────────────────────────────────────────────────── */
+
+/**
+ * The bar pinned to the bottom of the screen while there is something to save.
+ * Full width on a phone; from `sm` up it lines up with the content column,
+ * which is measured because a fixed element cannot inherit its parent's width.
+ * While it is up, the page gets the same amount of extra room at the end so
+ * the bar never sits on top of the last thing in it.
+ *
+ * Rendered in place, not in a portal, so it comes right after the calendar in
+ * tab order. That only works while no ancestor is transformed or animated: a
+ * transformed ancestor would become what "fixed" is measured from.
+ */
+function SaveBar({
+  column,
+  children,
+}: {
+  column: React.RefObject<HTMLDivElement | null>;
+  children: React.ReactNode;
+}) {
+  const barRef = useRef<HTMLDivElement>(null);
+  const [rect, setRect] = useState<{ left: number; width: number } | null>(null);
+
+  useLayoutEffect(() => {
+    const col = column.current;
+    const bar = barRef.current;
+    if (!col || !bar) return;
+    const roomBefore = document.body.style.paddingBottom;
+    const measure = () => {
+      const box = col.getBoundingClientRect();
+      setRect((prev) =>
+        prev && prev.left === box.left && prev.width === box.width ? prev : { left: box.left, width: box.width },
+      );
+      document.body.style.paddingBottom = `${bar.offsetHeight}px`;
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(col);
+    observer.observe(bar);
+    window.addEventListener("resize", measure);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measure);
+      document.body.style.paddingBottom = roomBefore;
+    };
+  }, [column]);
+
+  return (
+    <div
+      ref={barRef}
+      role="region"
+      aria-label="Save your dates"
+      style={rect ? ({ "--col-left": `${rect.left}px`, "--col-width": `${rect.width}px` } as React.CSSProperties) : undefined}
+      className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:left-[var(--col-left)] sm:right-auto sm:w-[var(--col-width)] sm:px-0"
+    >
+      {children}
+    </div>
+  );
+}
+
+/* ── Budget ────────────────────────────────────────────────────── */
+
+/**
+ * Optional, and only after dates are in. One tap sets the most this person
+ * would spend; tapping it again takes the answer back. Nobody else ever sees
+ * an individual answer, only what works for everyone who shared one.
+ */
+function Budget({
+  members,
+  currentMember,
+  onMembersUpdated,
+}: {
+  members: Member[];
+  currentMember: Member;
+  onMembersUpdated: () => Promise<void>;
+}) {
+  const supabase = createClient();
+  const headingId = useId();
+  // What I just tapped, shown at once while the write is on its way.
+  const [pending, setPending] = useState<{ max: number | null } | null>(null);
+  const [error, setError] = useState("");
+  const queue = useRef<Promise<void>>(Promise.resolve());
+  const latest = useRef(0);
+
+  const mine = pending ? pending.max : currentMember.budget_max;
+  const mineMin = pending ? 0 : (currentMember.budget_min ?? 0);
+  // An answer from before the one-tap choices (a typed range, or the old
+  // default). It still counts, so say so and let them replace or remove it.
+  const earlier =
+    mine != null && !BUDGETS.some((b) => b.value === mine)
+      ? mineMin > 0
+        ? formatBudgetRange(mineMin, mine)
+        : `up to ${formatRupeesShort(mine)}`
+      : null;
+
+  const withMine = useMemo(
+    () =>
+      pending
+        ? members.map((m) =>
+            m.id === currentMember.id ? { ...m, budget_min: pending.max == null ? null : 0, budget_max: pending.max } : m,
+          )
+        : members,
+    [members, currentMember.id, pending],
+  );
+  const shared = budgetAnswers(withMine);
+  const group = findBudgetOverlap(withMine);
+
+  function setBudget(max: number | null) {
+    const turn = ++latest.current;
+    setPending({ max });
+    setError("");
+    // One write at a time, in the order tapped. A tap that was replaced before
+    // its turn came is skipped; the last one always goes through.
+    queue.current = queue.current.then(async () => {
+      if (turn !== latest.current) return;
+      try {
+        const { error: writeError } = await supabase
+          .from("members")
+          .update({ budget_min: max == null ? null : 0, budget_max: max })
+          .eq("id", currentMember.id);
+        if (writeError) throw writeError;
+        await onMembersUpdated();
+        if (turn === latest.current) setPending(null);
+      } catch (e) {
+        if (turn !== latest.current) return;
+        setPending(null);
+        setError(friendlyError(e, "Your budget didn't save. Check your connection and try again."));
+      }
+    });
+  }
+
+  return (
+    <section aria-labelledby={headingId} className="border-t border-border pt-4">
+      <p className="label-mono">Optional</p>
+      <h3 id={headingId} className="mt-1.5 text-[0.9375rem] font-semibold leading-snug text-text">
+        What&apos;s the most you&apos;d spend, per person, for the whole trip?
+      </h3>
+
+      <div role="group" aria-labelledby={headingId} className="mt-3 flex flex-wrap gap-2">
+        {BUDGETS.map((b) => (
+          <button
+            key={b.value}
+            type="button"
+            aria-pressed={mine === b.value}
+            onClick={() => setBudget(mine === b.value ? null : b.value)}
+            className="btn btn-outline btn-sm min-h-11 min-w-14 font-mono aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-on-primary"
+          >
+            {b.label}
+          </button>
+        ))}
+      </div>
+
+      {earlier && (
+        <p className="mt-2.5 text-[0.8125rem] text-text-secondary">
+          Saved for you earlier: <span className="font-mono font-medium text-text">{earlier}</span>. Pick one above to
+          replace it, or{" "}
+          <button type="button" onClick={() => setBudget(null)} className="link">
+            remove it
+          </button>
+          .
+        </p>
+      )}
+      {error && (
+        <p role="alert" className="field-error">
+          {error}
+        </p>
+      )}
+      <p className="mt-2.5 text-[0.8125rem] text-text-tertiary">Only the group&apos;s limit is shown, never yours.</p>
+
+      {shared >= 2 &&
+        (group ? (
+          <div className="mt-4 border-l-2 border-border-strong pl-3" aria-live="polite">
+            <p className="text-[0.9375rem] font-semibold text-text">
+              {group.max >= NO_LIMIT
+                ? "No limit so far"
+                : `Works for everyone: ${
+                    group.min > 0 ? formatBudgetRange(group.min, group.max) : `up to ${formatRupeesShort(group.max)}`
+                  } per person`}
+            </p>
+            <p className="mt-1 font-mono text-xs text-text-tertiary">
+              {group.count} of {members.length} shared a budget
+            </p>
+          </div>
+        ) : (
+          <div className="notice notice-wait mt-4" aria-live="polite">
+            <Icon name="alert" className="mt-0.5 h-4 w-4 shrink-0 text-status-waiting" />
+            <div>
+              <p className="font-semibold">Budgets don&apos;t meet yet.</p>
+              <p className="mt-0.5 font-mono text-xs text-text-secondary">
+                {shared} of {members.length} shared a budget
+              </p>
+            </div>
+          </div>
+        ))}
+    </section>
+  );
+}
+
+/* ── Dates stage ───────────────────────────────────────────────── */
 
 export function DatesStage({
   trip,
@@ -15,421 +230,380 @@ export function DatesStage({
   currentMember,
   isOrganizer,
   onMembersUpdated,
+  demo,
 }: {
   trip: Trip;
   members: Member[];
   currentMember: Member;
   isOrganizer: boolean;
-  onMembersUpdated?: () => Promise<void>;
+  /** Refetches trip + members. */
+  onMembersUpdated: () => Promise<void>;
+  demo?: boolean;
 }) {
   const supabase = createClient();
+  const columnRef = useRef<HTMLDivElement>(null);
+  const lengthId = useId();
+  const length = trip.trip_days;
+  const allDays = length === 1 ? "that day" : `all ${length} days`;
+
+  /* My days: what is saved, and what is tapped but not saved yet. */
+  const savedDays = useMemo(() => memberDays(currentMember), [currentMember]);
+  const savedKey = savedDays.join(",");
+  const [selected, setSelected] = useState<Set<string>>(() => new Set(savedDays));
+  const selectedKey = useMemo(() => Array.from(selected).sort().join(","), [selected]);
+  const hasSaved = savedDays.length > 0;
+  const dirty = selectedKey !== savedKey;
+
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [updatingDays, setUpdatingDays] = useState(false);
-  const [showBudgetSheet, setShowBudgetSheet] = useState(false);
-  const [datesSaved, setDatesSaved] = useState(false);
-  const [savingBudget, setSavingBudget] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const [justSaved, setJustSaved] = useState<number | null>(null);
 
-  // Selected dates — initialize from existing data
-  const [selectedDates, setSelectedDates] = useState<Set<string>>(() => {
-    // Try new per-day format from constraint_note
-    if (currentMember.constraint_note) {
-      try {
-        const parsed = JSON.parse(currentMember.constraint_note);
-        if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === "string" && parsed[0].match(/^\d{4}-\d{2}-\d{2}$/)) {
-          return new Set(parsed);
-        }
-      } catch { /* not JSON */ }
-    }
-    // Fall back to range
-    if (currentMember.availability_start && currentMember.availability_end) {
-      const dates = new Set<string>();
-      const start = new Date(currentMember.availability_start);
-      const end = new Date(currentMember.availability_end);
-      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-        dates.add(d.toISOString().split("T")[0]);
-      }
-      return dates;
-    }
-    return new Set();
-  });
+  // If my saved dates change underneath me (another device, or the organiser
+  // answering for me) follow them, unless I have edits of my own in progress.
+  const followed = useRef(savedKey);
+  useEffect(() => {
+    if (followed.current === savedKey) return;
+    const untouched = selectedKey === followed.current;
+    followed.current = savedKey;
+    if (untouched) setSelected(new Set(savedDays));
+  }, [savedKey, savedDays, selectedKey]);
 
-  const hasSubmitted = !!currentMember.availability_start;
+  useEffect(() => {
+    if (justSaved == null) return;
+    const timer = setTimeout(() => setJustSaved(null), 2600);
+    return () => clearTimeout(timer);
+  }, [justSaved]);
 
-  // Budget state
-  const [budgetMin, setBudgetMin] = useState(currentMember.budget_min ?? 5000);
-  const [budgetMax, setBudgetMax] = useState(currentMember.budget_max ?? 30000);
-  const BUDGET_FLOOR = 2000;
-  const BUDGET_CEIL = 200000;
-  const BUDGET_STEP = 1000;
-
-  const { best, fallback, dateMap } = useMemo(
-    () => findBestOverlap(members, trip.trip_days),
-    [members, trip.trip_days]
-  );
-
-  const budgetOverlap = useMemo(
-    () => findBudgetOverlap(members),
-    [members]
-  );
-
-  const toggleDate = useCallback((date: string) => {
-    setSelectedDates((prev) => {
+  const toggleDay = useCallback((day: string) => {
+    setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(date)) next.delete(date);
-      else next.add(date);
+      if (!next.delete(day)) next.add(day);
       return next;
     });
   }, []);
-
-  const selectRange = useCallback((start: string, end: string) => {
-    setSelectedDates((prev) => {
-      const next = new Set(prev);
-      const s = new Date(start);
-      const e = new Date(end);
-      for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
-        next.add(d.toISOString().split("T")[0]);
-      }
-      return next;
-    });
+  const addRange = useCallback((start: string, end: string) => {
+    setSelected((prev) => new Set([...prev, ...eachDay(start, end)]));
   }, []);
+  const clearDays = useCallback(() => setSelected(new Set()), []);
+  const undo = () => {
+    setSelected(new Set(savedDays));
+    setSaveError("");
+  };
 
-  async function handleUpdateTripDays(newDays: number) {
-    setUpdatingDays(true);
-    await supabase.from("trips").update({ trip_days: newDays }).eq("id", trip.id);
-    setUpdatingDays(false);
-  }
+  /* The group */
+  const { best, fallback, answered } = useMemo(() => findBestOverlap(members, length), [members, length]);
+  // Everyone but me. My own days come from the live selection, so the counts
+  // in the calendar do not change meaning the moment I save.
+  const othersFree = useMemo(
+    () => findBestOverlap(members.filter((m) => m.id !== currentMember.id), length).dateMap,
+    [members, currentMember.id, length],
+  );
+  const progress = stageProgress(trip, members);
+  const organiser = members.find((m) => m.is_organizer);
+  const cannot = best ? best.missingNames.map(firstName).join(", ") : "";
+  const notAnswered = progress.waiting.map((m) => firstName(m.name)).join(", ");
+  const bestRange = best ? formatRange(best.start, best.end) : "";
 
-  async function handleSaveDates() {
-    if (selectedDates.size === 0) return;
+  async function saveDates() {
+    const days = Array.from(selected).sort();
+    if (days.length === 0 || saving) return;
     setSaving(true);
-    setError("");
-
-    const sorted = Array.from(selectedDates).sort();
-    const earliest = sorted[0];
-    const latest = sorted[sorted.length - 1];
-
-    // Save dates with default budget — member can adjust budget next
-    const { error: saveError } = await supabase
-      .from("members")
-      .update({
-        availability_start: earliest,
-        availability_end: latest,
-        constraint_note: JSON.stringify(sorted),
-        constraint_start: null,
-        constraint_end: null,
-        budget_min: currentMember.budget_min ?? 5000,
-        budget_max: currentMember.budget_max ?? 30000,
-        status: "responded",
-      })
-      .eq("id", currentMember.id);
-
-    setSaving(false);
-    if (saveError) {
-      setError(saveError.message);
-    } else {
-      setDatesSaved(true);
-      setTimeout(() => setShowBudgetSheet(true), 600);
-
-      // Auto-advance: if all non-proxy members have now responded, auto-lock dates
-      await onMembersUpdated?.();
-      const freshMembers = await supabase.from("members").select("*").eq("trip_id", trip.id);
-      if (freshMembers.data) {
-        const nonProxy = freshMembers.data.filter(m => !m.is_proxy);
-        const allResponded = nonProxy.every(m => m.availability_start);
-        if (allResponded && best) {
-          // Everyone responded + overlap exists → auto-lock
-          await supabase.from("trips").update({
-            status: "destination_open",
-            locked_dates_start: best.start.toISOString().split("T")[0],
-            locked_dates_end: best.end.toISOString().split("T")[0],
-          }).eq("id", trip.id);
-        }
-      }
+    setSaveError("");
+    try {
+      const { error } = await supabase
+        .from("members")
+        .update({
+          availability_start: days[0],
+          availability_end: days[days.length - 1],
+          constraint_note: JSON.stringify(days),
+          constraint_start: null,
+          constraint_end: null,
+          status: "responded",
+        })
+        .eq("id", currentMember.id);
+      if (error) throw error;
+      setJustSaved(days.length);
+      // The database decides whether that was the last answer the trip needed.
+      await advanceTrip(supabase, trip.id);
+      await onMembersUpdated();
+    } catch (e) {
+      setSaveError(friendlyError(e, "Your dates didn't save. Check your connection and try again."));
+    } finally {
+      setSaving(false);
     }
   }
 
-  async function handleSaveBudget() {
-    setSavingBudget(true);
-    await supabase
-      .from("members")
-      .update({ budget_min: budgetMin, budget_max: budgetMax })
-      .eq("id", currentMember.id);
-    setSavingBudget(false);
-    setShowBudgetSheet(false);
-  }
-
-  async function handleLockDates() {
-    if (!best) return;
-    await supabase
+  async function lockDates() {
+    const { data, error } = await supabase.from("members").select("*").eq("trip_id", trip.id);
+    if (error) throw error;
+    const fresh = findBestOverlap((data ?? []) as Member[], length).best;
+    if (!fresh) {
+      await onMembersUpdated();
+      throw new UserFacingError("Someone just changed their dates and no window works for two people any more. Nothing was locked.");
+    }
+    const { error: lockError } = await supabase
       .from("trips")
-      .update({
-        status: "destination_open",
-        locked_dates_start: best.start.toISOString().split("T")[0],
-        locked_dates_end: best.end.toISOString().split("T")[0],
-      })
-      .eq("id", trip.id);
+      .update({ status: "destination_open", locked_dates_start: fresh.start, locked_dates_end: fresh.end })
+      .eq("id", trip.id)
+      .eq("status", "dates_open");
+    if (lockError) throw lockError;
+    await onMembersUpdated();
   }
 
-  // Dynamic subtitle
-  const responded = members.filter(m => m.availability_start).length;
-  const waiting = members.length - responded;
+  /* Trip length. Every change goes through the same confirm sheet. */
+  const [newLength, setNewLength] = useState<number | null>(null);
+  const [lengthBusy, setLengthBusy] = useState(false);
+  const [lengthError, setLengthError] = useState("");
 
-  const selectStyle = { backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2378716C' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19.5 8.25l-7.5 7.5-7.5-7.5'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 8px center", backgroundSize: "14px", paddingRight: "28px" };
+  function askLength(days: number) {
+    if (!Number.isInteger(days) || days < 1 || days > 14 || days === length) return;
+    setLengthError("");
+    setNewLength(days);
+  }
+
+  async function changeLength() {
+    if (newLength == null) return;
+    setLengthBusy(true);
+    setLengthError("");
+    try {
+      const { error } = await supabase.from("trips").update({ trip_days: newLength }).eq("id", trip.id);
+      if (error) throw error;
+      await onMembersUpdated();
+      setNewLength(null);
+    } catch (e) {
+      setLengthError(friendlyError(e, "The trip length didn't change. Check your connection and try again."));
+    } finally {
+      setLengthBusy(false);
+    }
+  }
+
+  const lockDetails = best
+    ? [
+        `${best.fullCount} of ${answered} can do ${allDays}`,
+        ...(cannot ? [`Can't: ${cannot}`] : []),
+        ...(notAnswered ? [`Not answered: ${notAnswered}`] : []),
+      ]
+    : [];
 
   return (
-    <div className="space-y-5">
-      {/* Header */}
+    <div ref={columnRef} className="flex flex-col gap-5">
       <div>
-        <h2 className="font-heading text-lg font-bold text-text">
-          Tap the dates that work for you
+        <h2 className="font-heading text-2xl font-extrabold leading-tight text-text">
+          {firstName(currentMember.name)}, when are you free?
         </h2>
-        <p className="text-text-secondary text-sm mt-0.5">
-          Select your available dates — we need a {trip.trip_days}-day window.
+        <p className="mt-1 text-[0.9375rem] leading-snug text-text-secondary">
+          Tap every day you could travel. We need {length === 1 ? "1 day" : `${length} days in a row`}.
         </p>
       </div>
 
-      <DeadlineBanner trip={trip} isOrganizer={isOrganizer} />
-
-      {/* Date window banner */}
-      {trip.date_window_start && trip.date_window_end && (
-        <div className="bg-status-pending-bg/50 border border-status-pending/10 rounded-xl px-4 py-2.5 flex items-center gap-2">
-          <svg className="w-3.5 h-3.5 text-status-pending shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-          </svg>
-          <p className="text-status-pending text-xs font-medium">
-            Pick between {new Date(trip.date_window_start).toLocaleDateString("en-IN", { month: "short", day: "numeric" })} – {new Date(trip.date_window_end).toLocaleDateString("en-IN", { month: "short", day: "numeric" })}
-          </p>
-        </div>
-      )}
-
-      {/* Calendar — the main interaction */}
-      <Calendar
-        selectedDates={selectedDates}
-        onToggleDate={toggleDate}
-        onRangeSelect={selectRange}
-        dateMap={dateMap}
-        windowStart={trip.date_window_start ?? undefined}
-        windowEnd={trip.date_window_end ?? undefined}
-        overlapStart={best ? best.start.toISOString().split("T")[0] : undefined}
-        overlapEnd={best ? best.end.toISOString().split("T")[0] : undefined}
+      <DeadlineBanner
+        trip={trip}
+        isOrganizer={isOrganizer}
+        organiserName={organiser ? firstName(organiser.name) : undefined}
       />
 
-      {/* Group response status */}
-      {hasSubmitted && (
-        <div className="bg-accent-light/40 border border-accent/10 rounded-xl px-4 py-2.5 flex items-center justify-between">
-          <p className="text-xs text-accent font-medium">
-            {responded} of {members.length} {responded === 1 ? "person has" : "people have"} marked dates
-            {waiting > 0 && ` · ${waiting} waiting`}
-            {waiting === 0 && " — everyone\u2019s in!"}
-          </p>
-          <svg className="w-4 h-4 text-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
+      <StageStatus
+        trip={trip}
+        members={members}
+        currentMember={currentMember}
+        isOrganizer={isOrganizer}
+        done={`Your ${plural(savedDays.length, "date")} ${savedDays.length === 1 ? "is" : "are"} in.`}
+        next="Once dates are locked, the group votes on a place."
+        lock={
+          best
+            ? (emphasis) => (
+                <LockButton
+                  variant={emphasis}
+                  label={`Lock ${bestRange}`}
+                  title="Lock these dates?"
+                  confirmMessage={`Dates become ${bestRange} for everyone and voting on the place opens. Nobody is notified automatically, so tell the group after.`}
+                  details={lockDetails}
+                  onLock={lockDates}
+                />
+              )
+            : null
+        }
+        demo={demo}
+      />
+
+      {/* The chart: the calendar, and what the group's answers add up to. */}
+      <section aria-label="Your dates" className="panel">
+        <div className="p-2 pb-3 sm:p-4">
+          <Calendar
+            selectedDates={selected}
+            onToggleDate={toggleDay}
+            onRangeSelect={addRange}
+            onClear={clearDays}
+            dateMap={othersFree}
+            windowStart={trip.date_window_start ?? undefined}
+            windowEnd={trip.date_window_end ?? undefined}
+            best={best}
+            groupSize={members.length}
+          />
         </div>
-      )}
 
-      {/* Save dates button */}
-      {error && (
-        <div className="bg-status-out-bg border border-status-out/15 rounded-lg px-3 py-2">
-          <p className="text-status-out text-xs">{error}</p>
-        </div>
-      )}
-
-      {datesSaved ? (
-        <div className="bg-accent-light/60 border border-accent/10 rounded-xl px-4 py-3 text-center animate-pop">
-          <p className="text-sm font-semibold text-accent flex items-center justify-center gap-1.5">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-            </svg>
-            Dates saved!
-          </p>
-        </div>
-      ) : (
-        <button onClick={handleSaveDates} disabled={saving || selectedDates.size === 0}
-          className="w-full bg-primary text-white rounded-xl px-4 py-3 text-sm font-semibold shadow-sm hover:bg-primary-hover active:scale-[0.98] transition-all disabled:opacity-50">
-          {saving ? "Saving..." : hasSubmitted ? "Update my dates ✓" : "Save my dates ✓"}
-        </button>
-      )}
-
-      {/* Budget bottom sheet — slides up AFTER dates are saved */}
-      {showBudgetSheet && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-background/80 backdrop-blur-md animate-fade" onClick={() => setShowBudgetSheet(false)}>
-          <div className="w-full max-w-sm mx-4 bg-surface rounded-2xl shadow-xl border border-border-light p-5 space-y-4 animate-scale" onClick={(e) => e.stopPropagation()}>
-            {/* Swipe indicator */}
-            <div className="flex justify-center"><div className="w-8 h-1 rounded-full bg-border" /></div>
-
-            <div className="text-center">
-              <p className="text-xs text-text-tertiary font-medium uppercase tracking-wider">One more thing</p>
-              <h3 className="font-heading text-base font-bold text-text mt-1">
-                💰 Set your budget range
-              </h3>
-              <p className="text-xs text-text-tertiary mt-1">
-                Helps find the group&apos;s sweet spot for stays & activities
+        <div className="border-t border-border px-3 py-4 sm:px-5">
+          {best ? (
+            <>
+              <p className="label-mono">Best {plural(length, "day")} so far</p>
+              <p className="display mt-1.5 text-[2.5rem] text-text">{bestRange}</p>
+              <p className="mt-1.5 font-mono text-xs text-text-tertiary">
+                {best.start === best.end
+                  ? formatDayLong(best.start)
+                  : `${formatDayLong(best.start)} to ${formatDayLong(best.end)}`}
               </p>
-            </div>
-
-            {/* Min / Max inputs */}
-            <div className="flex gap-3">
-              <div className="flex-1">
-                <label className="block text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1">Min</label>
-                <div className="relative">
-                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-text-tertiary text-sm">₹</span>
-                  <input type="text" inputMode="numeric"
-                    value={budgetMin > 0 ? new Intl.NumberFormat("en-IN").format(budgetMin) : ""}
-                    onChange={(e) => { const v = Number(e.target.value.replace(/[^0-9]/g, "")); if (!isNaN(v) && v >= 0 && v < budgetMax) setBudgetMin(v); }}
-                    className="w-full rounded-xl border border-border bg-background pl-7 pr-3 py-2.5 text-sm font-medium text-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
-                </div>
-              </div>
-              <div className="flex-1">
-                <label className="block text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1">Max</label>
-                <div className="relative">
-                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-text-tertiary text-sm">₹</span>
-                  <input type="text" inputMode="numeric"
-                    value={budgetMax > 0 ? new Intl.NumberFormat("en-IN").format(budgetMax) : ""}
-                    onChange={(e) => { const v = Number(e.target.value.replace(/[^0-9]/g, "")); if (!isNaN(v) && v > budgetMin) setBudgetMax(v); }}
-                    className="w-full rounded-xl border border-border bg-background pl-7 pr-3 py-2.5 text-sm font-medium text-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
-                </div>
-              </div>
-            </div>
-
-            {/* Slider */}
-            <div className="relative h-10 mx-1">
-              <div className="absolute top-1/2 -translate-y-1/2 left-0 right-0 h-[10px] rounded-full bg-subtle-hover" />
-              <div className="absolute top-1/2 -translate-y-1/2 h-[10px] rounded-full bg-primary/25"
-                style={{ left: `${((budgetMin - BUDGET_FLOOR) / (BUDGET_CEIL - BUDGET_FLOOR)) * 100}%`, width: `${((budgetMax - budgetMin) / (BUDGET_CEIL - BUDGET_FLOOR)) * 100}%` }} />
-              <input type="range" min={BUDGET_FLOOR} max={BUDGET_CEIL} step={BUDGET_STEP} value={budgetMin}
-                onChange={(e) => { const v = Number(e.target.value); if (v < budgetMax) setBudgetMin(v); }} className="range-slider" />
-              <input type="range" min={BUDGET_FLOOR} max={BUDGET_CEIL} step={BUDGET_STEP} value={budgetMax}
-                onChange={(e) => { const v = Number(e.target.value); if (v > budgetMin) setBudgetMax(v); }} className="range-slider" />
-            </div>
-            <div className="flex justify-between text-[10px] text-text-tertiary mx-1">
-              <span>₹2K</span><span>₹2L</span>
-            </div>
-
-            <p className="text-center text-xs text-text-secondary">
-              ~<span className="font-bold text-primary">₹{new Intl.NumberFormat("en-IN").format(Math.round((budgetMin + budgetMax) / 2))}</span> per person
-            </p>
-
-            <button onClick={handleSaveBudget} disabled={savingBudget}
-              className="w-full bg-primary text-white rounded-xl px-4 py-3 text-sm font-semibold shadow-sm hover:bg-primary-hover active:scale-[0.98] transition-all disabled:opacity-50">
-              {savingBudget ? "Saving..." : "Save budget"}
-            </button>
-
-            <button onClick={() => setShowBudgetSheet(false)}
-              className="w-full text-xs text-text-tertiary hover:text-text-secondary transition-colors text-center py-1">
-              Skip — use default (₹5K–₹30K)
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Best overlap result */}
-      {best && (
-        <div className="bg-accent-light border border-accent/10 rounded-2xl p-4 shadow-xs">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-7 h-7 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
-              <svg className="w-3.5 h-3.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <p className="text-[11px] font-bold text-accent uppercase tracking-wider">
-              Best {trip.trip_days}-day window
-            </p>
-          </div>
-          <p className="font-heading text-lg font-bold text-text">
-            {best.start.toLocaleDateString("en-IN", { month: "short", day: "numeric" })} – {best.end.toLocaleDateString("en-IN", { month: "short", day: "numeric" })}
-          </p>
-          <p className="text-text-secondary text-sm mt-1">
-            {best.minCount} of {members.filter(m => m.availability_start).length} people available: {best.memberNames.join(", ")}
-          </p>
-          {isOrganizer && (
-            <div className="mt-3 pt-2 border-t border-accent/10 flex items-center gap-2">
-              <span className="text-[11px] text-text-tertiary">Trip length:</span>
-              <select defaultValue={trip.trip_days} onChange={(e) => handleUpdateTripDays(Number(e.target.value))} disabled={updatingDays}
-                className="rounded-lg border border-accent/20 bg-surface px-2 py-1 text-xs font-medium text-text focus:outline-none focus:ring-1 focus:ring-accent/20 transition-all appearance-none"
-                style={selectStyle}>
-                {Array.from({ length: 14 }, (_, i) => i + 1).map((d) => (
-                  <option key={d} value={d}>{d} {d === 1 ? "day" : "days"}</option>
-                ))}
-              </select>
-              {updatingDays && <div className="w-3 h-3 rounded-full border-2 border-accent border-t-transparent animate-spin" />}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* No overlap */}
-      {!best && members.filter(m => m.availability_start).length >= 2 && (
-        <div className="bg-status-out-bg/40 border border-status-out/10 rounded-2xl p-5 text-center shadow-xs">
-          <span className="text-3xl block mb-2">😔</span>
-          <p className="font-heading text-base font-bold text-text">No {trip.trip_days}-day overlap found</p>
-          <p className="text-text-secondary text-sm mt-1.5">
-            Schedules don&apos;t line up for {trip.trip_days} days. Ask the group to add more dates.
-          </p>
-          {fallback && (
-            <div className="mt-3 bg-status-waiting-bg/50 border border-status-waiting/10 rounded-xl p-3 text-left">
-              <p className="text-xs font-semibold text-status-waiting mb-1">Longest overlap: {fallback.days} {fallback.days === 1 ? "day" : "days"}</p>
-              <p className="text-sm font-bold text-text">
-                {fallback.start.toLocaleDateString("en-IN", { month: "short", day: "numeric" })} – {fallback.end.toLocaleDateString("en-IN", { month: "short", day: "numeric" })}
+              <p className="mt-3 text-[0.9375rem] font-semibold text-text">
+                {best.fullCount} of {answered} can do {allDays}
               </p>
-              {isOrganizer && (
-                <button onClick={() => handleUpdateTripDays(fallback.days)} disabled={updatingDays}
-                  className="mt-2 w-full bg-status-waiting/10 text-status-waiting rounded-lg py-1.5 text-xs font-semibold hover:bg-status-waiting/15 active:scale-[0.98] transition-all disabled:opacity-50">
-                  {updatingDays ? "Updating..." : `Switch to ${fallback.days}-day trip`}
-                </button>
+              {cannot && <p className="mt-0.5 text-sm text-text-secondary">Can&apos;t: {cannot}</p>}
+              {isOrganizer && notAnswered && (
+                <p className="mt-0.5 text-sm text-text-secondary">Not answered yet: {notAnswered}</p>
               )}
+            </>
+          ) : answered >= 2 ? (
+            <div className="notice notice-wait">
+              <Icon name="alert" className="mt-0.5 h-4 w-4 shrink-0 text-status-waiting" />
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold">
+                  No {length === 1 ? "single day" : `${length}-day stretch`} works for two or more people yet.
+                </p>
+                {fallback && (
+                  <p className="mt-0.5 text-text-secondary">
+                    The longest stretch two of you share is {plural(fallback.days, "day")}:{" "}
+                    {formatRange(fallback.start, fallback.end)}.
+                  </p>
+                )}
+                {isOrganizer && fallback ? (
+                  <button type="button" onClick={() => askLength(fallback.days)} className="btn btn-outline btn-sm mt-3">
+                    Make it a {fallback.days}-day trip
+                  </button>
+                ) : (
+                  <p className="mt-0.5 text-text-secondary">Add more days if you can.</p>
+                )}
+              </div>
             </div>
+          ) : (
+            <>
+              <p className="label-mono">Best {plural(length, "day")}</p>
+              <p className="mt-1.5 text-sm text-text-secondary">
+                Shows up here once two people have added their dates.
+              </p>
+            </>
           )}
+
           {isOrganizer && (
-            <div className="mt-3 flex items-center justify-center gap-2">
-              <span className="text-xs text-text-tertiary">Trip length:</span>
-              <select defaultValue={trip.trip_days} onChange={(e) => handleUpdateTripDays(Number(e.target.value))} disabled={updatingDays}
-                className="rounded-xl border border-border bg-surface px-3 py-1.5 text-xs font-medium text-text focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all appearance-none"
-                style={selectStyle}>
-                {Array.from({ length: 14 }, (_, i) => i + 1).map((d) => (
-                  <option key={d} value={d}>{d} {d === 1 ? "day" : "days"}</option>
-                ))}
-              </select>
-            </div>
+            <details className="group -mb-2 mt-3 border-t border-border-light pt-1">
+              <summary className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-text-secondary hover:text-text">
+                Change trip length
+                <Icon name="chevron-down" className="h-4 w-4 transition-transform group-open:rotate-180" />
+              </summary>
+              <div className="max-w-60 pb-3">
+                <label htmlFor={lengthId} className="field-label">
+                  Trip length
+                </label>
+                <select
+                  id={lengthId}
+                  value={newLength ?? length}
+                  onChange={(e) => askLength(Number(e.target.value))}
+                  className="field"
+                >
+                  {TRIP_LENGTHS.map((d) => (
+                    <option key={d} value={d}>
+                      {plural(d, "day")}
+                    </option>
+                  ))}
+                </select>
+                <p className="field-hint">You&apos;ll be asked to confirm before it changes.</p>
+              </div>
+            </details>
           )}
         </div>
-      )}
+      </section>
 
-      {/* Budget sweet spot */}
-      {budgetOverlap && (
-        <div className="bg-primary-light/50 border border-primary/10 rounded-2xl p-4 shadow-xs">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-              <svg className="w-3.5 h-3.5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
-              </svg>
-            </div>
-            <p className="text-[11px] font-bold text-primary uppercase tracking-wider">Group budget sweet spot</p>
-          </div>
-          <div className="relative h-3 rounded-full bg-subtle-hover mb-2">
-            <div className="absolute inset-y-0 rounded-full bg-primary/40"
-              style={{ left: `${((budgetOverlap.min - BUDGET_FLOOR) / (BUDGET_CEIL - BUDGET_FLOOR)) * 100}%`, width: `${((budgetOverlap.max - budgetOverlap.min) / (BUDGET_CEIL - BUDGET_FLOOR)) * 100}%` }} />
-          </div>
-          <div className="flex items-center justify-between">
-            <p className="font-heading text-base font-bold text-text">
-              ₹{budgetOverlap.min >= 100000 ? `${(budgetOverlap.min / 100000).toFixed(1)}L` : `${(budgetOverlap.min / 1000).toFixed(0)}K`} – ₹{budgetOverlap.max >= 100000 ? `${(budgetOverlap.max / 100000).toFixed(1)}L` : `${(budgetOverlap.max / 1000).toFixed(0)}K`}
+      {/* Saving is explicit: nothing is stored until this is tapped. */}
+      {dirty && selected.size > 0 ? (
+        <SaveBar column={columnRef}>
+          {saveError && (
+            <p role="alert" className="notice notice-stop mb-2.5">
+              {saveError}
             </p>
-            <p className="text-text-tertiary text-xs">{budgetOverlap.count} members</p>
+          )}
+          <div className="flex gap-2">
+            {hasSaved && (
+              <button type="button" onClick={undo} disabled={saving} className="btn btn-outline btn-lg">
+                Undo
+              </button>
+            )}
+            <button type="button" onClick={saveDates} disabled={saving} className="btn btn-primary btn-lg min-w-0 flex-1">
+              {saving ? (
+                <>
+                  <Spinner /> Saving
+                </>
+              ) : (
+                <>
+                  <Icon name="check" className="h-4 w-4" />
+                  {hasSaved ? "Update my dates" : `Save ${plural(selected.size, "date")}`}
+                </>
+              )}
+            </button>
           </div>
+        </SaveBar>
+      ) : justSaved != null && !dirty ? (
+        <SaveBar column={columnRef}>
+          <p role="status" className="flex min-h-[52px] items-center justify-center gap-2 text-[0.9375rem] font-semibold text-status-confirmed">
+            <Icon name="check-circle" className="h-5 w-5" />
+            Saved. Your {plural(justSaved, "date")} {justSaved === 1 ? "is" : "are"} in.
+          </p>
+        </SaveBar>
+      ) : null}
+
+      {dirty && selected.size === 0 && hasSaved && (
+        <p className="text-sm text-text-secondary">
+          Your {plural(savedDays.length, "saved date")} still {savedDays.length === 1 ? "counts" : "count"} until you
+          save new ones.{" "}
+          <button type="button" onClick={undo} className="link">
+            Put them back
+          </button>
+        </p>
+      )}
+
+      {hasSaved && <Budget members={members} currentMember={currentMember} onMembersUpdated={onMembersUpdated} />}
+
+      <MemberList
+        trip={trip}
+        members={members}
+        currentMember={currentMember}
+        isOrganizer={isOrganizer}
+        onMembersUpdated={onMembersUpdated}
+      />
+
+      <Sheet
+        open={newLength != null}
+        onClose={() => setNewLength(null)}
+        title={`Make it a ${newLength ?? length}-day trip?`}
+        description={`Everyone who answered for ${plural(length, "day")} will see the trip is now ${plural(newLength ?? length, "day")}.`}
+        dismissible={!lengthBusy}
+      >
+        {lengthError && (
+          <p role="alert" className="notice notice-stop mb-4">
+            {lengthError}
+          </p>
+        )}
+        <div className="grid grid-cols-2 gap-2">
+          <button type="button" onClick={() => setNewLength(null)} disabled={lengthBusy} className="btn btn-outline">
+            Keep {plural(length, "day")}
+          </button>
+          <button type="button" onClick={changeLength} disabled={lengthBusy} className="btn btn-primary" data-autofocus>
+            {lengthBusy ? (
+              <>
+                <Spinner /> Changing
+              </>
+            ) : (
+              `Make it ${plural(newLength ?? length, "day")}`
+            )}
+          </button>
         </div>
-      )}
-
-      <WaitingBanner members={members} tripStatus={trip.status} isOrganizer={isOrganizer} tripName={trip.name} slug={trip.slug} />
-      <MemberList members={members} isOrganizer={isOrganizer} onMembersUpdated={onMembersUpdated} tripStatus={trip.status} />
-
-      {isOrganizer && best && (
-        <LockButton
-          label={`Lock Dates → ${best.start.toLocaleDateString("en-IN", { month: "short", day: "numeric" })} – ${best.end.toLocaleDateString("en-IN", { month: "short", day: "numeric" })}`}
-          confirmMessage={`Lock dates to ${best.start.toLocaleDateString("en-IN", { month: "short", day: "numeric" })} – ${best.end.toLocaleDateString("en-IN", { month: "short", day: "numeric" })}? This will notify the group and open destination voting.`}
-          onLock={handleLockDates}
-        />
-      )}
+      </Sheet>
     </div>
   );
 }

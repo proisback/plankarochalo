@@ -1,43 +1,224 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import type { Trip, Member } from "@/lib/types";
-import { JoinPrompt } from "./join-prompt";
-import { ShareLink } from "./share-link";
-import { ProgressBar } from "./progress-bar";
+import type { Member, Trip, TripStatus } from "@/lib/types";
+import { formatRange } from "@/lib/dates";
+import { friendlyError } from "@/lib/errors";
+import { firstName, parseDestination, people, plural } from "@/lib/format";
+import { Icon, Spinner, WhatsAppIcon } from "@/components/icons";
+import { Wordmark } from "@/components/brand";
+import { Sheet } from "@/components/sheet";
+import { ThemeToggle } from "@/app/theme-toggle";
+import { JoinScreen } from "./join-prompt";
+import { RouteLine } from "./route-line";
+import { ShareButton, ShareLink } from "./share-link";
+import { SinceYouLeft } from "./since-you-left";
 import { DatesStage } from "./stages/dates-stage";
 import { DestinationStage } from "./stages/destination-stage";
 import { CommitmentStage } from "./stages/commitment-stage";
 import { ReadyStage } from "./stages/ready-stage";
-import { ThemeToggle } from "@/app/theme-toggle";
-import { ReturnPrompt } from "./return-prompt";
-import { SinceYouLeft } from "./since-you-left";
 
+type Phase = "loading" | "error" | "join" | "trip";
 
-export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
+const LATE_NOTE = "Can't make locked dates";
+
+/* ── Loading skeleton: same shape as the page it becomes ───────── */
+
+function TripSkeleton() {
+  return (
+    <div className="min-h-dvh" aria-busy="true" aria-label="Loading trip">
+      <div className="flex items-center justify-between px-4 py-2 lg:px-8">
+        <div className="skeleton h-7 w-40" />
+        <div className="skeleton h-9 w-9" />
+      </div>
+      <div className="mx-auto w-full max-w-[1040px] px-4 pt-5 lg:grid lg:grid-cols-[300px_minmax(0,1fr)] lg:gap-12 lg:px-8 lg:pt-10">
+        <div>
+          <div className="skeleton h-3 w-32" />
+          <div className="skeleton mt-3 h-9 w-4/5" />
+          <div className="skeleton mt-6 h-12 w-full" />
+        </div>
+        <div className="mt-8 max-w-[560px] space-y-4 lg:mt-0">
+          <div className="skeleton h-6 w-3/5" />
+          <div className="skeleton h-72 w-full" />
+          <div className="skeleton h-12 w-full" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Organiser: tell the group what just got locked ────────────── */
+
+function LockAnnouncement({ trip, url }: { trip: Trip; url: string }) {
+  const key = `pkc_told_${trip.id}_${trip.status}`;
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    try {
+      setShow(localStorage.getItem(key) !== "1");
+    } catch {
+      setShow(true);
+    }
+  }, [key]);
+
+  if (!show || !url || trip.status === "dates_open" || trip.status === "ready") return null;
+
+  const range = formatRange(trip.locked_dates_start, trip.locked_dates_end);
+  const place = parseDestination(trip.locked_destination).name;
+  const copy =
+    trip.status === "destination_open"
+      ? { title: `Dates locked: ${range}.`, text: `${trip.name}: dates are locked, ${range}. Next: vote on where we go.` }
+      : { title: `It's ${place}, ${range}.`, text: `${trip.name}: it's ${place}, ${range}. Last step: say if you're in.` };
+
+  function dismiss() {
+    setShow(false);
+    try {
+      localStorage.setItem(key, "1");
+    } catch {
+      // Not remembered across visits. Fine.
+    }
+  }
+
+  return (
+    <div className="notice notice-go animate-in">
+      <Icon name="lock" className="mt-0.5 h-4 w-4 shrink-0 text-status-confirmed" />
+      <div className="min-w-0 flex-1">
+        <p className="font-semibold">{copy.title}</p>
+        <p className="mt-0.5 text-text-secondary">
+          Nobody gets a notification. Tell the group so they come back for the next step.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <a
+            href={`https://wa.me/?text=${encodeURIComponent(`${copy.text}\n${url}`)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={dismiss}
+            className="btn btn-whatsapp btn-sm"
+          >
+            <WhatsAppIcon className="h-4 w-4" />
+            Tell the group
+          </a>
+          <button type="button" onClick={dismiss} className="btn btn-quiet btn-sm">
+            Already did
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Organiser: undo a lock ────────────────────────────────────── */
+
+const REOPEN: Partial<Record<TripStatus, { label: string; title: string; body: string }>> = {
+  destination_open: {
+    label: "Reopen dates",
+    title: "Reopen dates?",
+    body: "The locked dates are cleared and everyone can change their days again. Votes on the place are kept.",
+  },
+  commitment: {
+    label: "Reopen the vote",
+    title: "Reopen the vote on the place?",
+    body: "The locked place is cleared and voting opens again. Anyone who already said in or out will be asked again.",
+  },
+  ready: {
+    label: "Reopen commitments",
+    title: "Reopen commitments?",
+    body: "The trip goes back one step so people can change whether they are in. Dates and place stay locked.",
+  },
+};
+
+function OrganiserTools({ trip }: { trip: Trip }) {
+  const supabase = createClient();
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const config = REOPEN[trip.status];
+  if (!config) return null;
+
+  async function reopen() {
+    setBusy(true);
+    setError("");
+    try {
+      if (trip.status === "destination_open") {
+        const { error: e } = await supabase
+          .from("trips")
+          .update({ status: "dates_open", locked_dates_start: null, locked_dates_end: null })
+          .eq("id", trip.id);
+        if (e) throw e;
+      } else if (trip.status === "commitment") {
+        for (const status of ["confirmed_in", "confirmed_out"]) {
+          const { error: e } = await supabase
+            .from("members")
+            .update({ status: "responded" })
+            .eq("trip_id", trip.id)
+            .eq("status", status);
+          if (e) throw e;
+        }
+        const { error: e } = await supabase
+          .from("trips")
+          .update({ status: "destination_open", locked_destination: null })
+          .eq("id", trip.id);
+        if (e) throw e;
+      } else {
+        const { error: e } = await supabase.from("trips").update({ status: "commitment" }).eq("id", trip.id);
+        if (e) throw e;
+      }
+      setOpen(false);
+    } catch (e) {
+      setError(friendlyError(e, "Couldn't reopen. Check your connection and try again."));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="border-t border-border pt-4">
+      <p className="label-mono">Organiser tools</p>
+      <button type="button" onClick={() => setOpen(true)} className="btn btn-quiet btn-sm -ml-3 mt-1">
+        <Icon name="refresh" className="h-4 w-4" />
+        {config.label}
+      </button>
+      <Sheet open={open} onClose={() => setOpen(false)} title={config.title} description={config.body} dismissible={!busy}>
+        {error && (
+          <p role="alert" className="notice notice-stop mb-4">
+            {error}
+          </p>
+        )}
+        <div className="grid grid-cols-2 gap-2">
+          <button type="button" onClick={() => setOpen(false)} disabled={busy} className="btn btn-outline">
+            Keep it locked
+          </button>
+          <button type="button" onClick={reopen} disabled={busy} className="btn btn-primary" data-autofocus>
+            {busy ? <Spinner /> : null}
+            {config.label}
+          </button>
+        </div>
+      </Sheet>
+    </div>
+  );
+}
+
+/* ── The trip page ─────────────────────────────────────────────── */
+
+export function TripDashboard({ trip: initialTrip, demo = false }: { trip: Trip; demo?: boolean }) {
   const supabase = createClient();
   const [trip, setTrip] = useState(initialTrip);
   const [members, setMembers] = useState<Member[]>([]);
   const [currentMember, setCurrentMember] = useState<Member | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [needsJoin, setNeedsJoin] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [showReturnPrompt, setShowReturnPrompt] = useState(false);
-  const [prevMemberStatus, setPrevMemberStatus] = useState<string | null>(null);
+  const [phase, setPhase] = useState<Phase>("loading");
+  const [connectError, setConnectError] = useState("");
+  const [url, setUrl] = useState("");
+  const userIdRef = useRef<string | null>(null);
 
-  const isOrganizer = currentMember?.is_organizer ?? false;
+  // Organiser rights come from owning the trip row, which the database enforces,
+  // not from a flag on the member row.
+  const isOrganizer = !!currentMember && !!currentMember.user_id && currentMember.user_id === trip.organizer_id;
 
-  // Detect when the member completes an action (status changes)
   useEffect(() => {
-    if (!currentMember) return;
-    const newStatus = currentMember.status;
-    if (prevMemberStatus && newStatus !== prevMemberStatus && newStatus !== "invited" && newStatus !== "no_response") {
-      // Member just submitted something — show return prompt
-      setShowReturnPrompt(true);
-    }
-    setPrevMemberStatus(newStatus);
-  }, [currentMember?.status]); // eslint-disable-line react-hooks/exhaustive-deps
+    setUrl(`${window.location.origin}${demo ? "/demo" : `/trip/${trip.slug}`}`);
+  }, [demo, trip.slug]);
 
   const loadMembers = useCallback(async () => {
     const { data } = await supabase
@@ -45,270 +226,211 @@ export function TripDashboard({ trip: initialTrip }: { trip: Trip }) {
       .select("*")
       .eq("trip_id", trip.id)
       .order("created_at", { ascending: true });
-    if (data) {
-      setMembers(data);
-      if (userId) {
-        const updated = data.find((m) => m.user_id === userId);
-        if (updated) setCurrentMember(updated);
-      }
-    }
-  }, [supabase, trip.id, userId]);
+    if (!data) return;
+    const rows = data as Member[];
+    setMembers(rows);
+    const me = rows.find((m) => m.user_id && m.user_id === userIdRef.current);
+    if (me) setCurrentMember(me);
+  }, [supabase, trip.id]);
 
-  // Auth + initial data load
-  useEffect(() => {
-    async function init() {
-      let { data: { user } } = await supabase.auth.getUser();
+  const loadTrip = useCallback(async () => {
+    const { data } = await supabase.from("trips").select("*").eq("id", trip.id).maybeSingle();
+    if (data) setTrip(data as Trip);
+  }, [supabase, trip.id]);
 
+  const refresh = useCallback(async () => {
+    await Promise.all([loadTrip(), loadMembers()]);
+  }, [loadTrip, loadMembers]);
+
+  const connect = useCallback(async () => {
+    setPhase("loading");
+    setConnectError("");
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      // A first-time visitor has no session yet. They get one when they submit
+      // their name, not for merely opening the link.
       if (!user) {
-        const { data, error: anonError } = await supabase.auth.signInAnonymously();
-        if (anonError) {
-          console.error("Anonymous sign-in failed:", anonError.message);
-          setLoading(false);
-          return;
-        }
-        user = data.user;
-      }
-
-      if (!user) {
-        setLoading(false);
+        setPhase("join");
         return;
       }
+      userIdRef.current = user.id;
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        console.error("No session after sign-in");
-        setLoading(false);
-        return;
-      }
-
-      setUserId(user.id);
-
-      const { data: existingMember, error: memberError } = await supabase
+      const { data: existing, error } = await supabase
         .from("members")
         .select("*")
         .eq("trip_id", trip.id)
         .eq("user_id", user.id)
         .maybeSingle();
+      if (error) throw error;
 
-      if (existingMember) {
-        setCurrentMember(existingMember);
+      if (existing) {
+        setCurrentMember(existing as Member);
         await loadMembers();
-      } else if (!memberError) {
-        setNeedsJoin(true);
+        setPhase("trip");
       } else {
-        setNeedsJoin(true);
+        setPhase("join");
       }
-
-      setLoading(false);
+    } catch (e) {
+      setConnectError(friendlyError(e, "We couldn't open this trip. Check your connection and try again."));
+      setPhase("error");
     }
-
-    init();
   }, [supabase, trip.id, loadMembers]);
 
-  // Realtime subscriptions
   useEffect(() => {
-    if (!currentMember) return;
+    connect();
+  }, [connect]);
 
-    const tripChannel = supabase
+  // Live updates once you are a member. Refetching on focus covers a phone
+  // that slept and missed events.
+  useEffect(() => {
+    if (phase !== "trip") return;
+    const channel = supabase
       .channel(`trip-${trip.id}`)
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "trips", filter: `id=eq.${trip.id}` },
-        (payload) => setTrip(payload.new as Trip)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "trips", filter: `id=eq.${trip.id}` }, (payload) =>
+        setTrip((prev) => ({ ...prev, ...(payload.new as Trip) })),
       )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "members", filter: `trip_id=eq.${trip.id}` },
-        () => loadMembers()
+      .on("postgres_changes", { event: "*", schema: "public", table: "members", filter: `trip_id=eq.${trip.id}` }, () =>
+        loadMembers(),
       )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "destination_options", filter: `trip_id=eq.${trip.id}` },
-        () => {}
-      )
-      .subscribe();
+      // Anything that changed between the first fetch and the socket opening.
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") refresh();
+      });
 
-    return () => {
-      supabase.removeChannel(tripChannel);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refresh();
     };
-  }, [supabase, trip.id, currentMember, loadMembers]);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      supabase.removeChannel(channel);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [supabase, trip.id, phase, loadMembers, refresh]);
 
-  function handleJoined(member: Member) {
+  async function handleJoined(member: Member) {
+    userIdRef.current = member.user_id;
     setCurrentMember(member);
-    setNeedsJoin(false);
-    loadMembers();
+    await refresh();
+    setPhase("trip");
   }
 
-  if (loading) {
+  if (phase === "loading") return <TripSkeleton />;
+
+  if (phase === "error") {
     return (
-      <main className="flex min-h-screen items-center justify-center">
-        <div className="flex flex-col items-center gap-3 animate-pulse-soft">
-          <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-          <p className="text-text-tertiary text-sm">Loading trip...</p>
-        </div>
+      <main id="main" className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-4">
+        <p className="label-mono">Signal failure</p>
+        <h1 className="mt-2 font-heading text-3xl font-extrabold text-text">This trip didn&apos;t load.</h1>
+        <p className="mt-2 text-text-secondary">{connectError}</p>
+        <button type="button" onClick={connect} className="btn btn-primary btn-lg mt-6 self-start">
+          <Icon name="refresh" className="h-4 w-4" />
+          Try again
+        </button>
       </main>
     );
   }
 
-  if (needsJoin) {
-    return (
-      <main className="flex min-h-screen flex-col items-center justify-center p-6 bg-hero relative overflow-hidden">
-        <div className="absolute top-[-15%] right-[-10%] w-[400px] h-[400px] rounded-full bg-primary/[0.06] blur-[90px] pointer-events-none" />
-        <div className="absolute bottom-[-10%] left-[-10%] w-[300px] h-[300px] rounded-full bg-pop/[0.04] blur-[70px] pointer-events-none" />
-
-        <div className="w-full max-w-sm relative z-10 stagger">
-          {/* Invitation header — emotional, not informational */}
-          <div className="text-center mb-8">
-            <span className="text-4xl block mb-3 animate-pop">🎒</span>
-            <p className="text-text-secondary text-sm font-medium">You&apos;re invited!</p>
-            <h1 className="font-heading text-[1.75rem] leading-tight font-extrabold text-text mt-1">
-              {trip.name}
-            </h1>
-            <div className="flex items-center justify-center gap-2 mt-3">
-              <span className="inline-flex items-center gap-1 bg-primary-light text-primary text-xs font-bold px-2.5 py-1 rounded-full">
-                📅 {trip.trip_days} days
-              </span>
-              {members.length > 0 && (
-                <span className="inline-flex items-center gap-1 bg-accent-light text-accent text-xs font-bold px-2.5 py-1 rounded-full">
-                  👥 {members.length} joined
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Join card — THE action, front and center */}
-          <div className="bg-surface rounded-2xl p-6 shadow-lg border border-border-light/60">
-            <p className="text-center text-sm font-semibold text-text mb-4">
-              Add your name to get started
-            </p>
-            <JoinPrompt tripId={trip.id} trip={trip} onJoined={handleJoined} />
-          </div>
-
-          {/* Compact "what happens next" — BELOW the action, not before */}
-          <div className="mt-6 flex items-center justify-center gap-4 text-text-tertiary">
-            {[
-              { icon: "📅", label: "Pick dates" },
-              { icon: "📍", label: "Vote place" },
-              { icon: "✅", label: "Confirmed!" },
-            ].map((s, i) => (
-              <div key={i} className="flex flex-col items-center gap-1">
-                <span className="text-base">{s.icon}</span>
-                <span className="text-[10px] font-medium">{s.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </main>
-    );
+  if (phase === "join" || !currentMember) {
+    return <JoinScreen trip={trip} onJoined={handleJoined} demo={demo} />;
   }
+
+  const organiser = members.find((m) => m.is_organizer);
+  const cannotMakeDates =
+    trip.status !== "dates_open" ? members.filter((m) => m.constraint_note?.startsWith(LATE_NOTE)) : [];
+  const stageProps = { trip, members, currentMember, isOrganizer, onMembersUpdated: refresh, demo };
 
   return (
-    <main className="min-h-screen pb-20">
-      <div className="max-w-lg mx-auto px-4 pt-5 pb-6">
-        {/* Nav */}
-        <div className="flex items-center justify-between mb-5">
-          <button
-            onClick={() => { window.location.href = "/create"; }}
-            className="text-xs text-text-secondary border border-border rounded-xl px-3 py-1.5 hover:bg-subtle active:scale-95 transition-all flex items-center gap-1"
-          >
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-            </svg>
-            Back
-          </button>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            {isOrganizer && (
-              <a
-                href="/create/new"
-                className="text-xs text-text-secondary border border-border rounded-xl px-3 py-1.5 hover:bg-subtle active:scale-95 transition-all flex items-center gap-1"
-              >
-                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                </svg>
-                New trip
-              </a>
-            )}
-          </div>
-        </div>
-
-        {/* Header */}
-        <div className="mb-4">
-          {currentMember && (
-            <p className="text-sm text-text-secondary mb-0.5">
-              Hey {currentMember.name.split(" ")[0]} 👋
-            </p>
+    <div className="min-h-dvh">
+      <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-[1040px] items-center justify-between gap-2 px-4 py-1.5 lg:px-8">
+          {demo ? (
+            <Link href="/" className="btn btn-quiet btn-sm -ml-3">
+              <Icon name="arrow-left" className="h-4 w-4" />
+              Exit demo
+            </Link>
+          ) : isOrganizer ? (
+            <Link href="/create" className="btn btn-quiet btn-sm -ml-3">
+              <Icon name="arrow-left" className="h-4 w-4" />
+              My trips
+            </Link>
+          ) : (
+            <Link href="/" aria-label="Plan Karo Chalo home">
+              <Wordmark />
+            </Link>
           )}
-          <div className="flex items-start justify-between">
-            <h1 className="font-heading text-xl font-bold text-text">{trip.name}</h1>
-            <span className="text-xs bg-primary-light text-primary px-2.5 py-1 rounded-full font-semibold shrink-0 ml-2">
-              {trip.trip_days} days
-            </span>
+          <div className="flex items-center gap-1">
+            {trip.status !== "ready" && <ShareButton slug={trip.slug} demo={demo} />}
+            <ThemeToggle />
           </div>
         </div>
+      </header>
 
-        {/* Content with consistent spacing */}
-        <div className="space-y-4 stagger">
-        <ProgressBar currentStage={trip.status} />
-        {trip.status !== "ready" && <ShareLink slug={trip.slug} />}
-
-        {/* Since you were here — return visit updates */}
-        {currentMember && (
-          <SinceYouLeft trip={trip} members={members} currentMember={currentMember} />
-        )}
-
-        {/* Locked decisions banners — only show on stages that don't display this info themselves */}
-        {trip.status === "destination_open" && trip.locked_dates_start && trip.locked_dates_end && (
-          <div className="bg-status-confirmed-bg/60 border border-status-confirmed/10 rounded-xl px-4 py-3 flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-status-confirmed/10 flex items-center justify-center shrink-0">
-              <svg className="w-3.5 h-3.5 text-status-confirmed" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-              </svg>
+      <main
+        id="main"
+        className="mx-auto w-full max-w-[1040px] px-4 pb-16 pt-5 lg:grid lg:grid-cols-[300px_minmax(0,1fr)] lg:gap-12 lg:px-8 lg:pt-10"
+      >
+        <aside className="lg:sticky lg:top-20 lg:self-start">
+          <p className="label-mono">
+            {plural(trip.trip_days, "day")} · {people(members.length)}
+            {organiser && !isOrganizer ? ` · by ${firstName(organiser.name)}` : ""}
+          </p>
+          <h1 className="mt-1.5 font-heading text-[1.75rem] font-extrabold leading-[1.05] text-text lg:text-[2.25rem]">
+            {trip.name}
+          </h1>
+          <div className="mt-5">
+            <RouteLine trip={trip} members={members} />
+          </div>
+          {isOrganizer && (
+            <div className="mt-8 hidden space-y-6 lg:block">
+              {trip.status !== "ready" && <ShareLink slug={trip.slug} tripName={trip.name} demo={demo} />}
+              <OrganiserTools trip={trip} />
             </div>
-            <p className="text-status-confirmed text-sm font-medium">
-              Dates: {new Date(trip.locked_dates_start).toLocaleDateString("en-IN", { month: "short", day: "numeric" })} — {new Date(trip.locked_dates_end).toLocaleDateString("en-IN", { month: "short", day: "numeric" })}
-            </p>
-          </div>
-        )}
+          )}
+        </aside>
 
-        {/* Stage-specific content */}
-        {trip.status === "dates_open" && (
-          <DatesStage
-            trip={trip}
-            members={members}
-            currentMember={currentMember!}
-            isOrganizer={isOrganizer}
-            onMembersUpdated={loadMembers}
-          />
-        )}
-        {trip.status === "destination_open" && (
-          <DestinationStage
-            trip={trip}
-            members={members}
-            currentMember={currentMember!}
-            isOrganizer={isOrganizer}
-            onMembersUpdated={loadMembers}
-          />
-        )}
-        {trip.status === "commitment" && (
-          <CommitmentStage
-            trip={trip}
-            members={members}
-            currentMember={currentMember!}
-            isOrganizer={isOrganizer}
-            onMembersUpdated={loadMembers}
-          />
-        )}
-        {trip.status === "ready" && (
-          <ReadyStage trip={trip} members={members} currentMember={currentMember!} />
-        )}
+        <div className="mt-7 max-w-[560px] space-y-5 lg:mt-0">
+          {isOrganizer && <LockAnnouncement trip={trip} url={url} />}
+
+          {isOrganizer && cannotMakeDates.length > 0 && (
+            <div className="notice notice-wait">
+              <Icon name="alert" className="mt-0.5 h-4 w-4 shrink-0 text-status-waiting" />
+              <p>
+                <span className="font-semibold">
+                  {cannotMakeDates.map((m) => firstName(m.name)).join(", ")} can&apos;t make{" "}
+                  {formatRange(trip.locked_dates_start, trip.locked_dates_end)}.
+                </span>{" "}
+                They joined after the dates were locked. Keep going, or reopen dates from Organiser tools.
+              </p>
+            </div>
+          )}
+
+          <SinceYouLeft trip={trip} members={members} currentMember={currentMember} />
+
+          {/* A new trip's first job is getting people in. */}
+          {isOrganizer && trip.status !== "ready" && members.length <= 1 && (
+            <div className="lg:hidden">
+              <ShareLink slug={trip.slug} tripName={trip.name} demo={demo} />
+            </div>
+          )}
+
+          {trip.status === "dates_open" && <DatesStage {...stageProps} />}
+          {trip.status === "destination_open" && <DestinationStage {...stageProps} />}
+          {trip.status === "commitment" && <CommitmentStage {...stageProps} />}
+          {trip.status === "ready" && <ReadyStage {...stageProps} />}
+
+          {isOrganizer && (
+            <div className="space-y-6 pt-4 lg:hidden">
+              {trip.status !== "ready" && members.length > 1 && (
+                <ShareLink slug={trip.slug} tripName={trip.name} demo={demo} />
+              )}
+              <OrganiserTools trip={trip} />
+            </div>
+          )}
         </div>
-      </div>
-
-      {/* Return prompt — shows after member completes an action */}
-      {showReturnPrompt && (
-        <ReturnPrompt onDismiss={() => setShowReturnPrompt(false)} />
-      )}
-    </main>
+      </main>
+    </div>
   );
 }

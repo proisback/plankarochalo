@@ -1,200 +1,292 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useId, useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import type { Member, Trip } from "@/lib/types";
+import { formatRange } from "@/lib/dates";
+import { friendlyError } from "@/lib/errors";
+import { firstName, parseDestination, plural } from "@/lib/format";
+import { Icon, Spinner } from "@/components/icons";
+import { Wordmark } from "@/components/brand";
+import { ThemeToggle } from "@/app/theme-toggle";
 
-export function JoinPrompt({
-  tripId,
+interface Preview {
+  organizer_name: string | null;
+  member_count: number;
+  names: string[];
+}
+
+const STEPS = ["Tap the days you're free", "Vote on a place", "Hold to commit", "Get the ticket"];
+
+/**
+ * What a friend sees when they tap the link in the group chat.
+ * One field, one button. Who is asking and what for comes first, the
+ * explanation of the product comes after the action.
+ */
+export function JoinScreen({
   trip,
   onJoined,
+  demo,
 }: {
-  tripId: string;
   trip: Trip;
   onJoined: (member: Member) => void;
+  demo?: boolean;
 }) {
+  const supabase = createClient();
+  const [preview, setPreview] = useState<Preview | null>(null);
   const [name, setName] = useState("");
   const [step, setStep] = useState<"name" | "date_check">("name");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const supabase = createClient();
+  const [touched, setTouched] = useState(false);
+  const nameId = useId();
+  const errorId = useId();
 
-  const isPastDates = trip.status !== "dates_open";
-  const lockedDatesLabel =
-    trip.locked_dates_start && trip.locked_dates_end
-      ? `${new Date(trip.locked_dates_start).toLocaleDateString("en-IN", { month: "short", day: "numeric" })} – ${new Date(trip.locked_dates_end).toLocaleDateString("en-IN", { month: "short", day: "numeric" })}`
+  const pastDates = trip.status !== "dates_open";
+  const lockedDates = formatRange(trip.locked_dates_start, trip.locked_dates_end);
+  const destination = parseDestination(trip.locked_destination).name;
+  const trimmed = name.trim().replace(/\s+/g, " ");
+  const nameError = touched && !trimmed ? "Type a name so the group knows it's you." : "";
+  const sameName =
+    trimmed && preview?.names.some((n) => n.toLowerCase() === firstName(trimmed).toLowerCase())
+      ? `There's already a ${firstName(trimmed)} on this trip. If that's not you, add a surname or initial.`
       : "";
 
-  async function ensureSession() {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      const { error: anonError } = await supabase.auth.signInAnonymously();
-      if (anonError) {
-        setError("Could not connect. Please refresh and try again.");
-        return false;
-      }
-    }
-    return true;
-  }
+  // Who is asking and who is already in. Needs the trip_preview database
+  // function; without it the screen simply shows less.
+  useEffect(() => {
+    let cancelled = false;
+    supabase.rpc("trip_preview", { p_slug: trip.slug }).then(({ data, error: rpcError }) => {
+      if (!cancelled && !rpcError && data) setPreview(data as Preview);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [supabase, trip.slug]);
 
-  async function joinAndFinish(datesWork: boolean | null) {
+  async function join(datesWork: boolean | null) {
     setLoading(true);
     setError("");
-
-    if (!(await ensureSession())) {
-      setLoading(false);
-      return;
-    }
-
-    const { data, error: rpcError } = await supabase.rpc("join_trip", {
-      p_trip_id: tripId,
-      p_name: name.trim(),
-    });
-
-    if (rpcError) {
-      setError(rpcError.message);
-      setLoading(false);
-      return;
-    }
-
-    const member = data as Member;
-
-    if (isPastDates && datesWork !== null) {
-      const updates: Record<string, unknown> = {};
-
-      if (datesWork) {
-        updates.availability_start = trip.locked_dates_start;
-        updates.availability_end = trip.locked_dates_end;
-        updates.status = "responded";
-      } else {
-        updates.constraint_note = `Can't make locked dates ${lockedDatesLabel}`;
-        updates.status = "responded";
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) {
+        const { error: anonError } = await supabase.auth.signInAnonymously();
+        if (anonError) throw anonError;
       }
 
-      await supabase
-        .from("members")
-        .update(updates)
-        .eq("id", member.id);
-    }
+      const { data, error: rpcError } = await supabase.rpc("join_trip", { p_trip_id: trip.id, p_name: trimmed });
+      if (rpcError) throw rpcError;
+      const member = data as Member;
 
-    onJoined(member);
+      if (pastDates && datesWork !== null && trip.locked_dates_start && trip.locked_dates_end) {
+        const patch = datesWork
+          ? { availability_start: trip.locked_dates_start, availability_end: trip.locked_dates_end, status: "responded" }
+          : { constraint_note: `Can't make locked dates ${lockedDates}`, status: "responded" };
+        const { error: patchError } = await supabase.from("members").update(patch).eq("id", member.id);
+        if (patchError) throw patchError;
+        Object.assign(member, patch);
+      }
+      onJoined(member);
+    } catch (e) {
+      setError(friendlyError(e, "Couldn't add you to the trip. Check your connection and try again."));
+      setLoading(false);
+    }
   }
 
-  function handleNameSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim()) return;
-
-    if (isPastDates) {
-      setStep("date_check");
-    } else {
-      joinAndFinish(null);
-    }
+    setTouched(true);
+    if (!trimmed) return;
+    if (pastDates && trip.locked_dates_start) setStep("date_check");
+    else join(null);
   }
 
-  // Step 1: Name only — zero friction
-  if (step === "name") {
-    return (
-      <form onSubmit={handleNameSubmit} className="space-y-5 animate-in">
-        <div>
-          <input
-            id="name"
-            type="text"
-            placeholder="Type your name..."
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            maxLength={50}
-            autoFocus
-            className="w-full rounded-2xl border-2 border-border bg-background px-5 py-4 text-base font-medium text-text placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary transition-all text-center"
-          />
-        </div>
+  const organiser = preview?.organizer_name ? firstName(preview.organizer_name) : null;
+  const ask = !pastDates
+    ? "needs the days you're free"
+    : trip.status === "destination_open"
+      ? "needs your vote on where to go"
+      : trip.status === "commitment"
+        ? "needs to know if you're in"
+        : "has a confirmed plan";
 
-        {error && (
-          <div className="bg-status-out-bg border border-status-out/15 rounded-lg px-3 py-2">
-            <p className="text-status-out text-xs text-center">{error}</p>
+  return (
+    <div className="flex min-h-dvh flex-col">
+      <header className="flex items-center justify-between px-4 py-2 lg:px-8">
+        <Link href="/" aria-label="Plan Karo Chalo home">
+          <Wordmark />
+        </Link>
+        <ThemeToggle />
+      </header>
+
+      <main id="main" className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 pb-16 pt-8 sm:justify-center sm:pt-6">
+        {step === "name" ? (
+          <div className="stagger">
+            <p className="label-mono">
+              {organiser ? `${organiser} ${ask}` : "You're invited"} · {plural(trip.trip_days, "day")}
+            </p>
+            <h1 className="mt-2 font-heading text-[2.25rem] font-extrabold leading-[1.02] text-text">{trip.name}</h1>
+
+            {pastDates && lockedDates && (
+              <p className="mt-3 text-[0.9375rem] text-text-secondary">
+                Dates are locked: <span className="font-semibold text-text">{lockedDates}</span>
+                {destination ? (
+                  <>
+                    {" "}
+                    in <span className="font-semibold text-text">{destination}</span>
+                  </>
+                ) : null}
+                .
+              </p>
+            )}
+
+            {preview && preview.names.length > 0 && (
+              <div className="mt-5 flex items-center gap-3">
+                <div className="flex -space-x-1.5">
+                  {preview.names.slice(0, 5).map((n, i) => (
+                    <span key={`${n}-${i}`} className="avatar ring-2 ring-background">
+                      {n.charAt(0)}
+                    </span>
+                  ))}
+                  <span
+                    className="avatar ring-2 ring-background border border-dashed border-border-strong bg-background text-text-tertiary"
+                    aria-hidden="true"
+                  >
+                    ?
+                  </span>
+                </div>
+                <p className="text-sm text-text-secondary">
+                  {preview.names.slice(0, 3).join(", ")}
+                  {preview.member_count > 3 ? ` and ${preview.member_count - 3} more` : ""}{" "}
+                  {preview.member_count === 1 ? "is" : "are"} in. You&apos;re next.
+                </p>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} noValidate className="mt-7">
+              <label htmlFor={nameId} className="field-label">
+                Your name
+              </label>
+              <input
+                id={nameId}
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                onBlur={() => setTouched(true)}
+                placeholder="What the group calls you"
+                maxLength={40}
+                autoComplete="given-name"
+                autoCapitalize="words"
+                enterKeyHint="go"
+                aria-invalid={!!nameError}
+                aria-describedby={nameError || sameName ? errorId : undefined}
+                className="field"
+              />
+              {nameError ? (
+                <p id={errorId} className="field-error">
+                  {nameError}
+                </p>
+              ) : sameName ? (
+                <p id={errorId} className="field-hint">
+                  {sameName}
+                </p>
+              ) : null}
+
+              {error && (
+                <p role="alert" className="notice notice-stop mt-3">
+                  {error}
+                </p>
+              )}
+
+              <button type="submit" disabled={loading} className="btn btn-primary btn-lg btn-block mt-4">
+                {loading ? (
+                  <>
+                    <Spinner /> Adding you
+                  </>
+                ) : (
+                  <>
+                    {pastDates ? "Join the trip" : "Add my dates"}
+                    <Icon name="arrow-right" className="h-4 w-4" />
+                  </>
+                )}
+              </button>
+              <p className="mt-3 text-center text-[0.8125rem] text-text-tertiary">
+                No account, no app, no password.
+                {!pastDates && " Saying when you're free doesn't commit you."}
+              </p>
+            </form>
+
+            <ol className="mt-10 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-border pt-5">
+              {STEPS.map((s, i) => (
+                <li key={s} className="flex items-baseline gap-2 text-sm text-text-secondary">
+                  <span className="font-mono text-[0.6875rem] font-semibold text-text-tertiary">0{i + 1}</span>
+                  {s}
+                </li>
+              ))}
+            </ol>
+
+            {!demo && (
+              <p className="mt-8 text-center text-[0.8125rem] text-text-tertiary">
+                Organising this trip?{" "}
+                <Link href={`/login?next=${encodeURIComponent(`/trip/${trip.slug}`)}`} className="link">
+                  Sign in
+                </Link>
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="animate-in">
+            <p className="label-mono">Hi {firstName(trimmed)}. One question first.</p>
+            <h1 className="mt-2 font-heading text-[2rem] font-extrabold leading-[1.05] text-text">
+              The group already locked the dates.
+            </h1>
+
+            <div className="panel mt-5 p-4">
+              <p className="ticket-key">Dates</p>
+              <p className="display mt-1 text-4xl text-text">{lockedDates}</p>
+              <p className="mt-1 font-mono text-xs text-text-tertiary">
+                {plural(trip.trip_days, "day")}
+                {destination ? ` · ${destination}` : ""}
+              </p>
+            </div>
+
+            {error && (
+              <p role="alert" className="notice notice-stop mt-4">
+                {error}
+              </p>
+            )}
+
+            <div className="mt-5 space-y-2">
+              <button type="button" onClick={() => join(true)} disabled={loading} className="btn btn-primary btn-lg btn-block">
+                {loading ? <Spinner /> : <Icon name="check" className="h-4 w-4" />}
+                These dates work
+              </button>
+              <button type="button" onClick={() => join(false)} disabled={loading} className="btn btn-outline btn-block">
+                I can&apos;t make these dates
+              </button>
+            </div>
+            <p className="mt-3 text-center text-[0.8125rem] text-text-tertiary">
+              Either way you join the trip. If the dates don&apos;t work, {organiser ?? "the organiser"} is told.
+            </p>
+
+            <button
+              type="button"
+              onClick={() => {
+                setStep("name");
+                setError("");
+              }}
+              disabled={loading}
+              className="btn btn-quiet btn-sm mx-auto mt-6 flex"
+            >
+              <Icon name="arrow-left" className="h-4 w-4" />
+              Change name
+            </button>
           </div>
         )}
-
-        <button
-          type="submit"
-          disabled={loading || !name.trim()}
-          className="w-full bg-gradient-to-r from-primary to-[#F5A623] text-white rounded-2xl px-5 py-4 text-base font-bold font-heading shadow-md hover:shadow-lg active:scale-[0.97] transition-all disabled:opacity-40 disabled:shadow-none"
-        >
-          {loading ? (
-            <span className="flex items-center justify-center gap-2">
-              <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-              Joining...
-            </span>
-          ) : (
-            "Join this trip"
-          )}
-        </button>
-
-        <p className="text-center text-text-tertiary text-[11px]">
-          No sign up needed &middot; Takes 30 seconds
-        </p>
-      </form>
-    );
-  }
-
-  // Step 2: Date check (only when trip is past dates_open)
-  return (
-    <div className="space-y-4 animate-in">
-      <div className="text-center">
-        <p className="text-sm text-text-secondary mb-1">Hey {name} 👋</p>
-        <h3 className="font-heading text-lg font-bold text-text">
-          The group already picked dates
-        </h3>
-      </div>
-
-      <div className="bg-accent-light border border-accent/10 rounded-2xl px-5 py-5 text-center">
-        <p className="font-heading text-xl font-bold text-text">
-          {lockedDatesLabel}
-        </p>
-        <p className="text-sm text-accent font-medium mt-1.5">
-          {trip.trip_days} days
-        </p>
-      </div>
-
-      <p className="text-sm text-text-secondary text-center">
-        Do these dates work for you?
-      </p>
-
-      {error && (
-        <div className="bg-status-out-bg border border-status-out/15 rounded-lg px-3 py-2">
-          <p className="text-status-out text-xs text-center">{error}</p>
-        </div>
-      )}
-
-      <div className="space-y-2">
-        <button
-          onClick={() => joinAndFinish(true)}
-          disabled={loading}
-          className="w-full bg-accent text-white rounded-2xl px-4 py-4 text-sm font-bold shadow-sm hover:bg-accent-hover active:scale-[0.97] transition-all disabled:opacity-50"
-        >
-          {loading ? "Joining..." : "These work! I\u2019m in 🙌"}
-        </button>
-        <button
-          onClick={() => joinAndFinish(false)}
-          disabled={loading}
-          className="w-full bg-surface text-text-secondary border border-border rounded-2xl px-4 py-3 text-sm font-medium hover:bg-subtle active:scale-[0.97] transition-all disabled:opacity-50"
-        >
-          Can&apos;t make these dates
-        </button>
-      </div>
-
-      <button
-        onClick={() => setStep("name")}
-        className="w-full text-xs text-text-tertiary hover:text-text-secondary transition-colors flex items-center justify-center gap-1"
-      >
-        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-        </svg>
-        Back
-      </button>
+      </main>
     </div>
   );
 }

@@ -1,729 +1,710 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { Member, MemberStatus, TripStatus } from "@/lib/types";
-import { DatePickerInput } from "@/app/date-picker-input";
+import type { DestinationOption, Member, Trip, TripStatus } from "@/lib/types";
+import { hasAnswered, stageProgress } from "@/lib/types";
+import { advanceTrip } from "@/lib/advance";
+import { eachDay, memberDays } from "@/lib/dates";
+import { friendlyError, UserFacingError } from "@/lib/errors";
+import { destinationIcon, firstName, plural } from "@/lib/format";
+import { findBestOverlap } from "@/lib/overlap";
+import { Icon, Spinner } from "@/components/icons";
+import { Sheet } from "@/components/sheet";
+import Calendar from "./calendar";
 
-/* -- status badge config -- */
-const STATUS_CONFIG: Record<
-  MemberStatus,
-  { icon: string; label: string; bg: string; text: string }
-> = {
-  confirmed_in: {
-    icon: "✓",
-    label: "Confirmed",
-    bg: "bg-status-confirmed-bg",
-    text: "text-status-confirmed",
-  },
-  responded: {
-    icon: "●",
-    label: "Dates set",
-    bg: "bg-status-responded-bg",
-    text: "text-status-responded",
-  },
-  invited: {
-    icon: "⏳",
-    label: "Waiting",
-    bg: "bg-status-waiting-bg",
-    text: "text-status-waiting",
-  },
-  no_response: {
-    icon: "⏳",
-    label: "Waiting",
-    bg: "bg-status-waiting-bg",
-    text: "text-status-waiting",
-  },
-  confirmed_out: {
-    icon: "✕",
-    label: "Out",
-    bg: "bg-status-out-bg",
-    text: "text-status-out",
-  },
-};
+type Dialog = { kind: "add" } | { kind: "answer"; id: string } | { kind: "takeover"; id: string } | null;
 
-type BadgeConfig = { icon: string; label: string; bg: string; text: string };
+const cleanName = (value: string) => value.trim().replace(/\s+/g, " ");
 
-function hasResponded(m: Member, tripStatus?: TripStatus): boolean {
-  if (m.status === "confirmed_in" || m.status === "confirmed_out") return true;
-  if (tripStatus === "destination_open") return !!m.destination_vote;
-  if (tripStatus === "commitment") return false;
-  return m.status !== "invited" && m.status !== "no_response";
-}
-
-function getBadge(m: Member, tripStatus?: TripStatus): BadgeConfig {
-  if (m.status === "confirmed_in" || m.status === "confirmed_out") {
-    return STATUS_CONFIG[m.status];
+/** A note a person typed, as opposed to the JSON day list kept in the same column. */
+function plainNote(m: Member): string | null {
+  const note = m.constraint_note?.trim();
+  if (!note) return null;
+  try {
+    const parsed: unknown = JSON.parse(note);
+    return parsed !== null && typeof parsed === "object" ? null : note;
+  } catch {
+    return note;
   }
+}
 
-  if (tripStatus === "destination_open") {
-    if (m.destination_vote) {
-      return { icon: "✓", label: "Voted", bg: "bg-status-responded-bg", text: "text-status-responded" };
-    }
-    return { icon: "⏳", label: "Waiting", bg: "bg-status-waiting-bg", text: "text-status-waiting" };
+function statusChip(m: Member, stage: TripStatus): { tone: string; label: string } {
+  if (stage === "commitment" || stage === "ready") {
+    if (m.status === "confirmed_in") return { tone: "chip-go", label: "In" };
+    if (m.status === "confirmed_out") return { tone: "chip-out", label: "Out" };
+    return { tone: "chip-wait", label: "Waiting" };
   }
+  if (!hasAnswered(m, stage)) return { tone: "chip-wait", label: "Waiting" };
+  return { tone: "chip-done", label: stage === "dates_open" ? "Dates in" : "Voted" };
+}
 
-  if (tripStatus === "commitment") {
-    return { icon: "⏳", label: "Waiting", bg: "bg-status-waiting-bg", text: "text-status-waiting" };
+function avatarTone(m: Member, stage: TripStatus): string {
+  if (stage === "commitment" || stage === "ready") {
+    if (m.status === "confirmed_in") return "avatar-in";
+    if (m.status === "confirmed_out") return "avatar-out";
   }
-
-  return STATUS_CONFIG[m.status];
+  return m.is_organizer ? "avatar-lead" : "";
 }
 
-/* -- helpers -- */
-function formatDateRange(
-  start: string | null,
-  end: string | null
-): string | null {
-  if (!start || !end) return null;
-  const fmt = (d: string) =>
-    new Date(d).toLocaleDateString("en-IN", {
-      day: "numeric",
-      month: "short",
-    });
-  return `${fmt(start)} – ${fmt(end)}`;
-}
+/* ── Organiser: add someone who won't use the link ─────────────── */
 
-function initials(name: string): string {
-  return name.charAt(0).toUpperCase();
-}
-
-// Avatar color rotation
-const AVATAR_COLORS = [
-  "bg-primary/12 text-primary",
-  "bg-accent/12 text-accent",
-  "bg-status-pending/12 text-status-pending",
-  "bg-status-responded/12 text-status-responded",
-  "bg-status-waiting/12 text-status-waiting",
-];
-
-function getAvatarColor(index: number, isOrganizer: boolean): string {
-  if (isOrganizer) return "bg-primary/15 text-primary";
-  return AVATAR_COLORS[index % AVATAR_COLORS.length];
-}
-
-/* -- EditProxyForm -- */
-function EditProxyForm({
-  member,
-  onSave,
-  onCancel,
-  tripStatus,
-  destinationOptions,
-  onProxyVote,
-  onProxyCommit,
+function AddPersonSheet({
+  trip,
+  members,
+  onClose,
+  onMembersUpdated,
 }: {
-  member: Member;
-  onSave: () => void;
-  onCancel: () => void;
-  tripStatus?: TripStatus;
-  destinationOptions?: { id: string; name: string; emoji: string }[];
-  onProxyVote?: (memberId: string, optionId: string) => void;
-  onProxyCommit?: (memberId: string, status: "confirmed_in" | "confirmed_out") => void;
+  trip: Trip;
+  members: Member[];
+  onClose: () => void;
+  onMembersUpdated: () => Promise<void>;
 }) {
   const supabase = createClient();
-  const [name, setName] = useState(member.name);
-  const [constraintStart, setConstraintStart] = useState(
-    member.constraint_start || ""
-  );
-  const [constraintEnd, setConstraintEnd] = useState(
-    member.constraint_end || ""
-  );
-  const [availStart, setAvailStart] = useState(
-    member.availability_start || ""
-  );
-  const [availEnd, setAvailEnd] = useState(member.availability_end || "");
-  const [saving, setSaving] = useState(false);
+  const [name, setName] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const fieldId = useId();
+  const hintId = useId();
 
-  async function handleSave() {
-    setSaving(true);
+  const trimmed = cleanName(name);
+  const nameError = submitted && !trimmed ? "Type their name so the group knows who it is." : "";
+  const duplicate =
+    trimmed && members.some((m) => cleanName(m.name).toLowerCase() === trimmed.toLowerCase())
+      ? `There's already a ${trimmed} in the group. Add a surname or initial so people can tell them apart.`
+      : "";
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSubmitted(true);
+    if (!trimmed || busy) return;
+    setBusy(true);
     setError("");
-
-    const updates: Record<string, unknown> = { name: name.trim() };
-
-    if (tripStatus === "dates_open") {
-      updates.constraint_start = constraintStart || null;
-      updates.constraint_end = constraintEnd || null;
-      updates.constraint_note =
-        constraintStart && constraintEnd
-          ? `${new Date(constraintStart).toLocaleDateString("en-IN", { month: "short", day: "numeric" })} – ${new Date(constraintEnd).toLocaleDateString("en-IN", { month: "short", day: "numeric" })} unavailable`
-          : null;
-
-      if (availStart && availEnd) {
-        updates.availability_start = availStart;
-        updates.availability_end = availEnd;
-        updates.status = "responded";
-      }
+    try {
+      const { error: insertError } = await supabase.from("members").insert({
+        trip_id: trip.id,
+        user_id: null,
+        name: trimmed,
+        is_organizer: false,
+        is_proxy: true,
+        status: "invited",
+      });
+      if (insertError) throw insertError;
+      await onMembersUpdated();
+      onClose();
+    } catch (e) {
+      setError(friendlyError(e, "Couldn't add them. Check your connection and try again."));
+      setBusy(false);
     }
-
-    const { error: saveError } = await supabase
-      .from("members")
-      .update(updates)
-      .eq("id", member.id);
-
-    if (saveError) {
-      setError(saveError.message);
-      setSaving(false);
-      return;
-    }
-
-    setSaving(false);
-    onSave();
   }
 
-  const inputClass =
-    "w-full min-w-0 rounded-xl border border-border bg-background px-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all";
-
   return (
-    <div className="border-t border-border-light px-4 py-3 space-y-3 bg-subtle/50 animate-in">
-      {/* Name */}
-      <div>
-        <label className="block text-[11px] font-semibold text-text-tertiary uppercase tracking-wider mb-1">
-          Name
+    <Sheet
+      open
+      onClose={onClose}
+      title="Add someone who won't use the link"
+      description="A parent, a kid, a friend who never opens links. They join the group and you answer for them at each step."
+      dismissible={!busy}
+    >
+      <form onSubmit={handleSubmit} noValidate>
+        <label htmlFor={fieldId} className="field-label">
+          Their name
         </label>
         <input
+          id={fieldId}
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          maxLength={50}
-          className={inputClass}
+          placeholder="What the group calls them"
+          maxLength={40}
+          required
+          autoComplete="off"
+          autoCapitalize="words"
+          enterKeyHint="done"
+          aria-invalid={!!nameError}
+          aria-describedby={nameError || duplicate ? hintId : undefined}
+          className="field"
+          data-autofocus
         />
+        {nameError ? (
+          <p id={hintId} className="field-error">
+            {nameError}
+          </p>
+        ) : duplicate ? (
+          <p id={hintId} className="field-hint">
+            {duplicate}
+          </p>
+        ) : null}
+
+        {error && (
+          <p role="alert" className="notice notice-stop mt-3">
+            {error}
+          </p>
+        )}
+
+        <button type="submit" disabled={busy} className="btn btn-primary btn-lg btn-block mt-4">
+          {busy ? (
+            <>
+              <Spinner /> Adding
+            </>
+          ) : (
+            "Save"
+          )}
+        </button>
+      </form>
+    </Sheet>
+  );
+}
+
+/* ── Organiser: take over an entry nobody is answering ─────────── */
+
+const NEEDS_DATABASE_UPDATE = "This needs the latest database update. Ask them to open the link again instead.";
+
+function TakeOverSheet({
+  member,
+  onClose,
+  onTakenOver,
+  onMembersUpdated,
+}: {
+  member: Member;
+  onClose: () => void;
+  onTakenOver: () => void;
+  onMembersUpdated: () => Promise<void>;
+}) {
+  const supabase = createClient();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function takeOver() {
+    setBusy(true);
+    setError("");
+    try {
+      const { data, error: updateError } = await supabase
+        .from("members")
+        .update({ is_proxy: true, user_id: null })
+        .eq("id", member.id)
+        .select("id");
+      if (updateError) {
+        // A refusal means the database predates this feature. Anything else
+        // (offline, expired session) keeps its own explanation.
+        const refused = updateError.code === "42501" || /row-level security/i.test(updateError.message ?? "");
+        throw refused ? new UserFacingError(NEEDS_DATABASE_UPDATE) : updateError;
+      }
+      // An older database can also refuse silently: no error, and no row changed.
+      if (!data || data.length === 0) throw new UserFacingError(NEEDS_DATABASE_UPDATE);
+      await onMembersUpdated();
+      onTakenOver();
+    } catch (e) {
+      setError(friendlyError(e, NEEDS_DATABASE_UPDATE));
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Sheet
+      open
+      onClose={onClose}
+      title={`Answer for ${firstName(member.name)}?`}
+      description={`${member.name} hasn't answered. If they've lost the link or joined twice, you can take over this entry and answer for them. They won't be able to edit it afterwards.`}
+      dismissible={!busy}
+    >
+      {error && (
+        <p role="alert" className="notice notice-stop mb-4">
+          {error}
+        </p>
+      )}
+      <div className="grid grid-cols-2 gap-2">
+        <button type="button" onClick={onClose} disabled={busy} className="btn btn-outline">
+          Leave it
+        </button>
+        <button type="button" onClick={takeOver} disabled={busy} className="btn btn-primary" data-autofocus>
+          {busy ? (
+            <>
+              <Spinner /> Taking over
+            </>
+          ) : (
+            "Take over"
+          )}
+        </button>
       </div>
+    </Sheet>
+  );
+}
 
-      {/* Dates stage: constraint + availability dates */}
-      {tripStatus === "dates_open" && (
+/* ── Organiser: answer for someone ─────────────────────────────── */
+
+function AnswerSheet({
+  trip,
+  member,
+  members,
+  options,
+  onClose,
+  onMembersUpdated,
+}: {
+  trip: Trip;
+  member: Member;
+  members: Member[];
+  options?: DestinationOption[];
+  onClose: () => void;
+  onMembersUpdated: () => Promise<void>;
+}) {
+  const supabase = createClient();
+  const stage = trip.status;
+  const first = firstName(member.name);
+  /** Which control is saving, so only that one shows a spinner. */
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState("");
+
+  const [selected, setSelected] = useState<Set<string>>(() => new Set(memberDays(member)));
+  // The best window comes from the whole group. The per-day counts come from
+  // everyone else, because the calendar adds this person's picks itself; with
+  // their saved days left in, every day they already had would count one too many.
+  const best = useMemo(() => findBestOverlap(members, trip.trip_days).best, [members, trip.trip_days]);
+  const othersFree = useMemo(
+    () => findBestOverlap(members.filter((m) => m.id !== member.id), trip.trip_days).dateMap,
+    [members, member.id, trip.trip_days],
+  );
+
+  const [renaming, setRenaming] = useState(false);
+  const [name, setName] = useState(member.name);
+  const [nameError, setNameError] = useState("");
+  const nameId = useId();
+  const nameErrorId = useId();
+
+  async function write(key: string, patch: Partial<Member>, opts: { advance: boolean }): Promise<boolean> {
+    if (busy) return false;
+    setBusy(key);
+    setError("");
+    try {
+      const { error: updateError } = await supabase.from("members").update(patch).eq("id", member.id);
+      if (updateError) throw updateError;
+      if (opts.advance) await advanceTrip(supabase, trip.id);
+      await onMembersUpdated();
+      return true;
+    } catch (e) {
+      setError(friendlyError(e, "That didn't save. Check your connection and try again."));
+      return false;
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function saveAnswer(key: string, patch: Partial<Member>) {
+    if (await write(key, patch, { advance: true })) onClose();
+  }
+
+  function saveDates() {
+    const days = Array.from(selected).sort();
+    if (days.length === 0) return;
+    saveAnswer("dates", {
+      availability_start: days[0],
+      availability_end: days[days.length - 1],
+      constraint_note: JSON.stringify(days),
+      constraint_start: null,
+      constraint_end: null,
+      status: "responded",
+    });
+  }
+
+  async function handleRename(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed = cleanName(name);
+    if (!trimmed) {
+      setNameError("Type a name.");
+      return;
+    }
+    setNameError("");
+    if (trimmed === member.name || (await write("name", { name: trimmed }, { advance: false }))) {
+      setName(trimmed);
+      setRenaming(false);
+    }
+  }
+
+  const description =
+    stage === "dates_open"
+      ? `Tap the days ${first} is free. You can change them until the dates are locked.`
+      : stage === "destination_open"
+        ? `Pick the place ${first} wants. You can change it until the place is locked.`
+        : `Say whether ${first} is coming. You can change it until the trip is locked.`;
+
+  const errorNotice = error && (
+    <p role="alert" className="notice notice-stop mt-4">
+      {error}
+    </p>
+  );
+
+  const rename = renaming ? (
+    <form onSubmit={handleRename} noValidate className="mt-5 border-t border-border pt-4">
+      <label htmlFor={nameId} className="field-label">
+        Name
+      </label>
+      <div className="flex gap-2">
+        <input
+          id={nameId}
+          type="text"
+          value={name}
+          onChange={(e) => {
+            setName(e.target.value);
+            setNameError("");
+          }}
+          maxLength={40}
+          required
+          autoFocus
+          autoComplete="off"
+          autoCapitalize="words"
+          enterKeyHint="done"
+          aria-invalid={!!nameError}
+          aria-describedby={nameError ? nameErrorId : undefined}
+          className="field min-w-0"
+        />
+        <button type="submit" disabled={busy !== null} className="btn btn-outline shrink-0">
+          {busy === "name" ? <Spinner /> : null}
+          Save name
+        </button>
+      </div>
+      {nameError && (
+        <p id={nameErrorId} className="field-error">
+          {nameError}
+        </p>
+      )}
+    </form>
+  ) : (
+    <button
+      type="button"
+      onClick={() => setRenaming(true)}
+      disabled={busy !== null}
+      className="btn btn-quiet btn-sm -ml-3 mt-3 min-h-[44px]"
+    >
+      <Icon name="pencil" className="h-4 w-4" />
+      Rename {first}
+    </button>
+  );
+
+  return (
+    <Sheet open onClose={onClose} title={`Answer for ${first}`} description={description} dismissible={busy === null}>
+      {stage === "dates_open" && (
         <>
-          <div>
-            <label className="block text-[11px] font-semibold text-text-tertiary uppercase tracking-wider mb-1">
-              Unavailable dates
-            </label>
-            <div className="space-y-2">
-              <DatePickerInput value={constraintStart} onChange={setConstraintStart} placeholder="From" />
-              <DatePickerInput value={constraintEnd} onChange={setConstraintEnd} min={constraintStart} placeholder="To" />
-            </div>
-          </div>
-
-          <div className="bg-accent/5 rounded-xl p-3">
-            <label className="block text-[11px] font-semibold text-accent uppercase tracking-wider mb-1.5">
-              Available dates (submit on their behalf)
-            </label>
-            <div className="space-y-2">
-              <DatePickerInput value={availStart} onChange={setAvailStart} placeholder="Start date" />
-              <DatePickerInput value={availEnd} onChange={setAvailEnd} min={availStart} placeholder="End date"
-              />
-            </div>
+          <Calendar
+            selectedDates={selected}
+            onToggleDate={(day) =>
+              setSelected((prev) => {
+                const next = new Set(prev);
+                if (next.has(day)) next.delete(day);
+                else next.add(day);
+                return next;
+              })
+            }
+            onRangeSelect={(start, end) =>
+              setSelected((prev) => {
+                const next = new Set(prev);
+                const [from, to] = start <= end ? [start, end] : [end, start];
+                for (const day of eachDay(from, to)) next.add(day);
+                return next;
+              })
+            }
+            onClear={() => setSelected(new Set())}
+            dateMap={othersFree}
+            windowStart={trip.date_window_start ?? undefined}
+            windowEnd={trip.date_window_end ?? undefined}
+            best={best}
+            groupSize={members.length}
+          />
+          {rename}
+          {/* Stays in reach while the calendar scrolls behind it. Sticky offsets are
+              measured inside the sheet's padding, so the bar is pushed back out by
+              the same amount to sit flush with the sheet's bottom edge. */}
+          <div className="sticky -bottom-[max(1.25rem,env(safe-area-inset-bottom))] z-10 -mx-5 -mb-[max(1.25rem,env(safe-area-inset-bottom))] mt-4 border-t border-border bg-surface px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3">
+            {error && (
+              <p role="alert" className="notice notice-stop mb-3">
+                {error}
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={saveDates}
+              disabled={busy !== null || selected.size === 0}
+              className="btn btn-primary btn-lg btn-block"
+            >
+              {busy === "dates" ? (
+                <>
+                  <Spinner /> Saving
+                </>
+              ) : selected.size === 0 ? (
+                "Tap at least one day"
+              ) : (
+                `Save ${plural(selected.size, "day")} for ${first}`
+              )}
+            </button>
           </div>
         </>
       )}
 
-      {/* Destination stage: vote picker */}
-      {tripStatus === "destination_open" && destinationOptions && onProxyVote && (
-        <div>
-          <label className="block text-[11px] font-semibold text-text-tertiary uppercase tracking-wider mb-2">
-            Vote for destination
-          </label>
-          <div className="flex flex-wrap gap-1.5">
-            {destinationOptions.map((opt) => (
-              <button
-                key={opt.id}
-                type="button"
-                onClick={() => {
-                  onProxyVote(member.id, opt.id);
-                  onSave();
-                }}
-                className={[
-                  "flex items-center gap-1.5 border-2 rounded-xl px-2.5 py-1.5 text-xs font-medium transition-all active:scale-95",
-                  member.destination_vote === opt.id
-                    ? "bg-primary-light border-primary/25 text-primary"
-                    : "bg-surface border-border hover:bg-primary-light hover:border-primary/20",
-                ].join(" ")}
-              >
-                <span>{opt.emoji}</span>
-                {opt.name}
-              </button>
-            ))}
-          </div>
-        </div>
+      {stage === "destination_open" && (
+        <>
+          {options && options.length > 0 ? (
+            <ul className="space-y-2">
+              {options.map((option) => {
+                const chosen = member.destination_vote === option.id;
+                return (
+                  <li key={option.id}>
+                    <button
+                      type="button"
+                      aria-pressed={chosen}
+                      disabled={busy !== null}
+                      onClick={() => (chosen ? onClose() : saveAnswer(option.id, { destination_vote: option.id }))}
+                      className={[
+                        "flex min-h-[52px] w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors disabled:opacity-60",
+                        chosen
+                          ? "border-border-strong bg-primary-light"
+                          : "border-border bg-surface hover:border-border-strong",
+                      ].join(" ")}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={[
+                          "flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border-2",
+                          chosen ? "border-border-strong" : "border-border",
+                        ].join(" ")}
+                      >
+                        {chosen && <span className="h-2 w-2 rounded-full bg-text" />}
+                      </span>
+                      <Icon name={destinationIcon(option.emoji)} className="h-5 w-5 shrink-0 text-text-secondary" />
+                      <span className="min-w-0 flex-1 break-words text-[0.9375rem] font-semibold text-text">
+                        {option.name}
+                      </span>
+                      {busy === option.id && <Spinner />}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="notice notice-info">There are no places to vote on yet. Add one to the list first.</p>
+          )}
+          {errorNotice}
+          {rename}
+        </>
       )}
 
-      {/* Commitment stage: in/out picker */}
-      {tripStatus === "commitment" && onProxyCommit && (
-        <div>
-          <label className="block text-[11px] font-semibold text-text-tertiary uppercase tracking-wider mb-2">
-            Confirm attendance
-          </label>
-          <div className="flex gap-2">
+      {stage === "commitment" && (
+        <>
+          <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
-              onClick={() => {
-                onProxyCommit(member.id, "confirmed_in");
-                onSave();
-              }}
-              className={[
-                "flex-1 rounded-xl py-2.5 text-sm font-semibold transition-all active:scale-95",
-                member.status === "confirmed_in"
-                  ? "bg-accent text-white shadow-sm"
-                  : "bg-accent/8 text-accent border-2 border-accent/20 hover:bg-accent hover:text-white",
-              ].join(" ")}
+              aria-pressed={member.status === "confirmed_in"}
+              disabled={busy !== null}
+              onClick={() => saveAnswer("in", { status: "confirmed_in" })}
+              className="btn btn-go btn-lg"
             >
-              In ✓
+              {busy === "in" ? <Spinner /> : <Icon name="check" className="h-4 w-4" />}
+              In
             </button>
             <button
               type="button"
-              onClick={() => {
-                onProxyCommit(member.id, "confirmed_out");
-                onSave();
-              }}
-              className={[
-                "flex-1 rounded-xl py-2.5 text-sm font-semibold transition-all active:scale-95",
-                member.status === "confirmed_out"
-                  ? "bg-status-out text-white shadow-sm"
-                  : "bg-status-out-bg text-status-out border-2 border-status-out/15 hover:bg-status-out hover:text-white",
-              ].join(" ")}
+              aria-pressed={member.status === "confirmed_out"}
+              disabled={busy !== null}
+              onClick={() => saveAnswer("out", { status: "confirmed_out" })}
+              className="btn btn-outline btn-lg"
             >
-              Out ✕
+              {busy === "out" ? <Spinner /> : <Icon name="x" className="h-4 w-4" />}
+              Out
             </button>
           </div>
-        </div>
+          {(member.status === "confirmed_in" || member.status === "confirmed_out") && (
+            <p className="mt-3 font-mono text-xs text-text-tertiary">
+              Right now {first} is {member.status === "confirmed_in" ? "in" : "out"}.
+            </p>
+          )}
+          {errorNotice}
+          {rename}
+        </>
       )}
-
-      {error && (
-        <div className="bg-status-out-bg border border-status-out/15 rounded-lg px-3 py-1.5">
-          <p className="text-status-out text-xs">{error}</p>
-        </div>
-      )}
-
-      <div className="flex gap-2">
-        <button
-          onClick={handleSave}
-          disabled={saving || !name.trim()}
-          className="flex-1 bg-primary text-white rounded-xl px-3 py-2 text-sm font-semibold shadow-sm hover:bg-primary-hover active:scale-[0.98] transition-all disabled:opacity-50"
-        >
-          {saving ? "Saving..." : "Save"}
-        </button>
-        <button
-          onClick={onCancel}
-          className="flex-1 bg-subtle-hover text-text-secondary rounded-xl px-3 py-2 text-sm font-medium hover:bg-subtle-active active:scale-[0.98] transition-all"
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
+    </Sheet>
   );
 }
 
-/* -- MemberList -- */
+/* ── The group ─────────────────────────────────────────────────── */
+
+/**
+ * Everyone on the trip and where each of them stands on the current question.
+ * Sits at the bottom of the Dates, Place and Commit stages.
+ *
+ * For the organiser it is also where people who will never open the link are
+ * handled: add them, answer for them, or take over an entry that is stuck.
+ */
 export function MemberList({
+  trip,
   members,
+  currentMember,
   isOrganizer,
   onMembersUpdated,
-  tripStatus,
-  destinationOptions,
-  onProxyVote,
-  onProxyCommit,
+  options,
 }: {
+  trip: Trip;
   members: Member[];
-  isOrganizer?: boolean;
-  onMembersUpdated?: () => Promise<void>;
-  tripStatus?: TripStatus;
-  destinationOptions?: { id: string; name: string; emoji: string }[];
-  onProxyVote?: (memberId: string, optionId: string) => void;
-  onProxyCommit?: (memberId: string, status: "confirmed_in" | "confirmed_out") => void;
+  currentMember: Member;
+  isOrganizer: boolean;
+  onMembersUpdated: () => Promise<void>;
+  /** Destination options on the Place stage, so votes can be shown and entered. */
+  options?: DestinationOption[];
 }) {
-  const [expanded, setExpanded] = useState(false);
-  const [votingForMemberId, setVotingForMemberId] = useState<string | null>(null);
-  const [committingMemberId, setCommittingMemberId] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const stage = trip.status;
+  const panelId = useId();
+  // A long list starts folded on a phone so it does not bury the stage above it.
+  const [open, setOpen] = useState(
+    () => !(typeof window !== "undefined" && members.length > 4 && window.matchMedia("(max-width: 639px)").matches),
+  );
+  const [dialog, setDialog] = useState<Dialog>(null);
 
-  const responded = members.filter((m) => hasResponded(m, tripStatus));
-  const waiting = members.length - responded.length;
+  const progress = stageProgress(trip, members);
+  const waiting = members.filter((m) => !hasAnswered(m, stage)).length;
+  const organiser = members.find((m) => m.is_organizer);
+  const answeredBy = isOrganizer ? "you" : organiser ? firstName(organiser.name) : "the organiser";
+  const canAct = isOrganizer && stage !== "ready";
 
-  function handleEditSaved() {
-    setEditingId(null);
-    onMembersUpdated?.();
+  const dialogMember = dialog && dialog.kind !== "add" ? members.find((m) => m.id === dialog.id) : undefined;
+
+  function secondaryLine(m: Member): string {
+    const parts: string[] = [];
+    if (stage === "dates_open") {
+      const days = memberDays(m).length;
+      if (days > 0) parts.push(`${plural(days, "day")} marked`);
+    } else if (stage === "destination_open" && m.destination_vote) {
+      const place = options?.find((o) => o.id === m.destination_vote)?.name;
+      if (place) parts.push(place);
+    }
+    if (m.is_proxy && !m.is_organizer) parts.push(`answered by ${answeredBy}`);
+    return parts.join(" · ");
   }
 
   return (
-    <div className="bg-surface border border-border-light rounded-2xl overflow-hidden shadow-xs">
-      {/* header */}
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between px-4 py-3 hover:bg-subtle/50 transition-colors"
-      >
-        <span className="flex items-center gap-2 text-xs">
-          <span className="font-bold text-text-secondary uppercase tracking-wider">
-            Group &middot; {members.length}
-          </span>
-          <span className="text-status-confirmed font-semibold">
-            {responded.length} responded
-          </span>
-          {waiting > 0 && (
-            <span className="text-status-waiting font-semibold">
-              &middot; {waiting} waiting
-            </span>
-          )}
-        </span>
-        <svg
-          className={[
-            "w-4 h-4 text-text-tertiary transition-transform duration-200",
-            expanded ? "rotate-180" : "",
-          ].join(" ")}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
+    <section className="border-t border-border">
+      <h3>
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={panelId}
+          onClick={() => setOpen((v) => !v)}
+          className="flex min-h-[48px] w-full flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2 text-left"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-        </svg>
-      </button>
+          <span className="label-mono">The group · {members.length}</span>
+          <span className="flex items-center gap-2 font-mono text-xs text-text-secondary">
+            {progress.answered} answered
+            {waiting > 0 ? ` · ${waiting} waiting` : ""}
+            <Icon
+              name="chevron-down"
+              className={`h-4 w-4 shrink-0 text-text-tertiary transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+            />
+          </span>
+        </button>
+      </h3>
 
-      {/* member rows */}
-      {expanded &&
-        members.map((m, memberIndex) => {
-          if (editingId === m.id) {
+      <div id={panelId} hidden={!open}>
+        <ul className="divide-y divide-border border-t border-border">
+          {members.map((m) => {
+            const chip = statusChip(m, stage);
+            const first = firstName(m.name);
+            const secondary = secondaryLine(m);
+            const note = plainNote(m);
+            const canAnswer = canAct && m.is_proxy;
+            const canTakeOver = canAct && !m.is_proxy && !m.is_organizer && !hasAnswered(m, stage);
+
             return (
-              <EditProxyForm
-                key={m.id}
-                member={m}
-                onSave={handleEditSaved}
-                onCancel={() => setEditingId(null)}
-                tripStatus={tripStatus}
-                destinationOptions={destinationOptions}
-                onProxyVote={onProxyVote}
-                onProxyCommit={onProxyCommit}
-              />
-            );
-          }
-
-          const config = getBadge(m, tripStatus);
-
-          let subtitle: string | null = null;
-          if (tripStatus === "dates_open") {
-            subtitle = formatDateRange(m.availability_start, m.availability_end);
-          } else if (tripStatus === "destination_open") {
-            if (m.destination_vote && destinationOptions) {
-              const voted = destinationOptions.find((o) => o.id === m.destination_vote);
-              if (voted) subtitle = `${voted.emoji} ${voted.name}`;
-            }
-          } else if (tripStatus === "commitment") {
-            if (m.status === "confirmed_in") subtitle = "Going!";
-            else if (m.status === "confirmed_out") subtitle = "Not going";
-          }
-
-          return (
-            <div key={m.id} className="border-t border-border-light">
-            <div
-              className="flex items-center justify-between px-4 py-2 hover:bg-subtle/30 transition-colors"
-            >
-              {/* left: avatar + info */}
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div
-                  className={[
-                    "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ring-2 ring-surface",
-                    getAvatarColor(memberIndex, m.is_organizer),
-                  ].join(" ")}
-                >
-                  {initials(m.name)}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[13px] font-semibold leading-tight truncate text-text">
-                    {m.name}
-                  </p>
-                  {m.is_organizer && (
-                    <p className="text-[11px] text-primary font-medium leading-tight">
-                      Organizer
-                    </p>
-                  )}
-                  {m.is_proxy && !m.is_organizer && (
-                    <p className="text-[11px] text-text-tertiary leading-tight">
-                      Added by organizer
-                    </p>
-                  )}
-                  {subtitle && (
-                    <p className="text-[11px] text-text-secondary leading-tight">
-                      {subtitle}
-                    </p>
-                  )}
-                  {m.constraint_note && (() => {
-                    try {
-                      const parsed = JSON.parse(m.constraint_note);
-                      if (!Array.isArray(parsed) || parsed.length === 0) return null;
-
-                      // New per-day format: ["2026-04-13","2026-04-14",...]
-                      if (typeof parsed[0] === "string" && parsed[0].match(/^\d{4}-\d{2}-\d{2}$/)) {
-                        return (
-                          <p className="text-[11px] text-accent leading-tight">
-                            {parsed.length} {parsed.length === 1 ? "date" : "dates"} marked
-                          </p>
-                        );
-                      }
-
-                      // Old unavailable ranges format: [{start, end},...]
-                      return (parsed as { start: string; end: string }[]).map((r, ri) => (
-                        <p key={ri} className="text-[11px] text-status-waiting leading-tight flex items-center gap-0.5">
-                          <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                          </svg>
-                          {new Date(r.start).toLocaleDateString("en-IN", { day: "numeric", month: "short" })} – {new Date(r.end).toLocaleDateString("en-IN", { day: "numeric", month: "short" })} unavailable
-                        </p>
-                      ));
-                    } catch {
-                      // Legacy plain text
-                      return (
-                        <p className="text-[11px] text-text-tertiary leading-tight">
-                          {m.constraint_note}
-                        </p>
-                      );
-                    }
-                  })()}
-                </div>
-              </div>
-
-              {/* right: badge + actions */}
-              <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                <span
-                  className={[
-                    "inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full",
-                    config.bg,
-                    config.text,
-                  ].join(" ")}
-                >
-                  <span>{config.icon}</span>
-                  {config.label}
+              <li key={m.id} className="flex items-start gap-3 py-3">
+                <span className={`avatar ${avatarTone(m, stage)}`} aria-hidden="true">
+                  {m.name.trim().charAt(0)}
                 </span>
-                {/* Proxy vote button */}
-                {isOrganizer && m.is_proxy && tripStatus === "destination_open" && onProxyVote && destinationOptions && (
-                  <button
-                    onClick={() => { setVotingForMemberId(votingForMemberId === m.id ? null : m.id); setCommittingMemberId(null); }}
-                    className="w-7 h-7 flex items-center justify-center rounded-lg text-text-tertiary hover:bg-subtle-hover hover:text-text-secondary transition-all text-xs"
-                    aria-label={`Vote for ${m.name}`}
-                  >
-                    🗳
-                  </button>
-                )}
-                {/* Proxy commit button */}
-                {isOrganizer && m.is_proxy && tripStatus === "commitment" && onProxyCommit && m.status !== "confirmed_in" && m.status !== "confirmed_out" && (
-                  <button
-                    onClick={() => { setCommittingMemberId(committingMemberId === m.id ? null : m.id); setVotingForMemberId(null); }}
-                    className="w-7 h-7 flex items-center justify-center rounded-lg text-text-tertiary hover:bg-subtle-hover hover:text-text-secondary transition-all text-xs"
-                    aria-label={`Confirm ${m.name}`}
-                  >
-                    ✋
-                  </button>
-                )}
-                {isOrganizer && m.is_proxy && (
-                  <button
-                    onClick={() => setEditingId(m.id)}
-                    className="w-7 h-7 flex items-center justify-center rounded-lg text-text-tertiary hover:bg-subtle-hover hover:text-text-secondary transition-all"
-                    aria-label={`Edit ${m.name}`}
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
-                    </svg>
-                  </button>
-                )}
-              </div>
-            </div>
+                {/* min-h-8 centres a lone name on the 32px avatar. */}
+                <div className="flex min-h-8 min-w-0 flex-1 flex-col items-start justify-center">
+                  <p className="flex flex-wrap items-baseline gap-x-2 text-[0.9375rem] font-semibold leading-snug text-text">
+                    <span className="min-w-0 break-words">
+                      {m.name}
+                      {m.id === currentMember.id && <span className="font-normal text-text-tertiary"> (you)</span>}
+                    </span>
+                    {m.is_organizer && <span className="label-mono">Organiser</span>}
+                  </p>
+                  {secondary && <p className="mt-0.5 text-[0.8125rem] leading-snug text-text-secondary">{secondary}</p>}
+                  {note && (
+                    <p className="mt-1 flex items-start gap-1.5 text-[0.8125rem] leading-snug text-status-waiting">
+                      <Icon name="alert" className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                      <span className="min-w-0 break-words">{note}</span>
+                    </p>
+                  )}
+                  {/* One button per row on purpose: when an entry is taken over, the
+                      same element becomes "Answer for ...", so focus has somewhere to return to. */}
+                  {(canAnswer || canTakeOver) && (
+                    <button
+                      type="button"
+                      onClick={() => setDialog({ kind: canAnswer ? "answer" : "takeover", id: m.id })}
+                      className={
+                        canAnswer
+                          ? "btn btn-outline btn-sm mt-2 min-h-[44px]"
+                          : "btn btn-quiet btn-sm -mb-2 -ml-3 min-h-[44px]"
+                      }
+                    >
+                      {canAnswer ? (
+                        `Answer for ${first}`
+                      ) : (
+                        <>
+                          Answer for them<span className="sr-only"> ({m.name})</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+                <span className={`chip mt-[5px] shrink-0 ${chip.tone}`}>{chip.label}</span>
+              </li>
+            );
+          })}
 
-            {/* Inline vote picker */}
-            {votingForMemberId === m.id && destinationOptions && onProxyVote && (
-              <div className="px-4 py-2 flex flex-wrap gap-1.5 bg-subtle/50 animate-in">
-                {destinationOptions.map((opt) => (
-                  <button
-                    key={opt.id}
-                    onClick={() => {
-                      onProxyVote(m.id, opt.id);
-                      setVotingForMemberId(null);
-                    }}
-                    className="flex items-center gap-1.5 bg-surface hover:bg-primary-light border-2 border-border hover:border-primary/20 rounded-xl px-2.5 py-1.5 text-xs font-medium transition-all active:scale-95"
-                  >
-                    <span>{opt.emoji}</span>
-                    {opt.name}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Inline commitment picker */}
-            {committingMemberId === m.id && onProxyCommit && (
-              <div className="px-4 py-2 flex gap-2 bg-subtle/50 animate-in">
-                <button
-                  onClick={() => { onProxyCommit(m.id, "confirmed_in"); setCommittingMemberId(null); }}
-                  className="flex-1 bg-accent text-white rounded-xl py-2 text-xs font-semibold shadow-sm hover:bg-accent-hover active:scale-95 transition-all"
+          {canAct && (
+            <li>
+              <button
+                type="button"
+                onClick={() => setDialog({ kind: "add" })}
+                className="flex min-h-[56px] w-full items-center gap-3 py-3 text-left text-[0.9375rem] font-semibold text-text hover:text-text-secondary"
+              >
+                <span
+                  className="avatar border border-dashed border-border-strong bg-background text-text-secondary"
+                  aria-hidden="true"
                 >
-                  In ✓
-                </button>
-                <button
-                  onClick={() => { onProxyCommit(m.id, "confirmed_out"); setCommittingMemberId(null); }}
-                  className="flex-1 bg-surface text-status-out border-2 border-status-out/15 rounded-xl py-2 text-xs font-semibold hover:bg-status-out-bg active:scale-95 transition-all"
-                >
-                  Out ✕
-                </button>
-              </div>
-            )}
-          </div>
-          );
-        })}
-    </div>
-  );
-}
-
-/* -- Nudge Modal -- */
-function NudgeModal({
-  tripName,
-  slug,
-  tripStatus,
-  members,
-  onClose,
-}: {
-  tripName: string;
-  slug: string;
-  tripStatus?: TripStatus;
-  members: Member[];
-  onClose: () => void;
-}) {
-  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
-
-  const url = `${typeof window !== "undefined" ? window.location.origin : ""}/trip/${slug}`;
-  const total = members.length;
-  const responded = members.filter((m) => hasResponded(m, tripStatus)).length;
-  const waiting = total - responded;
-
-  const action =
-    tripStatus === "dates_open" ? "added their dates"
-    : tripStatus === "destination_open" ? "voted on the destination"
-    : tripStatus === "commitment" ? "confirmed they're in"
-    : "responded";
-
-  const actionVerb =
-    tripStatus === "dates_open" ? "add your dates"
-    : tripStatus === "destination_open" ? "vote on the destination"
-    : tripStatus === "commitment" ? "confirm if you're in"
-    : "check in";
-
-  const stat = `${responded} of ${total} people have ${action} for ${tripName}`;
-
-  const nudges = [
-    { emoji: "😊", label: "Friendly", msg: `Hey, we're waiting on you! ${stat} — just need you! One tap, 30 seconds 🙏` },
-    { emoji: "👀", label: "Shady", msg: `${stat}... and ${waiting} ${waiting === 1 ? "person is" : "people are"} ghosting 👀` },
-    { emoji: "⚡", label: "Quick", msg: `${stat}. 2 mins ka kaam hai — we need YOU!` },
-    { emoji: "🥺", label: "Guilt", msg: `${stat}. Your silence is delaying vacation happiness.` },
-    { emoji: "🔥", label: "Hinglish", msg: `${stat} — ${actionVerb} kar do warna trip cancel 😭` },
-    { emoji: "🔒", label: "Urgent", msg: `Last call! ${responded}/${total} done for ${tripName}. We're locking decisions tomorrow with or without you 🔒` },
-  ];
-
-  async function handleCopy(idx: number) {
-    const nudge = nudges[idx];
-    const full = `${nudge.msg}\n\n${actionVerb} here 👉 ${url}`;
-    await navigator.clipboard.writeText(full);
-    setCopiedIdx(idx);
-    setTimeout(() => setCopiedIdx(null), 1500);
-  }
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-background/80 backdrop-blur-md animate-fade"
-      onClick={onClose}
-    >
-      <div
-        className="max-w-sm w-full mx-4 mb-4 sm:mb-0 bg-surface rounded-2xl shadow-xl border border-border-light animate-in overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 pt-5 pb-3">
-          <div>
-            <h3 className="font-heading text-base font-bold text-text flex items-center gap-1.5">
-              Nudge your group <span className="text-lg">👋</span>
-            </h3>
-            <p className="text-xs text-text-tertiary mt-0.5">Tap to copy — link included automatically</p>
-          </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-text-tertiary hover:bg-subtle-hover hover:text-text transition-all"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Nudge options */}
-        <div className="px-4 pb-5 space-y-2">
-          {nudges.map((n, i) => (
-            <button
-              key={i}
-              onClick={() => handleCopy(i)}
-              className={[
-                "w-full text-left rounded-xl px-4 py-3 border transition-all active:scale-[0.98]",
-                copiedIdx === i
-                  ? "bg-status-confirmed-bg border-status-confirmed/20"
-                  : "bg-subtle/50 border-border-light hover:bg-subtle hover:border-border",
-              ].join(" ")}
-            >
-              <p className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: copiedIdx === i ? "var(--color-status-confirmed)" : "var(--color-status-pending)" }}>
-                {n.emoji} {copiedIdx === i ? "Copied!" : n.label}
-              </p>
-              <p className="text-sm text-text">{n.msg}</p>
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* -- WaitingBanner -- */
-export function WaitingBanner({
-  members,
-  tripStatus,
-  isOrganizer,
-  tripName,
-  slug,
-}: {
-  members: Member[];
-  tripStatus?: TripStatus;
-  isOrganizer?: boolean;
-  tripName?: string;
-  slug?: string;
-}) {
-  const [showNudge, setShowNudge] = useState(false);
-  const waiting = members.filter((m) => !hasResponded(m, tripStatus));
-  if (waiting.length === 0) return null;
-
-  return (
-    <>
-      <div className="bg-status-waiting-bg/60 border border-status-waiting/10 rounded-xl px-4 py-3 space-y-2">
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-status-waiting/10 flex items-center justify-center shrink-0">
-            <svg className="w-3.5 h-3.5 text-status-waiting" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <p className="text-status-waiting text-sm font-medium">
-            Waiting on {waiting.length}{" "}
-            {waiting.length === 1 ? "person" : "people"}:{" "}
-            <span className="font-normal">{waiting.map((m) => m.name).join(", ")}</span>
-          </p>
-        </div>
-        {isOrganizer && slug && tripName && (
-          <button
-            onClick={() => setShowNudge(true)}
-            className="w-full text-xs font-semibold py-2 rounded-lg bg-status-waiting/10 text-status-waiting hover:bg-status-waiting/15 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5"
-          >
-            <span>👋</span> Nudge your group
-          </button>
-        )}
+                  <Icon name="user-plus" className="h-4 w-4" />
+                </span>
+                Add someone who won&apos;t use the link
+              </button>
+            </li>
+          )}
+        </ul>
       </div>
 
-      {showNudge && tripName && slug && (
-        <NudgeModal
-          tripName={tripName}
-          slug={slug}
-          tripStatus={tripStatus}
+      {dialog?.kind === "add" && (
+        <AddPersonSheet
+          trip={trip}
           members={members}
-          onClose={() => setShowNudge(false)}
+          onClose={() => setDialog(null)}
+          onMembersUpdated={onMembersUpdated}
         />
       )}
-    </>
+      {dialog?.kind === "takeover" && dialogMember && (
+        <TakeOverSheet
+          member={dialogMember}
+          onClose={() => setDialog(null)}
+          onTakenOver={() => setDialog({ kind: "answer", id: dialogMember.id })}
+          onMembersUpdated={onMembersUpdated}
+        />
+      )}
+      {dialog?.kind === "answer" && dialogMember && (
+        <AnswerSheet
+          key={dialogMember.id}
+          trip={trip}
+          member={dialogMember}
+          members={members}
+          options={options}
+          onClose={() => setDialog(null)}
+          onMembersUpdated={onMembersUpdated}
+        />
+      )}
+    </section>
   );
 }

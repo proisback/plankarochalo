@@ -1,326 +1,412 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
+import {
+  type DayKey,
+  addDays,
+  diffDays,
+  formatDay,
+  formatDayLong,
+  formatRange,
+  parseDay,
+  toDayKey,
+  todayKey,
+} from "@/lib/dates";
+import { inWindow } from "@/lib/overlap";
+import { plural } from "@/lib/format";
+import { Icon } from "@/components/icons";
 
-interface CalendarProps {
+export interface CalendarProps {
+  /** The days being picked, as "YYYY-MM-DD" keys. */
   selectedDates: Set<string>;
-  onToggleDate: (date: string) => void;
+  onToggleDate: (day: string) => void;
+  /** Add every day from start to end, inclusive. */
   onRangeSelect: (start: string, end: string) => void;
+  onClear: () => void;
+  /**
+   * Day -> names of everyone free that day (from findBestOverlap). Drives the
+   * heat and the small count in each cell. For exact counts, leave out the
+   * person whose days are being picked: theirs come from `selectedDates`.
+   */
   dateMap: Map<string, string[]>;
+  /** Allowed range, if the organiser set one. */
   windowStart?: string;
   windowEnd?: string;
-  overlapStart?: string;
-  overlapEnd?: string;
+  /** The current best window, outlined in the grid. */
+  best?: { start: string; end: string } | null;
+  /** People in the group, for "3 of 6 free" labels and the heat scale. */
+  groupSize?: number;
 }
 
-const DAYS_OF_WEEK = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"] as const;
+const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const HEAT = {
+  low: "bg-heat-low text-heat-low-text",
+  medium: "bg-heat-medium text-heat-medium-text",
+  high: "bg-heat-high text-heat-high-text",
+} as const;
+const ARROWS: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 };
 
-function toDateKey(year: number, month: number, day: number): string {
-  return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+/* Months are counted from year 0, so they compare and step as plain numbers. */
+function monthOf(day: DayKey): number {
+  const d = parseDay(day);
+  return d.getFullYear() * 12 + d.getMonth();
+}
+function monthDate(month: number, day = 1): Date {
+  return new Date(Math.floor(month / 12), month % 12, day, 12);
+}
+function monthName(month: number): string {
+  return monthDate(month).toLocaleDateString("en-IN", { month: "long", year: "numeric" });
 }
 
-function isPast(dateKey: string, todayKey: string): boolean {
-  return dateKey < todayKey;
-}
-
-function isOutsideWindow(dateKey: string, windowStart?: string, windowEnd?: string): boolean {
-  if (!windowStart && !windowEnd) return false;
-  if (windowStart && dateKey < windowStart) return true;
-  if (windowEnd && dateKey > windowEnd) return true;
-  return false;
-}
-
-function isInRange(dateKey: string, start: string | null, end: string | null): boolean {
-  if (!start || !end) return false;
-  const a = start < end ? start : end;
-  const b = start < end ? end : start;
-  return dateKey >= a && dateKey <= b;
-}
-
+/**
+ * Month grid for picking the days someone is free.
+ *
+ * Reads three things at once without relying on colour alone: the days being
+ * picked (filled, with a tick), how many other people are free each day (a
+ * yellow tint that deepens with the share of the group, plus the count in the
+ * corner), and the group's best window so far (an outlined run tagged "Best").
+ *
+ * Has no frame of its own, so it sits equally well in a panel or a sheet.
+ */
 export default function Calendar({
   selectedDates,
   onToggleDate,
   onRangeSelect,
+  onClear,
   dateMap,
   windowStart,
   windowEnd,
-  overlapStart,
-  overlapEnd,
+  best,
+  groupSize,
 }: CalendarProps) {
-  const today = useMemo(() => new Date(), []);
-  const todayKey = useMemo(
-    () => toDateKey(today.getFullYear(), today.getMonth(), today.getDate()),
-    [today]
-  );
+  const today = useMemo(() => todayKey(), []);
 
-  const [viewYear, setViewYear] = useState(today.getFullYear());
-  const [viewMonth, setViewMonth] = useState(today.getMonth());
+  // The first and last day that can be picked at all.
+  const lower = windowStart && windowStart > today ? windowStart : today;
+  const anySelectable = !windowEnd || windowEnd >= lower;
+  const minMonth = monthOf(lower);
+  const maxMonth = windowEnd ? monthOf(windowEnd) : monthOf(today) + 24;
+
+  // Open where the trip is, not on a month of dead cells: the organiser's
+  // window if it lies ahead, else the first day anyone has marked, else today.
+  const [month, setMonth] = useState(() => {
+    if (windowStart && windowStart > today) return monthOf(windowStart);
+    const marked = [...dateMap.keys(), ...selectedDates]
+      .filter((day) => day >= lower && (!windowEnd || day <= windowEnd))
+      .sort();
+    return marked.length > 0 ? monthOf(marked[0]) : monthOf(today);
+  });
   const [rangeMode, setRangeMode] = useState(false);
-  const [rangeStart, setRangeStart] = useState<string | null>(null);
+  const [rangeStart, setRangeStart] = useState<DayKey | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
 
-  const monthLabel = useMemo(() => {
-    const d = new Date(viewYear, viewMonth, 1);
-    return d.toLocaleString("default", { month: "long", year: "numeric" });
-  }, [viewYear, viewMonth]);
+  const days = useMemo(() => {
+    const count = monthDate(month + 1, 0).getDate();
+    return Array.from({ length: count }, (_, i) => toDayKey(monthDate(month, i + 1)));
+  }, [month]);
+  const lead = (monthDate(month).getDay() + 6) % 7; // Monday first
+  const lastDay = days[days.length - 1];
 
-  const calendarDays = useMemo(() => {
-    const firstDay = new Date(viewYear, viewMonth, 1).getDay();
-    const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-    const cells: (number | null)[] = [];
-    for (let i = 0; i < firstDay; i++) cells.push(null);
-    for (let d = 1; d <= daysInMonth; d++) cells.push(d);
-    return cells;
-  }, [viewYear, viewMonth]);
+  const isOff = (day: DayKey) =>
+    day < today || (!!windowStart && day < windowStart) || (!!windowEnd && day > windowEnd);
+  const monthHasDays = days.some((day) => !isOff(day));
 
-  function prevMonth() {
-    setViewMonth((m) => {
-      if (m === 0) { setViewYear((y) => y - 1); return 11; }
-      return m - 1;
-    });
+  // Heat is the share of everyone else who is free, so it means the same thing
+  // in a group of 3 and a group of 10.
+  const mostOthers = useMemo(() => {
+    if (groupSize && groupSize > 1) return groupSize - 1;
+    return Math.max(1, ...Array.from(dateMap.values(), (names) => names.length));
+  }, [groupSize, dateMap]);
+
+  function heatOf(others: number): keyof typeof HEAT | null {
+    if (others <= 0) return null;
+    const share = others / mostOthers;
+    return share >= 0.66 ? "high" : share >= 0.33 ? "medium" : "low";
   }
 
-  function nextMonth() {
-    setViewMonth((m) => {
-      if (m === 11) { setViewYear((y) => y + 1); return 0; }
-      return m + 1;
-    });
-  }
-
-  function handleDayClick(day: number) {
-    const dateKey = toDateKey(viewYear, viewMonth, day);
-    if (isPast(dateKey, todayKey)) return;
-    if (isOutsideWindow(dateKey, windowStart, windowEnd)) return;
-
-    if (rangeMode) {
-      if (!rangeStart) {
-        // First tap in range mode — set start
-        setRangeStart(dateKey);
-      } else {
-        // Second tap — complete range
-        const start = rangeStart < dateKey ? rangeStart : dateKey;
-        const end = rangeStart < dateKey ? dateKey : rangeStart;
-        onRangeSelect(start, end);
-        setRangeStart(null);
-        setRangeMode(false);
-      }
-    } else {
-      // Single tap mode — toggle
-      onToggleDate(dateKey);
+  function handleDay(day: DayKey) {
+    setConfirmClear(false);
+    if (!rangeMode) {
+      onToggleDate(day);
+      return;
     }
+    if (!rangeStart) {
+      setRangeStart(day);
+      return;
+    }
+    onRangeSelect(rangeStart < day ? rangeStart : day, rangeStart < day ? day : rangeStart);
+    setRangeStart(null);
+    setRangeMode(false);
   }
 
-  function toggleRangeMode() {
-    if (rangeMode) {
-      // Turning off — cancel any pending range
-      setRangeMode(false);
-      setRangeStart(null);
-    } else {
-      setRangeMode(true);
-      setRangeStart(null);
+  // Arrow keys walk the grid. Every day is still a normal tab stop.
+  function handleKeys(e: React.KeyboardEvent<HTMLDivElement>) {
+    const step = ARROWS[e.key];
+    const from = (e.target as HTMLElement).dataset.day;
+    if (!step || !from) return;
+    const next = e.currentTarget.querySelector<HTMLButtonElement>(
+      `button[data-day="${addDays(from, step)}"]:not(:disabled)`,
+    );
+    if (next) {
+      e.preventDefault();
+      next.focus();
     }
   }
 
-  function getCellClasses(day: number): string {
-    const dateKey = toDateKey(viewYear, viewMonth, day);
-    const isWeekend = new Date(viewYear, viewMonth, day).getDay() % 6 === 0;
-    const past = isPast(dateKey, todayKey);
-    const outside = isOutsideWindow(dateKey, windowStart, windowEnd);
-    const isToday = dateKey === todayKey;
-    const isSelected = selectedDates.has(dateKey);
-    const isRangeAnchor = dateKey === rangeStart;
-    const isInOverlap = overlapStart && overlapEnd && dateKey >= overlapStart && dateKey <= overlapEnd;
+  const windowLine =
+    windowStart && windowEnd
+      ? `Pick from ${formatRange(windowStart, windowEnd)}`
+      : windowStart
+        ? `Pick from ${formatDay(windowStart)} on`
+        : windowEnd
+          ? `Pick up to ${formatDay(windowEnd)}`
+          : null;
 
-    const base = "w-full aspect-square flex items-center justify-center rounded-xl text-sm font-medium transition-all duration-100";
-
-    if (past || outside) {
-      return `${base} text-text-tertiary/30 cursor-default`;
-    }
-
-    // Range start anchor
-    if (isRangeAnchor) {
-      return `${base} bg-primary text-white font-bold ring-2 ring-primary/30 cursor-pointer`;
-    }
-
-    // Already selected + in best overlap window — magnified with thick gold border
-    if (isSelected && isInOverlap) {
-      return `${base} bg-accent text-white font-bold cursor-pointer hover:bg-accent-hover border-[3px] border-pop shadow-md scale-110 z-10 relative`;
-    }
-
-    // Already selected (not in overlap)
-    if (isSelected) {
-      return `${base} bg-accent text-white font-bold cursor-pointer hover:bg-accent-hover`;
-    }
-
-    // In best overlap window but not selected by this user — magnified with gold fill
-    if (isInOverlap) {
-      return `${base} bg-pop/35 text-[#7A5A0F] font-bold cursor-pointer hover:bg-pop/45 border-[3px] border-pop/60 shadow-md scale-110 z-10 relative`;
-    }
-
-    // Heatmap (others' selections)
-    const others = dateMap.get(dateKey) ?? [];
-    const count = others.length;
-
-    let heatmap: string;
-    if (count >= 4) {
-      heatmap = "bg-heat-high text-heat-high-text";
-    } else if (count >= 2) {
-      heatmap = "bg-heat-medium text-heat-medium-text";
-    } else if (count === 1) {
-      heatmap = "bg-heat-low text-heat-low-text";
-    } else {
-      heatmap = isWeekend ? "bg-subtle text-muted-medium" : "text-muted-dark";
-    }
-
-    const todayStyle = isToday ? "ring-2 ring-primary/20 text-primary font-bold" : "";
-    const rangeCursor = rangeMode ? "cursor-pointer ring-1 ring-primary/10" : "";
-
-    return `${base} ${heatmap} ${todayStyle} ${rangeCursor} cursor-pointer hover:ring-2 hover:ring-accent/30`;
-  }
+  const bestLength = best ? diffDays(best.start, best.end) + 1 : 0;
+  const picked = selectedDates.size;
 
   return (
-    <div className="rounded-2xl border border-border-light bg-surface p-4 shadow-sm">
-      {/* Month nav */}
-      <div className="mb-2 flex items-center justify-between">
-        <button type="button" onClick={prevMonth}
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary hover:bg-subtle-hover active:scale-90 transition-all">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-          </svg>
-        </button>
-        <h3 className="font-heading text-sm font-bold text-text">{monthLabel}</h3>
-        <button type="button" onClick={nextMonth}
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary hover:bg-subtle-hover active:scale-90 transition-all">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-          </svg>
-        </button>
-      </div>
-
-      {/* Mode toggle + hint */}
-      <div className="mb-3 flex items-center justify-between">
-        <p className="text-sm text-text-secondary">
-          {rangeMode
-            ? rangeStart
-              ? "Now tap the end date"
-              : "Tap the start date"
-            : "Tap dates to mark as available"}
-        </p>
-        <button
-          type="button"
-          onClick={toggleRangeMode}
-          className={[
-            "text-xs font-semibold px-3 py-1.5 rounded-lg transition-all active:scale-95 flex items-center gap-1",
-            rangeMode
-              ? "bg-primary text-white shadow-sm"
-              : "bg-subtle text-text-secondary hover:bg-subtle-hover",
-          ].join(" ")}
-        >
-          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
-          </svg>
-          Range
-        </button>
-      </div>
-
-      {/* Range mode indicator */}
-      {rangeMode && rangeStart && (
-        <div className="mb-2 bg-primary-light border border-primary/10 rounded-lg px-3 py-2 flex items-center justify-between">
-          <p className="text-xs text-primary font-medium">
-            From {new Date(rangeStart + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short" })} → tap end date
-          </p>
-          <button type="button" onClick={() => setRangeStart(null)}
-            className="text-[10px] text-primary/60 hover:text-primary font-medium">
-            Cancel
+    <div>
+      {/* Month and navigation */}
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 pl-1 pt-1.5">
+          <h3 className="font-heading text-[1.375rem] font-bold leading-none text-text" aria-live="polite">
+            {monthName(month)}
+          </h3>
+          {windowLine && <p className="label-mono mt-1.5">{windowLine}</p>}
+        </div>
+        <div className="flex shrink-0">
+          <button
+            type="button"
+            onClick={() => setMonth((m) => m - 1)}
+            disabled={!anySelectable || month <= minMonth}
+            className="icon-btn disabled:pointer-events-none disabled:opacity-30"
+            aria-label={`Previous month, ${monthName(month - 1)}`}
+          >
+            <Icon name="chevron-left" className="h-5 w-5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setMonth((m) => m + 1)}
+            disabled={!anySelectable || month >= maxMonth}
+            className="icon-btn disabled:pointer-events-none disabled:opacity-30"
+            aria-label={`Next month, ${monthName(month + 1)}`}
+          >
+            <Icon name="chevron-right" className="h-5 w-5" />
           </button>
         </div>
-      )}
+      </div>
 
-      {/* Day headers */}
-      <div className="mb-1 grid grid-cols-7 gap-1">
-        {DAYS_OF_WEEK.map((d) => (
-          <div key={d} className="flex h-7 items-center justify-center text-[10px] font-semibold text-text-tertiary uppercase tracking-wider">
-            {d}
-          </div>
+      {/* Weekdays */}
+      <div className="mt-2 grid grid-cols-7" aria-hidden="true">
+        {WEEKDAYS.map((name, i) => (
+          <span key={name} className={`label-mono py-1.5 text-center ${i >= 5 ? "text-text-secondary" : ""}`}>
+            {name}
+          </span>
         ))}
       </div>
 
-      {/* Day grid */}
-      <div className="grid grid-cols-7 gap-1">
-        {calendarDays.map((day, i) =>
-          day === null ? (
-            <div key={`e-${i}`} className="aspect-square" />
-          ) : (
+      {/* Days */}
+      <div
+        role="group"
+        aria-label={monthName(month)}
+        onKeyDown={handleKeys}
+        className="grid grid-cols-7 gap-y-1.5 pt-1"
+      >
+        {days.map((day, i) => {
+          const column = (lead + i) % 7;
+          const off = isOff(day);
+          const mine = selectedDates.has(day);
+          const isToday = day === today;
+          const anchor = day === rangeStart;
+          const others = dateMap.get(day)?.length ?? 0;
+          const heat = heatOf(others);
+          const free = others + (mine ? 1 : 0);
+
+          const inBest = inWindow(day, best);
+          const segmentStart = inBest && (day === best!.start || column === 0 || i === 0);
+          const segmentEnd = inBest && (day === best!.end || column === 6 || day === lastDay);
+          const tagged = inBest && (day === best!.start || (i === 0 && best!.start < day));
+
+          const label = [
+            formatDayLong(day).replace(",", ""),
+            isToday ? "today" : "",
+            groupSize ? `${Math.min(free, groupSize)} of ${groupSize} free` : `${free} free`,
+            mine ? "selected" : "",
+            inBest ? "in the best window" : "",
+            anchor ? "start of the range" : "",
+            off ? "not available" : "",
+          ]
+            .filter(Boolean)
+            .join(", ");
+
+          const tile = off
+            ? mine
+              ? "bg-primary text-on-primary opacity-40"
+              : "text-text-tertiary opacity-45"
+            : anchor
+              ? "bg-primary-light text-text ring-2 ring-inset ring-primary"
+              : mine
+                ? "bg-primary text-on-primary"
+                : heat
+                  ? HEAT[heat]
+                  : "text-text group-hover:bg-subtle";
+
+          return (
             <button
               key={day}
               type="button"
-              onClick={() => handleDayClick(day)}
-              disabled={isPast(toDateKey(viewYear, viewMonth, day), todayKey) || isOutsideWindow(toDateKey(viewYear, viewMonth, day), windowStart, windowEnd)}
-              className={getCellClasses(day)}
+              data-day={day}
+              disabled={off}
+              aria-pressed={mine}
+              aria-label={label}
+              onClick={() => handleDay(day)}
+              style={i === 0 ? { gridColumnStart: lead + 1 } : undefined}
+              className="group relative h-[52px] focus-visible:z-20 disabled:cursor-default sm:h-14"
             >
-              {day}
+              <span
+                aria-hidden="true"
+                className={`absolute inset-x-[3px] inset-y-[2px] flex items-center justify-center rounded-lg transition-colors ${tile}`}
+              >
+                <span className={`font-mono text-[0.9375rem] leading-none ${mine ? "font-semibold" : "font-medium"}`}>
+                  {i + 1}
+                </span>
+                {mine && !anchor && <Icon name="check" className="absolute left-1 top-1 h-2.5 w-2.5" strokeWidth={3} />}
+                {isToday && (
+                  <span className="absolute bottom-[7px] left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-current" />
+                )}
+                {others > 0 && (
+                  <span className="absolute bottom-[3px] right-[5px] font-mono text-[0.625rem] font-medium leading-none">
+                    {others}
+                  </span>
+                )}
+              </span>
+
+              {inBest && (
+                <span
+                  aria-hidden="true"
+                  className={[
+                    "pointer-events-none absolute -inset-y-[2px] border-y-2 border-border-strong",
+                    segmentStart ? "-left-px rounded-l-xl border-l-2" : "left-0",
+                    segmentEnd ? "-right-px rounded-r-xl border-r-2" : "right-0",
+                  ].join(" ")}
+                />
+              )}
+              {tagged && (
+                <span
+                  aria-hidden="true"
+                  className="label-mono pointer-events-none absolute -top-[9px] left-1.5 z-10 bg-surface px-1 text-text"
+                >
+                  Best
+                </span>
+              )}
             </button>
-          )
-        )}
+          );
+        })}
       </div>
 
-      {/* Footer */}
-      <div className="mt-3">
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-accent font-semibold">
-            {selectedDates.size} {selectedDates.size === 1 ? "date" : "dates"} selected
+      {!monthHasDays && (
+        <div className="notice mt-3 items-center" role="status">
+          <p className="min-w-0 flex-1">
+            {anySelectable ? "No days to pick this month." : "There are no days left to pick for this trip."}
           </p>
-          {selectedDates.size > 0 && !confirmClear && (
-            <button type="button" onClick={() => setConfirmClear(true)}
-              className="text-xs text-text-tertiary hover:text-status-out font-medium transition-colors">
-              Clear all
+          {anySelectable && (
+            <button type="button" onClick={() => setMonth(monthOf(lower))} className="btn btn-outline btn-sm shrink-0">
+              Go to {monthName(monthOf(lower))}
             </button>
           )}
         </div>
-        {confirmClear && (
-          <div className="mt-2 bg-status-out-bg/50 border border-status-out/10 rounded-lg px-3 py-2 flex items-center justify-between">
-            <p className="text-xs text-status-out font-medium">Clear all {selectedDates.size} dates?</p>
-            <div className="flex items-center gap-2">
-              <button type="button" onClick={() => {
-                for (const d of selectedDates) onToggleDate(d);
-                setConfirmClear(false);
-              }} className="text-xs font-semibold text-status-out hover:text-status-out/80 transition-colors">
-                Yes, clear
+      )}
+
+      {/* What is picked, the range helper, and clear. Under the grid, so the
+          days never move when this line changes. */}
+      <div className="mt-3 flex min-h-11 items-center justify-between gap-3 border-t border-border py-2 pl-1">
+        {confirmClear ? (
+          <>
+            <p className="text-sm font-medium text-text">Clear all {plural(picked, "day")}?</p>
+            <div className="flex shrink-0 gap-2">
+              <button type="button" onClick={() => setConfirmClear(false)} className="btn btn-outline btn-sm">
+                Keep
               </button>
-              <button type="button" onClick={() => setConfirmClear(false)}
-                className="text-xs font-medium text-text-tertiary hover:text-text-secondary transition-colors">
-                Cancel
+              <button
+                type="button"
+                onClick={() => {
+                  onClear();
+                  setConfirmClear(false);
+                }}
+                className="btn btn-danger btn-sm"
+              >
+                Clear
               </button>
             </div>
-          </div>
+          </>
+        ) : (
+          <>
+            <p className="min-w-0 text-[0.8125rem] leading-snug text-text-secondary" aria-live="polite">
+              {rangeMode ? (
+                <span className="font-medium text-text">
+                  {rangeStart
+                    ? `From ${formatDay(rangeStart)}. Now tap the last day.`
+                    : "Tap the first day, then the last. Every day between is added."}
+                </span>
+              ) : picked > 0 ? (
+                <span className="font-mono text-xs">{plural(picked, "day")} picked</span>
+              ) : (
+                "Tap a day to add it. Tap again to remove it."
+              )}
+            </p>
+            <div className="flex shrink-0 items-center gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setRangeMode((on) => !on);
+                  setRangeStart(null);
+                }}
+                aria-pressed={rangeMode}
+                title="Add every day between two days"
+                className={`btn btn-sm ${rangeMode ? "btn-primary" : "btn-outline"}`}
+              >
+                <Icon name="range" className="h-4 w-4" />
+                Range
+              </button>
+              {picked > 0 && !rangeMode && (
+                <button type="button" onClick={() => setConfirmClear(true)} className="btn btn-quiet btn-sm">
+                  Clear
+                </button>
+              )}
+            </div>
+          </>
         )}
       </div>
 
-      {/* Legend */}
-      <div className="mt-2 flex items-center justify-center gap-4 text-[10px] text-text-tertiary font-medium flex-wrap">
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block h-2.5 w-2.5 rounded bg-accent" />
-          You
-        </span>
-        {overlapStart && overlapEnd && (
-          <span className="flex items-center gap-1.5">
-            <span className="inline-block h-3 w-3 rounded bg-accent border-2 border-pop" />
-            Best match
+      {/* Key. Screen readers get the same facts from each day's label. */}
+      <ul
+        aria-hidden="true"
+        className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-2 pl-1 font-mono text-[0.6875rem] leading-none text-text-secondary"
+      >
+        <li className="flex items-center gap-1.5">
+          <span className="h-3.5 w-3.5 rounded-sm bg-primary" />
+          Picked
+        </li>
+        <li className="flex items-center gap-1.5">
+          <span className="flex gap-px">
+            <span className="h-3.5 w-3.5 rounded-sm bg-heat-low" />
+            <span className="h-3.5 w-3.5 rounded-sm bg-heat-medium" />
+            <span className="h-3.5 w-3.5 rounded-sm bg-heat-high" />
           </span>
+          More people free
+        </li>
+        <li className="flex items-center gap-1.5">
+          <span className="font-semibold text-text">3</span>
+          Others free that day
+        </li>
+        {best && (
+          <li className="flex items-center gap-1.5">
+            <span className="h-3.5 w-5 rounded-sm border-2 border-border-strong" />
+            Best {plural(bestLength, "day")}
+          </li>
         )}
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block h-2.5 w-2.5 rounded bg-heat-low" />
-          1 other
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block h-2.5 w-2.5 rounded bg-heat-medium" />
-          2-3
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block h-2.5 w-2.5 rounded bg-heat-high" />
-          4+
-        </span>
-      </div>
+      </ul>
     </div>
   );
 }

@@ -1,97 +1,88 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import type { Trip } from "@/lib/types";
+import { Icon } from "@/components/icons";
 
-function getDeadlineTime(trip: Trip): Date | null {
-  if (!trip.voting_deadline || trip.voting_deadline === "none") return null;
+const HOURS: Record<string, number> = { "24h": 24, "48h": 48, "72h": 72 };
+const HOUR_MS = 3_600_000;
 
-  const hours: Record<string, number> = {
-    "24h": 24,
-    "48h": 48,
-    "72h": 72,
-  };
-
-  const h = hours[trip.voting_deadline];
-  if (!h) return null;
-
-  const created = new Date(trip.created_at);
-  return new Date(created.getTime() + h * 60 * 60 * 1000);
+/** The reply-by instant: when the trip was made plus the organiser's 24, 48 or 72 hours. */
+function replyBy(trip: Trip): number | null {
+  const hours = HOURS[trip.voting_deadline];
+  if (!hours) return null;
+  const created = new Date(trip.created_at).getTime();
+  return Number.isNaN(created) ? null : created + hours * HOUR_MS;
 }
 
-function formatTimeLeft(ms: number): string {
-  if (ms <= 0) return "0m";
-  const hours = Math.floor(ms / (1000 * 60 * 60));
-  const mins = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
-  if (hours > 0) return `${hours}h ${mins}m`;
-  return `${mins}m`;
+function timeLeft(ms: number): string {
+  const minutes = Math.max(Math.ceil(ms / 60_000), 1);
+  if (minutes < 60) return `${minutes} min left`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 2) return minutes % 60 ? `${hours}h ${minutes % 60}m left` : `${hours}h left`;
+  return `${hours}h left`;
 }
 
+/**
+ * When the organiser asked for answers by. It is a nudge, not a gate: nothing
+ * closes when the time passes, so the wording never says "closed".
+ * Only meaningful while the trip is still collecting dates.
+ */
 export function DeadlineBanner({
   trip,
   isOrganizer,
+  organiserName,
 }: {
   trip: Trip;
   isOrganizer: boolean;
+  /** First name of the organiser, for the line members see once the time has passed. */
+  organiserName?: string;
 }) {
-  const [now, setNow] = useState(() => new Date());
-  const deadline = getDeadlineTime(trip);
+  const deadline = replyBy(trip);
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
-    if (!deadline) return;
-    const interval = setInterval(() => setNow(new Date()), 60_000);
-    return () => clearInterval(interval);
+    if (deadline == null) return;
+    const tick = () => setNow(Date.now());
+    const timer = setInterval(tick, 30_000);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", tick);
+    };
   }, [deadline]);
 
-  if (!deadline) return null;
+  if (deadline == null || trip.status !== "dates_open") return null;
 
-  const msLeft = deadline.getTime() - now.getTime();
-  const expired = msLeft <= 0;
-  const urgent = msLeft > 0 && msLeft < 2 * 60 * 60 * 1000; // < 2 hours
+  const left = deadline - now;
 
-  if (expired) {
+  if (left <= 0) {
     return (
-      <div className="bg-status-out-bg/60 border border-status-out/10 rounded-xl px-4 py-3 flex items-center gap-2.5">
-        <div className="w-7 h-7 rounded-lg bg-status-out/10 flex items-center justify-center shrink-0">
-          <svg className="w-3.5 h-3.5 text-status-out" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </div>
-        <div>
-          <p className="text-status-out text-sm font-semibold">Voting deadline passed</p>
-          {isOrganizer && (
-            <p className="text-status-out/60 text-xs mt-0.5">
-              Lock the current stage to move forward.
-            </p>
+      <div className="notice notice-wait">
+        <Icon name="clock" className="mt-0.5 h-4 w-4 shrink-0 text-status-waiting" />
+        <p>
+          The reply-by time has passed.{" "}
+          {isOrganizer ? (
+            <>Lock when you&apos;re ready.</>
+          ) : (
+            <>You can still answer until {organiserName || "the organiser"} locks.</>
           )}
-        </div>
+        </p>
       </div>
     );
   }
 
+  const urgent = left < 2 * HOUR_MS;
+  const when = new Date(deadline).toLocaleString("en-IN", { weekday: "short", hour: "numeric", minute: "2-digit" });
+
   return (
-    <div className={[
-      "border rounded-xl px-4 py-3 flex items-center gap-2.5",
-      urgent
-        ? "bg-status-waiting-bg/60 border-status-waiting/10"
-        : "bg-status-pending-bg/60 border-status-pending/10",
-    ].join(" ")}>
-      <div className={[
-        "w-7 h-7 rounded-lg flex items-center justify-center shrink-0",
-        urgent ? "bg-status-waiting/10" : "bg-status-pending/10",
-      ].join(" ")}>
-        <svg className={[
-          "w-3.5 h-3.5",
-          urgent ? "text-status-waiting animate-pulse-soft" : "text-status-pending",
-        ].join(" ")} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      </div>
-      <p className={[
-        "text-sm font-medium",
-        urgent ? "text-status-waiting" : "text-status-pending",
-      ].join(" ")}>
-        Voting closes in <span className="font-bold">{formatTimeLeft(msLeft)}</span>
+    <div className={`notice ${urgent ? "notice-wait" : "notice-info"}`}>
+      <Icon
+        name="clock"
+        className={`mt-0.5 h-4 w-4 shrink-0 ${urgent ? "text-status-waiting" : "text-status-responded"}`}
+      />
+      <p>
+        <span className="font-semibold">Reply by {when}.</span> {timeLeft(left)}.
       </p>
     </div>
   );

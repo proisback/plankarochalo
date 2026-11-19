@@ -1,93 +1,99 @@
 "use client";
 
 import { useState } from "react";
+import { Sheet } from "@/components/sheet";
+import { Icon, Spinner } from "@/components/icons";
+import { friendlyError } from "@/lib/errors";
 
+/**
+ * The organiser's lock control. Every lock goes through the same confirm sheet,
+ * which says exactly what is being locked and who has not answered yet.
+ *
+ * `onLock` must throw (or reject) if the write fails. The sheet then stays open
+ * and shows the error instead of closing as if it had worked.
+ */
 export function LockButton({
   label,
+  title = "Lock this in?",
   confirmMessage,
+  details,
+  confirmLabel = "Lock it",
   onLock,
+  variant = "primary",
+  className = "",
 }: {
+  /** Text on the trigger button. */
   label: string;
+  /** Heading of the confirm sheet. */
+  title?: string;
+  /** One or two sentences: what locking does. */
   confirmMessage: string;
+  /** Extra facts shown as a list, for example "Not answered: Dev". */
+  details?: string[];
+  confirmLabel?: string;
   onLock: () => Promise<void>;
+  variant?: "primary" | "outline";
+  className?: string;
 }) {
-  const [showConfirm, setShowConfirm] = useState(false);
+  const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   async function handleConfirm() {
     setLoading(true);
+    setError("");
     try {
       await onLock();
+      setOpen(false);
+    } catch (e) {
+      setError(friendlyError(e, "Couldn't lock. Check your connection and try again."));
     } finally {
       setLoading(false);
-      setShowConfirm(false);
     }
   }
 
   return (
     <>
-      {/* trigger button */}
       <button
-        onClick={() => setShowConfirm(true)}
-        className="w-full bg-gradient-to-r from-primary to-[#F4845F] text-white rounded-2xl px-5 py-4 text-sm font-bold font-heading shadow-md hover:shadow-lg active:scale-[0.98] transition-all"
+        type="button"
+        onClick={() => {
+          setError("");
+          setOpen(true);
+        }}
+        className={`btn btn-block ${variant === "primary" ? "btn-primary btn-lg" : "btn-outline"} ${className}`}
       >
-        {label}
+        <Icon name="lock" className="h-4 w-4 shrink-0" />
+        <span className="min-w-0 truncate">{label}</span>
       </button>
 
-      {/* full-screen modal overlay */}
-      {showConfirm && (
-        <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-background/80 backdrop-blur-md animate-fade"
-          onClick={() => setShowConfirm(false)}
-        >
-          <div
-            className="max-w-sm w-full mx-4 mb-4 sm:mb-0 bg-surface rounded-2xl p-6 shadow-xl border border-border-light animate-in"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* icon */}
-            <div className="w-11 h-11 rounded-xl bg-primary-light flex items-center justify-center mb-4">
-              <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-              </svg>
-            </div>
-
-            {/* title */}
-            <h3 className="font-heading text-base font-bold text-text">
-              Lock this in?
-            </h3>
-
-            {/* description */}
-            <p className="text-sm text-text-secondary mt-1.5 leading-relaxed">
-              {confirmMessage}
-            </p>
-
-            {/* actions */}
-            <div className="flex gap-3 mt-5">
-              <button
-                onClick={handleConfirm}
-                disabled={loading}
-                className="flex-1 bg-primary text-white rounded-xl px-4 py-2.5 text-sm font-bold shadow-sm hover:bg-primary-hover active:scale-[0.98] transition-all disabled:opacity-50"
-              >
-                {loading ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                    Locking...
-                  </span>
-                ) : "Lock it"}
-              </button>
-              <button
-                onClick={() => setShowConfirm(false)}
-                className="flex-1 bg-subtle-hover text-text-secondary rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-subtle-active active:scale-[0.98] transition-all"
-              >
-                Wait, not yet
-              </button>
-            </div>
-          </div>
+      <Sheet open={open} onClose={() => setOpen(false)} title={title} description={confirmMessage} dismissible={!loading}>
+        {details && details.length > 0 && (
+          <ul className="mb-4 space-y-1.5 border-l-2 border-border pl-3 text-sm text-text-secondary">
+            {details.map((d) => (
+              <li key={d}>{d}</li>
+            ))}
+          </ul>
+        )}
+        {error && (
+          <p role="alert" className="notice notice-stop mb-4">
+            {error}
+          </p>
+        )}
+        <div className="grid grid-cols-2 gap-2">
+          <button type="button" onClick={() => setOpen(false)} disabled={loading} className="btn btn-outline">
+            Not yet
+          </button>
+          <button type="button" onClick={handleConfirm} disabled={loading} className="btn btn-primary" data-autofocus>
+            {loading ? (
+              <>
+                <Spinner /> Locking
+              </>
+            ) : (
+              confirmLabel
+            )}
+          </button>
         </div>
-      )}
+      </Sheet>
     </>
   );
 }
