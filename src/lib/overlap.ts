@@ -1,191 +1,139 @@
 import type { Member } from "./types";
+import { type DayKey, addDays, memberDays } from "./dates";
 
-interface OverlapWindow {
-  start: Date;
-  end: Date;
+export interface OverlapWindow {
+  /** First day of the window, "YYYY-MM-DD". */
+  start: DayKey;
+  /** Last day of the window, inclusive. */
+  end: DayKey;
   days: number;
-  minCount: number;
-  totalCount: number;
+  /** People free on every day of the window. This is the score that matters. */
+  fullCount: number;
+  /** Names of those people. */
   memberNames: string[];
+  /** People who gave dates but cannot do the whole window. */
+  missingNames: string[];
+  /** Person-days covered inside the window. Tie-breaker. */
+  totalCount: number;
+}
+
+export interface OverlapResult {
+  /** Best window of exactly `tripDays` days at least two people can do in full. */
+  best: OverlapWindow | null;
+  /** Longest shorter window two people share, when no full-length one exists. */
+  fallback: OverlapWindow | null;
+  /** Day -> names of everyone free that day. Drives the calendar heat. */
+  dateMap: Map<DayKey, string[]>;
+  /** How many members have given any dates. */
+  answered: number;
 }
 
 /**
- * Find the best N-day window where the most members overlap.
+ * Find the best N-day window for the group.
  *
- * Algorithm (from memory.md):
- * 1. Build date→count map from all members' availability ranges
- * 2. Filter to dates where count >= 2
- * 3. Find consecutive runs of overlapping dates
- * 4. Slide a window of `tripDays` length, score by min overlap across window
- * 5. Return best window (or longest available if no window fits)
+ * A trip only works for the people who can make all of it, so a window is
+ * scored by how many members are free on every one of its days. (Counting heads
+ * per day is not enough: three people each free on two different days of a
+ * three-day window give "2 people" every day and nobody for the whole trip.)
+ *
+ * Ranking: most people for the whole window, then most person-days covered
+ * (so near-misses still count for something), then the earliest start.
+ * A window needs at least two people to count.
+ *
+ * The advance_trip() database function implements the same ranking in SQL.
+ * Change one and you must change the other.
+ *
+ * Works entirely on day keys, so the result is the same in every timezone.
  */
-export function findBestOverlap(
-  members: Member[],
-  tripDays: number
-): { best: OverlapWindow | null; fallback: OverlapWindow | null; dateMap: Map<string, string[]> } {
-  // Build date→member name map
-  const dateMap = new Map<string, string[]>();
+export function findBestOverlap(members: Member[], tripDays: number): OverlapResult {
+  const people = members
+    .map((m) => ({ id: m.id, name: m.name, days: new Set(memberDays(m)) }))
+    .filter((p) => p.days.size > 0);
 
-  for (const m of members) {
-    if (!m.availability_start || !m.availability_end) continue;
-
-    // Check if constraint_note holds per-day selected dates (new format)
-    let perDayDates: string[] | null = null;
-    if (m.constraint_note) {
-      try {
-        const parsed = JSON.parse(m.constraint_note);
-        if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === "string" && parsed[0].match(/^\d{4}-\d{2}-\d{2}$/)) {
-          perDayDates = parsed;
-        }
-      } catch {
-        // Not JSON
-      }
-    }
-
-    if (perDayDates) {
-      // New format: explicit list of available dates
-      for (const key of perDayDates) {
-        const existing = dateMap.get(key) || [];
-        existing.push(m.name);
-        dateMap.set(key, existing);
-      }
-    } else {
-      // Legacy format: range with optional constraint exclusions
-      const start = new Date(m.availability_start);
-      const end = new Date(m.availability_end);
-
-      const constraintRanges: { start: Date; end: Date }[] = [];
-      if (m.constraint_note) {
-        try {
-          const parsed = JSON.parse(m.constraint_note);
-          if (Array.isArray(parsed)) {
-            for (const r of parsed) {
-              if (r.start && r.end) {
-                constraintRanges.push({ start: new Date(r.start), end: new Date(r.end) });
-              }
-            }
-          }
-        } catch {
-          if (m.constraint_start && m.constraint_end) {
-            constraintRanges.push({ start: new Date(m.constraint_start), end: new Date(m.constraint_end) });
-          }
-        }
-      } else if (m.constraint_start && m.constraint_end) {
-        constraintRanges.push({ start: new Date(m.constraint_start), end: new Date(m.constraint_end) });
-      }
-
-      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-        const isBlocked = constraintRanges.some((r) => d >= r.start && d <= r.end);
-        if (isBlocked) continue;
-
-        const key = d.toISOString().split("T")[0];
-        const existing = dateMap.get(key) || [];
-        existing.push(m.name);
-        dateMap.set(key, existing);
-      }
+  const dateMap = new Map<DayKey, string[]>();
+  for (const p of people) {
+    for (const day of p.days) {
+      const list = dateMap.get(day);
+      if (list) list.push(p.name);
+      else dateMap.set(day, [p.name]);
     }
   }
 
-  // Get sorted dates where at least 2 members overlap
-  const overlapDates = Array.from(dateMap.entries())
-    .filter(([, names]) => names.length >= 2)
-    .sort(([a], [b]) => a.localeCompare(b));
+  const starts = Array.from(dateMap.keys()).sort();
 
-  if (overlapDates.length === 0) return { best: null, fallback: null, dateMap };
-
-  // Find consecutive runs
-  const runs: { dates: [string, string[]][] }[] = [];
-  let currentRun: [string, string[]][] = [overlapDates[0]];
-
-  for (let i = 1; i < overlapDates.length; i++) {
-    const prevDate = new Date(overlapDates[i - 1][0]);
-    const currDate = new Date(overlapDates[i][0]);
-    const diffDays = (currDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24);
-
-    if (diffDays === 1) {
-      currentRun.push(overlapDates[i]);
-    } else {
-      runs.push({ dates: currentRun });
-      currentRun = [overlapDates[i]];
-    }
-  }
-  runs.push({ dates: currentRun });
-
-  // Slide window of tripDays across each run
-  let bestWindow: OverlapWindow | null = null;
-
-  for (const run of runs) {
-    if (run.dates.length < tripDays) continue;
-
-    for (let i = 0; i <= run.dates.length - tripDays; i++) {
-      const windowDates = run.dates.slice(i, i + tripDays);
-      const counts = windowDates.map(([, names]) => names.length);
-      const minCount = Math.min(...counts);
-      const totalCount = counts.reduce((a, b) => a + b, 0);
-
-      // All members who are available for ALL days in this window
-      const memberSets = windowDates.map(([, names]) => new Set(names));
-      const allDayMembers = Array.from(memberSets[0]).filter((name) =>
-        memberSets.every((s) => s.has(name))
-      );
-
+  const bestOfLength = (length: number): OverlapWindow | null => {
+    let winner: OverlapWindow | null = null;
+    for (const start of starts) {
+      const window = Array.from({ length }, (_, i) => addDays(start, i));
+      const full: string[] = [];
+      const missing: string[] = [];
+      let total = 0;
+      for (const p of people) {
+        const covered = window.reduce((n, day) => n + (p.days.has(day) ? 1 : 0), 0);
+        total += covered;
+        if (covered === length) full.push(p.name);
+        else missing.push(p.name);
+      }
+      if (full.length < 2) continue;
       if (
-        !bestWindow ||
-        minCount > bestWindow.minCount ||
-        (minCount === bestWindow.minCount && totalCount > bestWindow.totalCount)
+        !winner ||
+        full.length > winner.fullCount ||
+        (full.length === winner.fullCount && total > winner.totalCount)
       ) {
-        bestWindow = {
-          start: new Date(windowDates[0][0]),
-          end: new Date(windowDates[windowDates.length - 1][0]),
-          days: tripDays,
-          minCount,
-          totalCount,
-          memberNames: allDayMembers,
+        winner = {
+          start,
+          end: window[length - 1],
+          days: length,
+          fullCount: full.length,
+          memberNames: full,
+          missingNames: missing,
+          totalCount: total,
         };
       }
     }
+    return winner;
+  };
+
+  const result: OverlapResult = { best: null, fallback: null, dateMap, answered: people.length };
+  if (tripDays < 1 || people.length < 2) return result;
+
+  result.best = bestOfLength(tripDays);
+  if (!result.best) {
+    for (let length = tripDays - 1; length >= 1 && !result.fallback; length--) {
+      result.fallback = bestOfLength(length);
+    }
   }
+  return result;
+}
 
-  // Fallback: if no window fits tripDays, find the longest consecutive run
-  let fallbackWindow: OverlapWindow | null = null;
-  if (!bestWindow && runs.length > 0) {
-    const longestRun = runs.reduce((a, b) =>
-      a.dates.length > b.dates.length ? a : b
-    );
-    const windowDates = longestRun.dates;
-    const memberSets = windowDates.map(([, names]) => new Set(names));
-    const allDayMembers = Array.from(memberSets[0]).filter((name) =>
-      memberSets.every((s) => s.has(name))
-    );
-
-    fallbackWindow = {
-      start: new Date(windowDates[0][0]),
-      end: new Date(windowDates[windowDates.length - 1][0]),
-      days: windowDates.length,
-      minCount: Math.min(...windowDates.map(([, n]) => n.length)),
-      totalCount: windowDates.reduce((sum, [, n]) => sum + n.length, 0),
-      memberNames: allDayMembers,
-    };
-  }
-
-  return { best: bestWindow, fallback: fallbackWindow, dateMap };
+/** True if the day falls inside the window. */
+export function inWindow(day: DayKey, w: Pick<OverlapWindow, "start" | "end"> | null | undefined): boolean {
+  return !!w && day >= w.start && day <= w.end;
 }
 
 /**
- * Find the budget overlap ("sweet spot") across all members who submitted a range.
- * Returns the intersection of all ranges, or null if < 2 submissions or no overlap.
+ * What the group can afford.
+ *
+ * Each member may share the most they are comfortable spending per person for
+ * the whole trip (`budget_max`; older rows also carry a `budget_min`). The trip
+ * has to fit the tightest budget, so the group's ceiling is the lowest maximum.
+ * Individual answers are never shown, only this aggregate.
+ *
+ * Returns null until at least two people have answered, or if older ranged
+ * answers do not meet (someone's minimum is above someone else's maximum).
  */
-export function findBudgetOverlap(
-  members: Member[]
-): { min: number; max: number; count: number } | null {
-  const withBudget = members.filter(
-    (m) => m.budget_min != null && m.budget_max != null
-  );
-  if (withBudget.length < 2) return null;
+export function findBudgetOverlap(members: Member[]): { min: number; max: number; count: number } | null {
+  const answered = members.filter((m) => m.budget_max != null);
+  if (answered.length < 2) return null;
 
-  const overlapMin = Math.max(...withBudget.map((m) => m.budget_min!));
-  const overlapMax = Math.min(...withBudget.map((m) => m.budget_max!));
+  const min = Math.max(...answered.map((m) => m.budget_min ?? 0));
+  const max = Math.min(...answered.map((m) => m.budget_max!));
 
-  if (overlapMin > overlapMax) return null;
-  return { min: overlapMin, max: overlapMax, count: withBudget.length };
+  if (min > max) return null;
+  return { min, max, count: answered.length };
+}
+
+/** How many members have shared a budget at all. */
+export function budgetAnswers(members: Member[]): number {
+  return members.filter((m) => m.budget_max != null).length;
 }
