@@ -14,6 +14,19 @@ const anek = Anek_Latin({
   display: "swap",
 });
 
+// The same family again for headlines, with fallbacks tuned to its condensed
+// width (see "PKC Display" faces in globals.css). The automatic fallback is
+// sized for normal-width text, so headlines set at 76% width re-wrapped from
+// four lines to two when the web font arrived.
+const anekDisplay = Anek_Latin({
+  subsets: ["latin"],
+  axes: ["wdth"],
+  variable: "--font-anek-display",
+  display: "swap",
+  adjustFontFallback: false,
+  fallback: ["PKC Display Impact", "PKC Display Narrow", "PKC Display Arial", "sans-serif"],
+});
+
 const anekDeva = Anek_Devanagari({
   subsets: ["devanagari"],
   axes: ["wdth"],
@@ -84,7 +97,7 @@ export default function RootLayout({
   return (
     <html
       lang="en-IN"
-      className={`${anek.variable} ${anekDeva.variable} ${plexMono.variable}`}
+      className={`${anek.variable} ${anekDisplay.variable} ${anekDeva.variable} ${plexMono.variable}`}
       suppressHydrationWarning
     >
       <head>

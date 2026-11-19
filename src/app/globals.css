@@ -51,7 +51,7 @@
   /* ── Text ──────────────────────────────────── */
   --color-text: #16140F;
   --color-text-secondary: #57534A;
-  --color-text-tertiary: #767164;
+  --color-text-tertiary: #6E695D;
 
   /* ── Borders ───────────────────────────────── */
   --color-border: #D9D6CA;
@@ -64,7 +64,7 @@
   --color-subtle-active: #D3CFC3;
 
   /* ── Muted text ────────────────────────────── */
-  --color-muted: #767164;
+  --color-muted: #6E695D;
   --color-muted-medium: #57534A;
   --color-muted-dark: #38352E;
 
@@ -95,7 +95,7 @@
 
   /* ── Type ──────────────────────────────────── */
   --font-sans: var(--font-anek), var(--font-anek-deva), ui-sans-serif, system-ui, sans-serif;
-  --font-heading: var(--font-anek), var(--font-anek-deva), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-anek-display), var(--font-anek-deva), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-plex-mono), var(--font-anek-deva), ui-monospace, "SFMono-Regular", Menlo, monospace;
   --font-deva: var(--font-anek-deva), var(--font-anek), sans-serif;
 
@@ -154,7 +154,7 @@ html.dark {
 
   --color-text: #F3F0E7;
   --color-text-secondary: #B1AB9C;
-  --color-text-tertiary: #8A8475;
+  --color-text-tertiary: #928C7D;
 
   --color-border: #35322A;
   --color-border-light: #29261F;
@@ -164,7 +164,7 @@ html.dark {
   --color-subtle-hover: #2F2C24;
   --color-subtle-active: #3C382E;
 
-  --color-muted: #8A8475;
+  --color-muted: #928C7D;
   --color-muted-medium: #B1AB9C;
   --color-muted-dark: #D2CCBD;
 
@@ -173,7 +173,7 @@ html.dark {
   --color-heat-medium: rgba(255, 201, 31, 0.32);
   --color-heat-medium-text: #FFF1C7;
   --color-heat-high: rgba(255, 201, 31, 0.58);
-  --color-heat-high-text: #FFFFFF;
+  --color-heat-high-text: #16140F;
 
   --color-whatsapp: #25D366;
   --color-whatsapp-hover: #4BE083;
@@ -198,12 +198,37 @@ html.dark {
 }
 
 /* ═══════════════════════════════════════════════
+   HEADLINE FALLBACK FACES
+   Shown for the instant before Anek loads. Each is a condensed or scaled
+   system font sized to take up the same line length as Anek at 76% width,
+   so a headline does not re-wrap when the real font arrives. The first one
+   whose local font exists is used. Ratios were measured against Anek 800.
+   ═══════════════════════════════════════════════ */
+
+@font-face {
+  font-family: "PKC Display Impact";
+  src: local("Impact");
+  size-adjust: 84%;
+}
+@font-face {
+  font-family: "PKC Display Narrow";
+  src: local("Arial Narrow Bold"), local("ArialNarrow-Bold");
+  size-adjust: 73%;
+}
+@font-face {
+  font-family: "PKC Display Arial";
+  src: local("Arial Bold"), local("Arial-BoldMT"), local("Arial");
+  size-adjust: 59%;
+}
+
+/* ═══════════════════════════════════════════════
    BASE
    ═══════════════════════════════════════════════ */
 
 html {
   -webkit-text-size-adjust: 100%;
   scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
 }
 
 body {
@@ -244,6 +269,10 @@ html.dark body {
     outline: 2px solid var(--color-primary);
     outline-offset: 2px;
   }
+  .bg-brand :focus-visible,
+  .bg-brand:focus-visible {
+    outline-color: var(--color-ink);
+  }
 }
 
 ::selection {
@@ -275,6 +304,17 @@ html.dark body {
     line-height: 0.92;
     letter-spacing: -0.02em;
     text-transform: uppercase;
+  }
+
+  /* Sentence headline: same condensed weight, but not shouting. Use .display
+     for short signage (a station name, a price, a two-word title) and this
+     for anything that reads as a sentence. */
+  .headline {
+    font-family: var(--font-heading);
+    font-stretch: 78%;
+    font-weight: 800;
+    line-height: 0.98;
+    letter-spacing: -0.02em;
   }
 
   /* ── Buttons ─────────────────────────────── */
@@ -632,6 +672,26 @@ html.dark body {
     color: var(--color-text);
   }
 
+  /* Printed stock stays paper in both themes. Put .paper on a ticket that
+     should read as a physical object rather than as part of the interface. */
+  .paper {
+    --color-surface: #FFFFFF;
+    --color-background: #F4F3EE;
+    --color-text: #16140F;
+    --color-text-secondary: #57534A;
+    --color-text-tertiary: #6E695D;
+    --color-border: #D9D6CA;
+    --color-border-strong: #16140F;
+    --color-subtle: #ECEAE2;
+    --color-status-confirmed: #12704A;
+    --color-status-confirmed-bg: #DFF3E7;
+    --color-status-waiting: #8F5200;
+    --color-status-waiting-bg: #FFEED0;
+    --color-status-out: #B3261E;
+    --color-status-out-bg: #FBE6E3;
+    color: var(--color-text);
+  }
+
   /* ── Stamp: inked, slightly off-register ── */
   .stamp {
     display: inline-flex;
@@ -791,7 +851,7 @@ html.dark body {
 .animate-pulse-soft { animation: pulse-soft 2s ease-in-out infinite; }
 .animate-stamp { animation: stamp-down 0.55s var(--ease-spring) both; }
 .animate-print { animation: print-out 0.9s var(--ease-out-quint) both; }
-.animate-blink { animation: blink 1.2s steps(1) infinite; }
+.animate-blink { animation: blink 1.2s steps(1) 5; }
 .flap-in { animation: flap-in 0.34s var(--ease-out-quint) both; }
 .animate-celebrate { animation: fade-in-up 0.5s var(--ease-out-quint) both; }
 .animate-delayed-cta { animation: fade-in-up 0.5s var(--ease-out-quint) 0.9s both; }
@@ -896,9 +956,14 @@ html.dark body {
   background-repeat: no-repeat;
   background-size: 100% 0.36em;
   background-position: 0 88%;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
 }
 html.dark .marker {
-  background-image: linear-gradient(rgba(255, 201, 31, 0.45), rgba(255, 201, 31, 0.45));
+  background-size: 100% 92%;
+  background-position: 0 60%;
+  color: var(--color-on-brand);
+  padding: 0 0.08em;
 }
 
 /* Paper grain. Fixed, non-interactive, never on a scroll container. */

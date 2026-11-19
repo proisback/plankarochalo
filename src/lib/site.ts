@@ -11,6 +11,12 @@ export const site = {
   /** Canonical origin. Set NEXT_PUBLIC_SITE_URL on Vercel if the domain changes. */
   url: (process.env.NEXT_PUBLIC_SITE_URL ?? "https://plankarochalo.vercel.app").replace(/\/$/, ""),
   repo: "https://github.com/proisback/plankarochalo",
+  /**
+   * Show "Source on GitHub" on the public pages. Off until the research files
+   * in the repository no longer name participants: the pages quote that
+   * research as anonymised, and the repository is one click away.
+   */
+  linkRepo: false as boolean,
   author: {
     name: "Prateek",
     /** Optional. Leave empty to hide the link. */

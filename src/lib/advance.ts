@@ -17,7 +17,7 @@ import { findBestOverlap } from "./overlap";
  * would only advance when the organiser happened to be the last to answer.
  *
  * If the function has not been installed yet (see
- * supabase/2026-11-20-server-side-advance.sql) this falls back to the direct
+ * supabase/2026-11-20-hardening-and-advance.sql) this falls back to the direct
  * update, which keeps today's behaviour: it works when the caller is the
  * organiser and is a harmless no-op for everyone else.
  */

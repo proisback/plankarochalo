@@ -8,14 +8,17 @@ import { site } from "@/lib/site";
 export const dynamic = "force-static";
 
 export const metadata: Metadata = {
-  title: "Case study: how 132 conversations became four screens",
+  title: "Case study: what 132 people told us about group trips",
   description:
     "The research, the wrong first assumption, the decisions and the results behind Plan Karo Chalo, a group trip coordinator for Indian friend groups.",
 };
 
 /* Everything on this page is taken from the project's own documents:
-   PlanKaroChalo_Discovery_Document.md, PlanKaroChalo_PRD_v2.html and memory.md.
-   Research participants are never named. Change a number only with its source. */
+   PlanKaroChalo_Discovery_Document.md, PlanKaroChalo_Research_Appendix.md and
+   PlanKaroChalo_PRD_v2.html. The two measured results (91.7%, 85.2%) are the
+   author's measurement from the first test groups and are not recorded in a
+   file in this repository. Research participants are never named. Survey
+   percentages are shares of respondents. Change a number only with its source. */
 
 const JOURNEY: { name: string; note: string; kill?: boolean }[] = [
   { name: "Spark", note: "“Let's go somewhere!” Twelve ideas across three conversations." },
@@ -23,7 +26,7 @@ const JOURNEY: { name: string; note: string; kill?: boolean }[] = [
   { name: "Place", note: "Debates, expired polls, decision paralysis.", kill: true },
   { name: "Budget", note: "Rarely said out loud. Surfaces later as dropouts.", kill: true },
   { name: "Stay", note: "One person researches across several booking sites." },
-  { name: "Itinerary", note: "Days of calls and blog research. AI is already eating this." },
+  { name: "Itinerary", note: "Days of calls and blog research. General AI tools already do this." },
   { name: "On trip", note: "The organiser becomes GPS, concierge and accountant." },
   { name: "After", note: "Expense settlement drags on." },
 ];
@@ -32,7 +35,7 @@ const SCOPE: { pain: string; call: string; tone: "in" | "later" | "out"; why: st
   { pain: "Aligning dates", call: "Built", tone: "in", why: "The most common failure point, and no tool solves it for informal groups." },
   { pain: "Seeing where the trip stands", call: "Built", tone: "in", why: "No shared view means no visible progress, and momentum dies." },
   { pain: "Agreeing on a place", call: "Built", tone: "in", why: "Chat polls have no context, no structure and no way to lock." },
-  { pain: "One person doing everything", call: "Design rule", tone: "in", why: "Two thirds of groups have one or two planners. Every screen has to take work off them." },
+  { pain: "One person doing everything", call: "Built in", tone: "in", why: "Two thirds of respondents said one or two people do the planning. Every screen has to take work off them." },
   { pain: "Budget mismatch", call: "Built, lightly", tone: "later", why: "Real, but people were lukewarm about sharing ranges. Kept optional and anonymous." },
   { pain: "Building the itinerary", call: "Not now", tone: "later", why: "General AI tools already do this well. It is not where groups fail." },
   { pain: "Splitting expenses", call: "Never", tone: "out", why: "A mature category with good tools. Interviewees rejected it outright." },
@@ -41,16 +44,6 @@ const SCOPE: { pain: string; call: string; tone: "in" | "later" | "out"; why: st
 ];
 
 const DECISIONS: { chose: string; rejected: string; why: string }[] = [
-  {
-    chose: "Friends take part from a link, with no account.",
-    rejected: "Everyone signs up.",
-    why: "Every interviewee said the same thing: asking people to install something or create an account is where adoption dies. Only the organiser signs in, so the trip has an owner.",
-  },
-  {
-    chose: "Four stages, each locked before the next opens.",
-    rejected: "A free-form board where anything can be decided in any order.",
-    why: "Flexibility is what the group chat already offers, and it produces seven destination ideas before anyone has checked a calendar. Gates supply the discipline groups cannot impose on themselves.",
-  },
   {
     chose: "Tap individual days on a calendar.",
     rejected: "From and To date pickers with exceptions.",
@@ -62,14 +55,9 @@ const DECISIONS: { chose: string; rejected: string; why: string }[] = [
     why: "An organiser put it plainly: show me who I am waiting on, so I know who to ping. The wording stays neutral. It says who is waiting, never who is to blame.",
   },
   {
-    chose: "A two-second hold to commit.",
-    rejected: "A single tap on I'm in.",
-    why: "A tap is a thumbs-up. Borrowing the hold from payment confirmations makes yes a deliberate act, and testers described it as feeling serious and real.",
-  },
-  {
     chose: "Budget asked after dates, and optional.",
     rejected: "Budget as a required step before dates could be saved.",
-    why: "Budget is sensitive. When it blocked the date step, people hesitated and left. Asked afterwards, with a way to skip, the main answer was always saved first.",
+    why: "Budget is sensitive. When it blocked the date step, testers hesitated. Asked afterwards, with a way to skip, the main answer is always saved first.",
   },
 ];
 
@@ -100,14 +88,11 @@ const SECOND_PASS: { title: string; body: string }[] = [
   },
 ];
 
-function Heading({ number, children }: { number: string; children: React.ReactNode }) {
+function Heading({ part, children }: { part: number; children: React.ReactNode }) {
   return (
     <>
-      <p className="label-mono flex items-center gap-3">
-        <span className="text-text">{number}</span>
-        <span className="h-px w-8 bg-border-strong" aria-hidden="true" />
-      </p>
-      <h2 className="display mt-3 text-[clamp(2rem,4.6vw,3.25rem)] text-text">{children}</h2>
+      <p className="label-mono">Part {part} of 7</p>
+      <h2 className="headline mt-3 text-[clamp(2rem,4.6vw,3.25rem)] text-text">{children}</h2>
     </>
   );
 }
@@ -122,19 +107,20 @@ export default function Story() {
         {/* ── Title ── */}
         <header className="mx-auto max-w-[1200px] px-4 pb-12 pt-10 lg:px-8 lg:pb-16 lg:pt-16">
           <p className="label-mono">Case study · Plan Karo Chalo</p>
-          <h1 className="display mt-4 max-w-5xl text-[clamp(2.75rem,7.4vw,5.5rem)] text-text">
-            How 132 conversations became <span className="marker">four screens</span>.
+          <h1 className="display mt-4 max-w-5xl text-balance text-[clamp(2.75rem,7.4vw,5.5rem)] text-text">
+            What 132 people told us about group trips, in <span className="marker">four screens</span>.
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-relaxed text-text-secondary">
-            A group trip coordinator for Indian friend groups: the research behind it, the assumption it overturned, the
-            decisions that shaped it, and what a hard second look changed.
+            I set out to fix itinerary planning. 27 interviews and 105 survey responses said trips die earlier, at the
+            dates. So I built the smallest thing that gets a group to commit, in 8 days. In the first test groups,
+            91.7% of friends who joined went on to answer.
           </p>
           <dl className="mt-10 grid gap-px overflow-hidden rounded-2xl border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
             {[
               ["Product, design and build", site.author.name],
-              ["Research", "27 interviews, 105 survey responses"],
+              ["Research", "27 interviews and 105 survey responses, gathered with a product cohort"],
               ["First version", "8 days, April 2026"],
-              ["Built with", "Next.js, Supabase, Tailwind"],
+              ["First test", "91.7% of friends who joined answered"],
             ].map(([k, v]) => (
               <div key={k} className="bg-background p-4">
                 <dt className="label-mono">{k}</dt>
@@ -148,32 +134,36 @@ export default function Story() {
         <section className="border-t border-border">
           <div className="mx-auto grid max-w-[1200px] gap-8 px-4 py-14 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-16 lg:px-8 lg:py-20">
             <div className="lg:sticky lg:top-24 lg:self-start">
-              <Heading number="01">We were wrong about the problem.</Heading>
+              <Heading part={1}>I was wrong about the problem.</Heading>
             </div>
             <div className="space-y-5 text-lg leading-relaxed text-text-secondary">
               <p>
-                The research started from an assumption: the painful part of a group trip is building the itinerary.
-                The plan was to make that easier.
+                I started from an assumption: the painful part of a group trip is building the itinerary. I planned to
+                make that easier.
               </p>
               <p>
-                <span className="font-semibold text-text">It was the wrong problem.</span> Across 27 interviews and
-                three surveys, covering friend groups, multi-family holidays, women&apos;s treks, couples, a motorcycle
-                club and three-generation families, the trip was already dead long before anyone opened a map.
+                <span className="font-semibold text-text">It was the wrong problem.</span> Across 27 interviews and 105
+                survey responses, covering friend groups, multi-family holidays, women&apos;s treks, couples, a
+                motorcycle club and three-generation families, the trip was already dead long before anyone opened a
+                map.
               </p>
               <ul className="divide-y divide-border border-y border-border text-text">
                 <li className="grid grid-cols-[5.5rem_minmax(0,1fr)] items-baseline gap-4 py-4">
                   <span className="display text-4xl">35%</span>
-                  <span>of trips that never happened failed because the dates could not be aligned.</span>
+                  <span>of people surveyed said a trip did not happen because the dates could not be aligned.</span>
                 </li>
                 <li className="grid grid-cols-[5.5rem_minmax(0,1fr)] items-baseline gap-4 py-4">
                   <span className="display text-4xl">20%</span>
-                  <span>failed because planning became overwhelming and the momentum went.</span>
+                  <span>said one did not happen because planning became overwhelming and the momentum went.</span>
                 </li>
                 <li className="grid grid-cols-[5.5rem_minmax(0,1fr)] items-baseline gap-4 py-4">
                   <span className="display text-4xl">67%</span>
-                  <span>of groups had one or two people doing most or all of the planning.</span>
+                  <span>said one or two people did most or all of the planning.</span>
                 </li>
               </ul>
+              <p className="font-mono text-[0.6875rem] uppercase leading-relaxed tracking-[0.08em] text-text-tertiary">
+                35% and 20%: 14 and 8 of 40 respondents in one survey. 67%: a second survey of 49.
+              </p>
               <p>
                 Two people from very different groups, one planning with college friends and one coordinating three
                 generations of a family, described the same fix without being asked: one link, no download, see the
@@ -185,25 +175,31 @@ export default function Story() {
         </section>
 
         {/* ── 2. The kill zone ── */}
-        <section className="border-t border-border bg-ink text-paper">
+        <section className="border-t border-border bg-ink text-paper dark:border-y">
           <div className="mx-auto max-w-[1200px] px-4 py-14 lg:px-8 lg:py-20">
-            <p className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.09em] text-brand">02</p>
-            <h2 className="display mt-3 max-w-3xl text-[clamp(2rem,4.6vw,3.25rem)]">
+            <p className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.09em] text-brand">Part 2 of 7</p>
+            <h2 className="headline mt-3 max-w-3xl text-[clamp(2rem,4.6vw,3.25rem)]">
               A trip has eight stops. It dies at stops two to four.
             </h2>
-            <p className="mt-5 max-w-2xl text-lg leading-relaxed text-paper/70">
-              If a group gets past dates, place and budget, the trip almost always happens. So the product does those
-              three things and deliberately stops.
+            <p className="mt-5 max-w-2xl text-lg leading-relaxed text-paper/75">
+              In the interviews, trips that got past dates, place and budget mostly went ahead. So the product does
+              those three things and deliberately stops.
             </p>
 
-            <ol className="mt-12 grid gap-y-8 sm:grid-cols-2 lg:grid-cols-8 lg:gap-0">
+            {/* One bracket over stops 2 to 4 on wide screens. */}
+            <div className="mt-12 hidden grid-cols-8 lg:grid" aria-hidden="true">
+              <p className="col-span-3 col-start-2 mr-3 border-x-2 border-t-2 border-brand pt-2 text-center font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-brand">
+                Trips die here
+              </p>
+            </div>
+            <ol className="mt-10 grid gap-y-8 sm:grid-cols-2 lg:mt-4 lg:grid-cols-8 lg:gap-0">
               {JOURNEY.map((stop, i) => (
                 <li key={stop.name} className="relative lg:pr-3">
                   <div className="flex items-center">
                     <span
                       className={[
                         "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 font-mono text-[0.625rem] font-semibold",
-                        stop.kill ? "border-brand bg-brand text-on-brand" : "border-paper/40 text-paper/60",
+                        stop.kill ? "border-brand bg-brand text-on-brand" : "border-paper/40 text-paper/70",
                       ].join(" ")}
                     >
                       {i + 1}
@@ -217,11 +213,11 @@ export default function Story() {
                   </div>
                   <p className={`display mt-3 text-2xl ${stop.kill ? "text-brand" : "text-paper"}`}>{stop.name}</p>
                   {stop.kill && (
-                    <p className="mt-1 font-mono text-[0.625rem] font-semibold uppercase tracking-[0.12em] text-brand">
+                    <p className="mt-1 font-mono text-[0.625rem] font-semibold uppercase tracking-[0.12em] text-brand lg:sr-only">
                       Trips die here
                     </p>
                   )}
-                  <p className="mt-2 text-sm leading-snug text-paper/60">{stop.note}</p>
+                  <p className="mt-2 text-sm leading-snug text-paper/70">{stop.note}</p>
                 </li>
               ))}
             </ol>
@@ -231,10 +227,9 @@ export default function Story() {
         {/* ── 3. What got built and what did not ── */}
         <section className="border-t border-border">
           <div className="mx-auto max-w-[1200px] px-4 py-14 lg:px-8 lg:py-20">
-            <Heading number="03">Twelve problems were real. Four got built.</Heading>
+            <Heading part={3}>Twelve complaints. Four became the product.</Heading>
             <p className="mt-5 max-w-2xl text-lg leading-relaxed text-text-secondary">
-              Saying no was most of the work. Nine of the twelve are below. Each was a real complaint from the
-              research, and each got a decision and a reason.
+              Saying no was most of the work. Here are the nine scope calls that mattered, each with its reason.
             </p>
             <div className="mt-10 border-t border-border-strong">
               {SCOPE.map((row) => (
@@ -257,7 +252,7 @@ export default function Story() {
         <section className="border-t border-border bg-surface">
           <div className="mx-auto grid max-w-[1200px] gap-8 px-4 py-14 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-16 lg:px-8 lg:py-20">
             <div className="lg:sticky lg:top-24 lg:self-start">
-              <Heading number="04">Six decisions, and what each one turned down.</Heading>
+              <Heading part={4}>Three decisions, and what each one turned down.</Heading>
               <p className="mt-5 max-w-md text-lg leading-relaxed text-text-secondary">
                 One belief sits under all of them: the trip should be harder to cancel than to confirm.
               </p>
@@ -277,70 +272,66 @@ export default function Story() {
 
         {/* ── 5. Results ── */}
         <section className="border-t border-border">
-          <div className="mx-auto grid max-w-[1200px] gap-8 px-4 py-14 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-16 lg:px-8 lg:py-20">
-            <div className="lg:sticky lg:top-24 lg:self-start">
-              <Heading number="05">What happened when groups used it.</Heading>
-              <p className="mt-5 max-w-md text-lg leading-relaxed text-text-secondary">
-                Five targets were set before launch. Two have been measured so far, from the product&apos;s own data
-                after the first test groups had planned on it.
-              </p>
-            </div>
-            <div>
-              <div className="overflow-hidden rounded-2xl border border-border">
-                <table className="w-full text-left">
-                  <thead>
-                    <tr className="border-b border-border">
-                      <th className="label-mono p-4 font-medium">Measure</th>
-                      <th className="label-mono p-4 font-medium">Target</th>
-                      <th className="label-mono p-4 font-medium text-text">Measured</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    <tr>
-                      <td className="p-4 text-text">Friends who joined and went on to answer</td>
-                      <td className="p-4 font-mono text-text-secondary">over 70%</td>
-                      <td className="display p-4 text-4xl text-text">91.7%</td>
-                    </tr>
-                    <tr>
-                      <td className="p-4 text-text">Answered within 48 hours of joining</td>
-                      <td className="p-4 font-mono text-text-secondary">over 70%</td>
-                      <td className="display p-4 text-4xl text-text">85.2%</td>
-                    </tr>
-                  </tbody>
-                </table>
+          <div className="mx-auto max-w-[1200px] px-4 py-14 lg:px-8 lg:py-20">
+            <Heading part={5}>What happened when groups used it.</Heading>
+            <p className="mt-5 max-w-2xl text-lg leading-relaxed text-text-secondary">
+              I set five targets before launch. Two have been measured so far, from the product&apos;s own data after
+              the first test groups had planned on it.
+            </p>
+
+            <dl className="mt-10 grid border-y border-border-strong sm:grid-cols-2 sm:divide-x sm:divide-border">
+              <div className="flex flex-col border-b border-border py-8 sm:border-b-0 sm:pr-8">
+                <dt className="order-2 mt-3 max-w-sm text-lg text-text">
+                  of friends who joined a trip went on to answer.
+                  <span className="mt-1 block font-mono text-xs uppercase tracking-[0.08em] text-text-tertiary">
+                    Target: over 70%
+                  </span>
+                </dt>
+                <dd className="display text-6xl text-text sm:text-7xl">91.7%</dd>
               </div>
-              <p className="mt-3 font-mono text-[0.6875rem] uppercase leading-relaxed tracking-[0.08em] text-text-tertiary">
-                First test groups, April 2026. A small sample, not an independent study.
-              </p>
-              <ul className="mt-8 space-y-4 text-lg leading-relaxed text-text-secondary">
-                <li className="flex gap-3">
-                  <Icon name="check" className="mt-2 h-4 w-4 shrink-0 text-accent" strokeWidth={2.5} />
-                  Nobody asked how to pick dates. Tapping days on the calendar needed no instruction.
-                </li>
-                <li className="flex gap-3">
-                  <Icon name="check" className="mt-2 h-4 w-4 shrink-0 text-accent" strokeWidth={2.5} />
-                  The two-second hold was the moment people remarked on. They called it serious and real.
-                </li>
-                <li className="flex gap-3">
-                  <Icon name="check" className="mt-2 h-4 w-4 shrink-0 text-accent" strokeWidth={2.5} />
-                  Coming back to a short note about what had changed since the last visit was the most praised detail.
-                </li>
-              </ul>
-            </div>
+              <div className="flex flex-col py-8 sm:pl-8">
+                <dt className="order-2 mt-3 max-w-sm text-lg text-text">
+                  answered within 48 hours of joining.
+                  <span className="mt-1 block font-mono text-xs uppercase tracking-[0.08em] text-text-tertiary">
+                    Target: over 70%
+                  </span>
+                </dt>
+                <dd className="display text-6xl text-text sm:text-7xl">85.2%</dd>
+              </div>
+            </dl>
+            <p className="mt-3 font-mono text-[0.6875rem] uppercase leading-relaxed tracking-[0.08em] text-text-tertiary">
+              First test groups, April 2026. A small sample, not an independent study. Not yet measured: how many trips
+              reach a ticket, how long dates take to lock, how many friends come back.
+            </p>
+
+            <ul className="mt-10 grid gap-x-12 gap-y-4 text-lg leading-relaxed text-text-secondary md:grid-cols-3">
+              <li className="flex gap-3">
+                <Icon name="check" className="mt-2 h-4 w-4 shrink-0 text-accent" strokeWidth={2.5} />
+                Nobody asked how to pick dates. Tapping days on the calendar needed no instruction.
+              </li>
+              <li className="flex gap-3">
+                <Icon name="check" className="mt-2 h-4 w-4 shrink-0 text-accent" strokeWidth={2.5} />
+                The two-second hold was the moment people remarked on. They called it serious and real.
+              </li>
+              <li className="flex gap-3">
+                <Icon name="check" className="mt-2 h-4 w-4 shrink-0 text-accent" strokeWidth={2.5} />
+                Coming back to a short note about what had changed since the last visit was the most praised detail.
+              </li>
+            </ul>
           </div>
         </section>
 
         {/* ── 6. The second pass ── */}
         <section className="border-t border-border bg-surface">
           <div className="mx-auto max-w-[1200px] px-4 py-14 lg:px-8 lg:py-20">
-            <Heading number="06">Seven months later: a hard second look.</Heading>
+            <Heading part={6}>Seven months later: a hard second look.</Heading>
             <p className="mt-5 max-w-2xl text-lg leading-relaxed text-text-secondary">
-              The first version shipped in eight days and it showed. In November 2026 the product, the flows and the
-              code were reviewed line by line with one instruction: find what a stranger would trip over. These are the
-              six findings that mattered most, and what changed.
+              The first version shipped in eight days and it showed. In November 2026 I put the product, the flows and
+              the code through a line-by-line review with one instruction: find what a stranger would trip over. These
+              are the six findings that mattered most, and what changed.
             </p>
 
-            <div className="mt-10 grid gap-6 md:grid-cols-2">
+            <div className="mt-10 grid max-w-3xl grid-cols-2 gap-4 sm:gap-8">
               <figure>
                 <div className="overflow-hidden rounded-2xl border border-border bg-background">
                   <Image
@@ -349,7 +340,7 @@ export default function Story() {
                     width={780}
                     height={1560}
                     className="h-auto w-full"
-                    sizes="(min-width: 768px) 560px, 100vw"
+                    sizes="(min-width: 640px) 360px, 45vw"
                   />
                 </div>
                 <figcaption className="label-mono mt-2">Before · April 2026</figcaption>
@@ -362,7 +353,7 @@ export default function Story() {
                     width={780}
                     height={1560}
                     className="h-auto w-full"
-                    sizes="(min-width: 768px) 560px, 100vw"
+                    sizes="(min-width: 640px) 360px, 45vw"
                   />
                 </div>
                 <figcaption className="label-mono mt-2 text-text">After · November 2026</figcaption>
@@ -385,7 +376,7 @@ export default function Story() {
         <section className="border-t border-border">
           <div className="mx-auto grid max-w-[1200px] gap-8 px-4 py-14 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-16 lg:px-8 lg:py-20">
             <div>
-              <Heading number="07">What it still gets wrong.</Heading>
+              <Heading part={7}>What it still gets wrong.</Heading>
             </div>
             <ul className="divide-y divide-border border-y border-border text-lg leading-relaxed text-text-secondary">
               <li className="py-4">
@@ -413,18 +404,24 @@ export default function Story() {
             <h2 className="display max-w-2xl text-[clamp(2.25rem,6vw,4.5rem)]">See it work in a minute.</h2>
             <div className="flex flex-col gap-3 sm:flex-row">
               <Link href="/demo" className="btn btn-lg bg-ink text-paper hover:opacity-90">
-                Open the live demo
+                Try the demo
                 <Icon name="arrow-right" className="h-4 w-4" />
               </Link>
-              <a
-                href={site.repo}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn-lg border-ink bg-transparent text-on-brand hover:bg-brand-deep"
-              >
-                Read the code
-                <Icon name="external" className="h-4 w-4" />
-              </a>
+              {site.linkRepo ? (
+                <a
+                  href={site.repo}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-lg border-ink bg-transparent text-on-brand hover:bg-brand-deep"
+                >
+                  Read the code
+                  <Icon name="external" className="h-4 w-4" />
+                </a>
+              ) : (
+                <Link href="/" className="btn btn-lg border-ink bg-transparent text-on-brand hover:bg-brand-deep">
+                  See the landing page
+                </Link>
+              )}
             </div>
           </div>
         </section>

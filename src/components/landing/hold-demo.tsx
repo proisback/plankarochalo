@@ -43,7 +43,7 @@ export function HoldDemo() {
 
   if (state === "done") {
     return (
-      <div className="panel flex min-h-[148px] flex-col justify-center p-5" aria-live="polite">
+      <div className="panel flex flex-col justify-center p-5" aria-live="polite">
         <div className="flex items-center gap-4">
           <span className="stamp animate-stamp text-2xl">In</span>
           <p className="text-[0.9375rem] leading-snug text-text">
@@ -59,7 +59,7 @@ export function HoldDemo() {
   }
 
   return (
-    <div className="panel min-h-[148px] p-5">
+    <div className="panel p-5">
       <p className="label-mono">Try it. Nothing is saved.</p>
       <button
         type="button"

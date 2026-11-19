@@ -48,7 +48,7 @@ export function WalkthroughVideo() {
 
   return (
     <figure className="mx-auto w-full max-w-[300px]">
-      <div className="relative rounded-[2rem] border-2 border-ink bg-ink p-1.5">
+      <div className="relative rounded-[2rem] border-2 border-border-strong bg-ink p-1.5">
         <video
           ref={ref}
           className="block aspect-[39/76] w-full rounded-[1.5rem] bg-background object-cover"
@@ -66,13 +66,18 @@ export function WalkthroughVideo() {
         <button
           type="button"
           onClick={toggle}
-          className="absolute bottom-4 right-4 flex h-11 w-11 items-center justify-center rounded-full border border-ink bg-brand text-on-brand"
+          className="absolute bottom-4 right-4 flex h-11 w-11 items-center justify-center rounded-xl border border-ink bg-brand text-on-brand"
           aria-label={playing ? "Pause the recording" : "Play the recording"}
         >
           <Icon name={playing ? "pause" : "play"} className="h-4 w-4" strokeWidth={2.25} />
         </button>
       </div>
       <figcaption className="label-mono mt-3 text-center">The real product, recorded. No sound.</figcaption>
+      <noscript>
+        <a href="/demo-walkthrough.mp4" className="link mt-2 block text-center">
+          Open the recording
+        </a>
+      </noscript>
     </figure>
   );
 }

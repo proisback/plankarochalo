@@ -12,10 +12,18 @@ import { site } from "@/lib/site";
 export const dynamic = "force-static";
 
 /* ───────────────────────────── Content ─────────────────────────────
-   Every number on this page comes from the project's own research files
-   (PlanKaroChalo_Discovery_Document.md) or its measured test results
-   (PlanKaroChalo_PRD_v2.html). Nothing here is invented, and nobody who
-   took part in the research is named. Change a number only with its source. */
+   Sources, so every claim can be checked:
+   · 35%, 20%: PlanKaroChalo_Research_Appendix.md, "Why trips didn't happen"
+     (14 and 8 of 40 survey respondents). These are shares of respondents,
+     not shares of failed trips.
+   · 67%: PlanKaroChalo_Discovery_Document.md (55% "1-2 people did most of
+     it" plus 12% "one person did literally everything", 49-person survey).
+   · 27 interviews, 105 survey responses: same document.
+   · 91.7%, 85.2%: the author's measurement from the first test groups,
+     April 2026. Not recorded in a file in this repository.
+   Nothing here is invented, and nobody who took part in the research is
+   named. The trips on the departures board and the names on the sample
+   ticket are illustrative. Change a number only with its source. */
 
 const DEPARTURES: { trip: string; since: string; status: string[] }[] = [
   { trip: "Goa, pakka this time", since: "2023", status: ["Let's see", "Next month pakka", "Delayed"] },
@@ -27,17 +35,17 @@ const DEPARTURES: { trip: string; since: string; status: string[] }[] = [
 const FINDINGS = [
   {
     figure: "35%",
-    text: "of trips that never happened died because the dates never lined up.",
+    text: "said a trip of theirs never happened because the dates never lined up.",
     source: "14 of 40 survey respondents",
   },
   {
     figure: "67%",
-    text: "said one or two people ended up doing nearly all of the planning.",
+    text: "said one or two people ended up doing most or all of the planning.",
     source: "49-person survey",
   },
   {
     figure: "20%",
-    text: "said planning got overwhelming and the momentum simply went.",
+    text: "said one fell apart because planning got overwhelming and the momentum went.",
     source: "8 of 40 survey respondents",
   },
 ];
@@ -46,34 +54,6 @@ const VOICES = [
   { quote: "People don't respond properly. No follow-ups. Dates not decided. People go silent.", who: "Interview" },
   { quote: "Others expect that the one who initiated the trip will do all the work.", who: "Survey response" },
   { quote: "Keeping the momentum up so that plans don't die eventually.", who: "Survey response" },
-];
-
-const COMPARE: { question: string; chat: string; chart: string }[] = [
-  {
-    question: "When is everyone free?",
-    chat: "Scroll up through 200 messages and guess.",
-    chart: "One calendar that fills in as people tap. The best window is worked out for you.",
-  },
-  {
-    question: "Who hasn't answered?",
-    chat: "Nobody is sure. The planner chases everyone, one by one.",
-    chart: "Named on every screen. A nudge is already written, ready to send.",
-  },
-  {
-    question: "Is it decided?",
-    chat: "Until someone who was offline reopens it.",
-    chart: "Each stage locks before the next one opens.",
-  },
-  {
-    question: "Are you actually coming?",
-    chat: "A thumbs-up, which costs nothing and means little.",
-    chart: "A two-second hold. Small, deliberate, and visible to the group.",
-  },
-  {
-    question: "What's the plan?",
-    chat: "Somewhere above the memes.",
-    chart: "One ticket with the place, the dates and who is in.",
-  },
 ];
 
 const INCLUDED = [
@@ -91,16 +71,16 @@ const FAQ: { q: string; a: string }[] = [
     a: "No. They tap the link in the group chat and type the name the group knows them by. That is the whole onboarding. Only the person who starts the trip signs in, so the trip stays theirs.",
   },
   {
-    q: "My group will not use a new app.",
-    a: "It is not one. It is a link inside the chat you already use, and each step takes less than a minute. The conversation stays in WhatsApp. Only the deciding moves here.",
-  },
-  {
     q: "What about the one friend who never replies?",
     a: "Their name shows as waiting to the whole group, which does half the work. The organiser can send a nudge, answer on their behalf, or lock the stage without them.",
   },
   {
     q: "What if our dates just do not match?",
     a: "You see the longest stretch at least two of you share, and the organiser can shorten the trip to fit it with one tap. It tells you the truth early instead of three weeks in.",
+  },
+  {
+    q: "What if plans change after we lock?",
+    a: "The organiser can reopen the dates or the vote, one step back at a time. Nobody else can undo a decision, so it cannot be relitigated by whoever was offline.",
   },
   {
     q: "Does it book flights or stays, build an itinerary, or split expenses?",
@@ -118,20 +98,54 @@ const FAQ: { q: string; a: string }[] = [
 
 /* ───────────────────────────── Small pieces ───────────────────────────── */
 
-function SectionLabel({ number, children }: { number: string; children: React.ReactNode }) {
+function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <p className="label-mono flex items-center gap-3">
-      <span className="text-text">{number}</span>
       <span className="h-px w-8 bg-border-strong" aria-hidden="true" />
       {children}
     </p>
   );
 }
 
+/** One station on the route line: what the chat does, what the link does, and the thing itself. */
+function Stop({
+  number,
+  name,
+  inChat,
+  children,
+  visual,
+}: {
+  number: string;
+  name: string;
+  inChat: string;
+  children: React.ReactNode;
+  visual: React.ReactNode;
+}) {
+  return (
+    <li className="relative grid items-center gap-8 md:grid-cols-2 md:gap-12 lg:gap-16">
+      <span
+        className="absolute -left-[calc(1.5rem+9px)] top-1 h-4 w-4 rounded-full border-2 border-ink bg-brand md:-left-[calc(2.5rem+9px)] lg:-left-[calc(3rem+9px)]"
+        aria-hidden="true"
+      />
+      <Reveal>
+        <p className="font-mono text-sm font-semibold text-text-tertiary">{number}</p>
+        <h3 className="display mt-1 text-4xl sm:text-5xl">{name}</h3>
+        <p className="mt-4 text-text-tertiary line-through decoration-1">
+          <span className="sr-only">In the group chat: </span>
+          {inChat}
+        </p>
+        <p className="mt-2 max-w-md text-lg leading-relaxed text-text-secondary">{children}</p>
+      </Reveal>
+      <Reveal delay={100} className="w-full max-w-sm md:justify-self-end">
+        {visual}
+      </Reveal>
+    </li>
+  );
+}
+
 /** Station 01: a calendar where yellow means overlap. */
 function MiniCalendar() {
-  // 0 none, 1 to 3 heat, "me" my pick. The outlined run is the best window.
-  // Three weeks from Mon 5 Jan 2026.
+  // Three weeks from Mon 5 Jan 2026. 0 none, 1 to 3 heat, "me" my pick.
   const cells: (0 | 1 | 2 | 3 | "me")[] = [0, 1, 1, 0, 1, 2, 1, 1, 1, 2, 2, "me", "me", "me", 1, 0, 0, 1, 2, 3, 2];
   const best = new Set([11, 12, 13]);
   const heat = ["", "bg-heat-low text-heat-low-text", "bg-heat-medium text-heat-medium-text", "bg-heat-high text-heat-high-text"];
@@ -201,7 +215,7 @@ function MiniVote() {
 /** Station 04: the plan going back into the chat it came from. */
 function MiniMessage() {
   return (
-    <div className="panel max-w-sm p-4" aria-hidden="true">
+    <div className="panel p-4" aria-hidden="true">
       <p className="label-mono flex items-center gap-2">
         <WhatsAppIcon className="h-3.5 w-3.5" /> Sent to the group
       </p>
@@ -210,13 +224,13 @@ function MiniMessage() {
         <p className="mt-1.5 text-text-secondary">
           Goa
           <br />
-          Fri 23 Jan to Mon 26 Jan (4 days)
+          Fri 16 Jan to Sun 18 Jan (3 days)
           <br />
           Up to ₹15K per person
           <br />
           Going (5): Riya, Karthik, Meher, Zoya, Aanya
         </p>
-        <p className="mt-1.5 font-mono text-xs text-status-responded">plankarochalo.vercel.app/trip/goa-k7x2</p>
+        <p className="mt-1.5 break-all font-mono text-xs text-status-responded">plankarochalo.vercel.app/trip/goa-k7x2</p>
       </div>
     </div>
   );
@@ -246,7 +260,7 @@ export default function Home() {
         <section className="mx-auto grid max-w-[1200px] gap-10 px-4 pb-16 pt-10 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:gap-14 lg:px-8 lg:pb-24 lg:pt-16">
           <div className="stagger">
             <p className="label-mono">For friend groups of 4 to 10 · Free</p>
-            <h1 className="display mt-4 text-[clamp(2.875rem,7.6vw,5.5rem)] text-text">
+            <h1 className="display mt-4 text-balance text-[clamp(2.875rem,7.6vw,5.5rem)] text-text">
               Get the <span className="marker">Goa plan</span> out of the group chat.
             </h1>
             <p className="mt-6 max-w-[34rem] text-lg leading-relaxed text-text-secondary">
@@ -260,30 +274,36 @@ export default function Home() {
                 <Icon name="arrow-right" className="h-4 w-4" />
               </Link>
               <Link href="/login" className="btn btn-outline btn-lg">
-                Start a real trip
+                Start a trip
               </Link>
             </div>
             <p className="mt-4 font-mono text-xs uppercase tracking-[0.08em] text-text-tertiary">
               The demo needs no sign-up and takes about a minute
+            </p>
+            <p className="mt-6 border-t border-border pt-4 text-[0.9375rem] text-text-secondary">
+              Built as a product case study.{" "}
+              <Link href="/story" className="link inline-flex min-h-11 items-center">
+                Read how it was made
+              </Link>
             </p>
           </div>
 
           <div className="relative mx-auto w-full max-w-[420px] lg:mt-2">
             <span
               lang="hi"
-              className="stamp animate-stamp absolute bottom-[3.1rem] left-[41%] z-10 font-deva text-lg text-status-out"
+              className="stamp animate-stamp absolute bottom-[3.1rem] left-[41%] z-10 font-deva text-lg text-ink"
               style={{ animationDelay: "1.2s" }}
             >
               पक्का
             </span>
             <TripTicket
-              className="animate-print lg:rotate-[1.5deg]"
+              className="paper animate-print lg:rotate-[1.5deg]"
               tripName="Goa, pakka this time"
               destination="Goa"
               destinationIcon="beach"
-              dates="23 – 26 Jan"
-              weekdays="Fri to Mon"
-              days={4}
+              dates="16 – 18 Jan"
+              weekdays="Fri to Sun"
+              days={3}
               budget="Up to ₹15K"
               pnr="K7X2"
               stamp="Confirmed"
@@ -298,13 +318,13 @@ export default function Home() {
               ]}
             />
             <p className="mt-3 text-center font-mono text-[0.6875rem] uppercase tracking-[0.1em] text-text-tertiary">
-              What your group ends up with
+              A sample ticket. Yours has your group on it.
             </p>
           </div>
         </section>
 
         {/* ── Departures: the trips that never left ────────── */}
-        <section className="bg-ink text-paper" aria-labelledby="departures-title">
+        <section className="bg-ink text-paper dark:border-y dark:border-border" aria-labelledby="departures-title">
           <div className="mx-auto max-w-[1200px] px-4 py-16 lg:px-8 lg:py-24">
             <p className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.09em] text-brand">Departures</p>
             <h2 id="departures-title" className="display mt-3 max-w-3xl text-[clamp(2.25rem,5.4vw,4rem)]">
@@ -312,7 +332,7 @@ export default function Home() {
             </h2>
 
             <div className="mt-10 overflow-hidden rounded-xl border border-paper/20 font-mono">
-              <div className="grid grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] gap-4 border-b border-paper/20 px-4 py-2.5 text-[0.625rem] uppercase tracking-[0.14em] text-paper/50 sm:grid-cols-[minmax(0,1.6fr)_minmax(0,0.8fr)_minmax(0,1.2fr)]">
+              <div className="grid grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] gap-4 border-b border-paper/20 px-4 py-2.5 text-[0.625rem] uppercase tracking-[0.14em] text-paper/60 sm:grid-cols-[minmax(0,1.6fr)_minmax(0,0.8fr)_minmax(0,1.2fr)]">
                 <span>Trip</span>
                 <span className="hidden sm:block">Planned since</span>
                 <span>Status</span>
@@ -323,7 +343,7 @@ export default function Home() {
                   className="grid grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] items-center gap-4 border-b border-paper/10 px-4 py-3.5 text-sm uppercase tracking-wide sm:grid-cols-[minmax(0,1.6fr)_minmax(0,0.8fr)_minmax(0,1.2fr)] sm:text-base"
                 >
                   <span className="truncate text-paper">{d.trip}</span>
-                  <span className="hidden text-paper/55 sm:block">{d.since}</span>
+                  <span className="hidden text-paper/60 sm:block">{d.since}</span>
                   <span className="text-brand">
                     <FlapText values={d.status} offset={i * 700} />
                   </span>
@@ -338,7 +358,7 @@ export default function Home() {
                 </span>
               </div>
             </div>
-            <p className="mt-3 font-mono text-[0.6875rem] uppercase tracking-[0.1em] text-paper/45">
+            <p className="mt-3 font-mono text-[0.6875rem] uppercase tracking-[0.1em] text-paper/55">
               Illustrative. You know the real ones.
             </p>
           </div>
@@ -348,7 +368,7 @@ export default function Home() {
         <section className="mx-auto max-w-[1200px] px-4 py-16 lg:px-8 lg:py-24" aria-labelledby="problem-title">
           <div className="grid gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-16">
             <Reveal className="lg:sticky lg:top-24 lg:self-start">
-              <SectionLabel number="01">What goes wrong</SectionLabel>
+              <SectionLabel>What goes wrong</SectionLabel>
               <h2 id="problem-title" className="display mt-4 text-[clamp(2.25rem,5vw,3.75rem)]">
                 It doesn&apos;t get cancelled. It just dies.
               </h2>
@@ -360,18 +380,19 @@ export default function Home() {
 
             <div>
               <dl className="divide-y divide-border border-y border-border">
-                {FINDINGS.map((f, i) => (
-                  <Reveal key={f.figure} delay={i * 80}>
-                    <div className="grid grid-cols-[5.5rem_minmax(0,1fr)] items-baseline gap-4 py-5 sm:grid-cols-[8rem_minmax(0,1fr)]">
-                      <dt className="display text-5xl text-text sm:text-6xl">{f.figure}</dt>
-                      <dd>
-                        <p className="text-lg leading-snug text-text">{f.text}</p>
-                        <p className="mt-1 font-mono text-[0.6875rem] uppercase tracking-[0.08em] text-text-tertiary">
-                          {f.source}
-                        </p>
-                      </dd>
-                    </div>
-                  </Reveal>
+                {FINDINGS.map((f) => (
+                  <div
+                    key={f.figure}
+                    className="grid grid-cols-[5.5rem_minmax(0,1fr)] items-baseline gap-4 py-5 sm:grid-cols-[8rem_minmax(0,1fr)]"
+                  >
+                    <dt className="display text-5xl text-text sm:text-6xl">{f.figure}</dt>
+                    <dd>
+                      <p className="text-lg leading-snug text-text">{f.text}</p>
+                      <p className="mt-1 font-mono text-[0.6875rem] uppercase tracking-[0.08em] text-text-tertiary">
+                        {f.source}
+                      </p>
+                    </dd>
+                  </div>
                 ))}
               </dl>
 
@@ -395,21 +416,21 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ── How it works: four stations ──────────────────── */}
-        <section id="how" className="border-t border-border scroll-mt-16" aria-labelledby="how-title">
+        {/* ── How it works: four stations on one line ──────── */}
+        <section id="how" className="scroll-mt-16 border-t border-border bg-surface" aria-labelledby="how-title">
           <div className="mx-auto max-w-[1200px] px-4 py-16 lg:px-8 lg:py-24">
             <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:gap-16">
               <Reveal>
-                <SectionLabel number="02">How it works</SectionLabel>
-                <h2 id="how-title" className="display mt-4 text-[clamp(2.25rem,5vw,3.75rem)]">
+                <SectionLabel>How it works</SectionLabel>
+                <h2 id="how-title" className="headline mt-4 text-[clamp(2.25rem,5vw,3.75rem)]">
                   Four stops. Each one locks before the next opens.
                 </h2>
                 <p className="mt-5 max-w-xl text-lg leading-relaxed text-text-secondary">
-                  A group chat lets any decision be reopened by whoever was offline. Here, a decision that is made stays
-                  made. This is a friend going from the link to the ticket, start to finish.
+                  A group chat lets any decision be reopened by whoever was offline. Here, a decision stays decided
+                  unless the organiser reopens it. This is a friend going from the link to the ticket, start to finish.
                 </p>
-                <Link href="/demo" className="link mt-6 inline-flex items-center gap-1.5">
-                  Do it yourself in the demo
+                <Link href="/demo" className="link mt-4 inline-flex min-h-11 items-center gap-1.5">
+                  Try the demo
                   <Icon name="arrow-right" className="h-4 w-4" />
                 </Link>
               </Reveal>
@@ -418,101 +439,42 @@ export default function Home() {
               </Reveal>
             </div>
 
-            <ol className="mt-14 space-y-16 lg:space-y-24">
-              <li className="grid items-center gap-8 lg:grid-cols-2 lg:gap-16">
-                <Reveal>
-                  <p className="font-mono text-sm font-semibold text-text-tertiary">01</p>
-                  <h3 className="display mt-1 text-4xl sm:text-5xl">Dates</h3>
-                  <p className="mt-4 max-w-md text-lg leading-relaxed text-text-secondary">
-                    Everyone taps the days they could travel. The calendar fills in yellow where people overlap, and the
-                    best window is the one the most people can do from start to finish.
-                  </p>
-                </Reveal>
-                <Reveal delay={100} className="mx-auto w-full max-w-sm lg:mx-0 lg:justify-self-end">
-                  <MiniCalendar />
-                </Reveal>
-              </li>
-
-              <li className="grid items-center gap-8 lg:grid-cols-2 lg:gap-16">
-                <Reveal className="lg:order-2">
-                  <p className="font-mono text-sm font-semibold text-text-tertiary">02</p>
-                  <h3 className="display mt-1 text-4xl sm:text-5xl">Place</h3>
-                  <p className="mt-4 max-w-md text-lg leading-relaxed text-text-secondary">
-                    Anyone can add a place. One vote each, changeable until it locks. If it&apos;s a tie, the organiser
-                    breaks it, not forty more messages.
-                  </p>
-                </Reveal>
-                <Reveal delay={100} className="mx-auto w-full max-w-sm lg:order-1 lg:mx-0">
-                  <MiniVote />
-                </Reveal>
-              </li>
-
-              <li className="grid items-center gap-8 lg:grid-cols-2 lg:gap-16">
-                <Reveal>
-                  <p className="font-mono text-sm font-semibold text-text-tertiary">03</p>
-                  <h3 className="display mt-1 text-4xl sm:text-5xl">Commit</h3>
-                  <p className="mt-4 max-w-md text-lg leading-relaxed text-text-secondary">
-                    Saying yes takes a two-second hold. It is deliberately harder than a thumbs-up, so a yes means yes,
-                    and a no arrives early enough to plan around.
-                  </p>
-                </Reveal>
-                <Reveal delay={100} className="mx-auto w-full max-w-sm lg:mx-0 lg:justify-self-end">
-                  <HoldDemo />
-                </Reveal>
-              </li>
-
-              <li className="grid items-center gap-8 lg:grid-cols-2 lg:gap-16">
-                <Reveal className="lg:order-2">
-                  <p className="font-mono text-sm font-semibold text-text-tertiary">04</p>
-                  <h3 className="display mt-1 text-4xl sm:text-5xl">Go</h3>
-                  <p className="mt-4 max-w-md text-lg leading-relaxed text-text-secondary">
-                    Everyone gets the same ticket: where, when, who is in. One tap sends it back to the group, with a
-                    calendar entry for the dates.
-                  </p>
-                </Reveal>
-                <Reveal delay={100} className="mx-auto w-full max-w-sm lg:order-1 lg:mx-0">
-                  <MiniMessage />
-                </Reveal>
-              </li>
+            <ol className="relative mt-16 space-y-16 border-l-2 border-border-strong pl-6 md:pl-10 lg:mt-24 lg:space-y-24 lg:pl-12">
+              <Stop
+                number="01"
+                name="Dates"
+                inChat="Scroll up through 200 messages and guess who is free when."
+                visual={<MiniCalendar />}
+              >
+                Everyone taps the days they could travel. The calendar fills in yellow where people overlap, and the
+                best window is the one the most people can do from start to finish.
+              </Stop>
+              <Stop
+                number="02"
+                name="Place"
+                inChat="Eight suggestions, one poll, three votes."
+                visual={<MiniVote />}
+              >
+                Anyone can add a place. One vote each, changeable until it locks. If it&apos;s a tie, the organiser
+                breaks it.
+              </Stop>
+              <Stop
+                number="03"
+                name="Commit"
+                inChat="A thumbs-up, which costs nothing and means little."
+                visual={<HoldDemo />}
+              >
+                Saying yes takes a two-second hold the whole group can see. It is deliberately harder than a thumbs-up,
+                so a yes means yes, and a no arrives early enough to plan around.
+              </Stop>
+              <Stop number="04" name="Go" inChat="The plan is somewhere above the memes." visual={<MiniMessage />}>
+                Everyone gets the same ticket: where, when, who is in. One tap sends it back to the group, with a
+                calendar entry for the dates.
+              </Stop>
             </ol>
-          </div>
-        </section>
-
-        {/* ── Chat vs chart ────────────────────────────────── */}
-        <section className="border-t border-border bg-surface" aria-labelledby="compare-title">
-          <div className="mx-auto max-w-[1200px] px-4 py-16 lg:px-8 lg:py-24">
-            <Reveal>
-              <SectionLabel number="03">Why it holds</SectionLabel>
-              <h2 id="compare-title" className="display mt-4 max-w-3xl text-[clamp(2.25rem,5vw,3.75rem)]">
-                The same five questions, answered two ways.
-              </h2>
-            </Reveal>
-
-            <div className="mt-10 border-t border-border-strong">
-              <div className="hidden grid-cols-[minmax(0,0.9fr)_minmax(0,1fr)_minmax(0,1.2fr)] gap-6 border-b border-border py-3 md:grid">
-                <span className="label-mono">The question</span>
-                <span className="label-mono">In the group chat</span>
-                <span className="label-mono text-text">With the link</span>
-              </div>
-              {COMPARE.map((row, i) => (
-                <Reveal key={row.question} delay={i * 50}>
-                  <div className="grid gap-x-6 gap-y-2 border-b border-border py-5 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1fr)_minmax(0,1.2fr)]">
-                    <p className="font-heading text-xl font-bold leading-tight text-text">{row.question}</p>
-                    <p className="text-text-tertiary">
-                      <span className="label-mono mr-2 md:hidden">Chat</span>
-                      {row.chat}
-                    </p>
-                    <p className="font-medium text-text">
-                      <span className="label-mono mr-2 text-text md:hidden">Link</span>
-                      {row.chart}
-                    </p>
-                  </div>
-                </Reveal>
-              ))}
-            </div>
 
             <Reveal>
-              <p className="mt-10 max-w-2xl text-lg leading-relaxed text-text-secondary">
+              <p className="mt-16 max-w-2xl border-t border-border pt-8 text-lg leading-relaxed text-text-secondary lg:mt-24">
                 <span className="font-semibold text-text">It does one job.</span> No itineraries, no expense splitting,
                 no bookings, no chat. Those have good tools already. This one gets a group from &ldquo;we should go
                 somewhere&rdquo; to &ldquo;we&apos;re going&rdquo;.
@@ -521,58 +483,50 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ── Proof ────────────────────────────────────────── */}
+        {/* ── Evidence: two numbers, stated plainly ─────────── */}
         <section className="border-t border-border" aria-labelledby="proof-title">
           <div className="mx-auto max-w-[1200px] px-4 py-16 lg:px-8 lg:py-24">
-            <div className="grid gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-16">
-              <Reveal className="lg:sticky lg:top-24 lg:self-start">
-                <SectionLabel number="04">Evidence</SectionLabel>
-                <h2 id="proof-title" className="display mt-4 text-[clamp(2.25rem,5vw,3.75rem)]">
-                  Tested on real groups before it was pretty.
-                </h2>
-                <p className="mt-5 max-w-md text-lg leading-relaxed text-text-secondary">
-                  No testimonials and no logo wall, because there aren&apos;t any yet. What exists is the research it
-                  was built on and what happened when the first groups used it.
+            <Reveal>
+              <SectionLabel>Evidence</SectionLabel>
+              <h2 id="proof-title" className="headline mt-4 max-w-3xl text-[clamp(2.25rem,5vw,3.75rem)]">
+                When the link went out, people answered.
+              </h2>
+              <p className="mt-5 max-w-xl text-lg leading-relaxed text-text-secondary">
+                Two numbers from the first test groups. A small sample, measured from the product&apos;s own data.
+              </p>
+            </Reveal>
+
+            <Reveal delay={100}>
+              <dl className="mt-10 grid border-y border-border-strong sm:grid-cols-2 sm:divide-x sm:divide-border">
+                <div className="flex flex-col border-b border-border py-8 sm:border-b-0 sm:pr-8">
+                  <dt className="order-2 mt-3 max-w-xs text-lg text-text">
+                    of friends who joined a trip went on to answer.
+                  </dt>
+                  <dd className="display text-[clamp(4.5rem,13vw,9rem)] leading-[0.85] text-text">91.7%</dd>
+                </div>
+                <div className="flex flex-col py-8 sm:pl-8">
+                  <dt className="order-2 mt-3 max-w-xs text-lg text-text">answered within 48 hours of joining.</dt>
+                  <dd className="display text-[clamp(4.5rem,13vw,9rem)] leading-[0.85] text-text">85.2%</dd>
+                </div>
+              </dl>
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="font-mono text-[0.6875rem] uppercase leading-relaxed tracking-[0.08em] text-text-tertiary">
+                  First test groups, April 2026. Not an independent study.
                 </p>
-                <Link href="/story" className="link mt-6 inline-flex items-center gap-1.5">
+                <Link href="/story" className="link inline-flex min-h-11 items-center gap-1.5">
                   Read the case study
                   <Icon name="arrow-right" className="h-4 w-4" />
                 </Link>
-              </Reveal>
-
-              <Reveal delay={100}>
-                <div className="grid gap-px overflow-hidden rounded-2xl border border-border bg-border sm:grid-cols-2">
-                  <div className="bg-background p-6">
-                    <p className="display text-6xl text-text">91.7%</p>
-                    <p className="mt-2 text-text">of friends who joined a trip went on to answer.</p>
-                  </div>
-                  <div className="bg-background p-6">
-                    <p className="display text-6xl text-text">85.2%</p>
-                    <p className="mt-2 text-text">answered within 48 hours of joining.</p>
-                  </div>
-                  <div className="bg-background p-6">
-                    <p className="display text-6xl text-text">132</p>
-                    <p className="mt-2 text-text">interviews and survey responses shaped what it does and refuses to do.</p>
-                  </div>
-                  <div className="bg-background p-6">
-                    <p className="display text-6xl text-text">8 days</p>
-                    <p className="mt-2 text-text">from first screen to a working product real groups could plan on.</p>
-                  </div>
-                </div>
-                <p className="mt-3 font-mono text-[0.6875rem] uppercase leading-relaxed tracking-[0.08em] text-text-tertiary">
-                  Response figures are from the first test groups in April 2026. A small sample, measured from the
-                  product&apos;s own data, not an independent study.
-                </p>
-              </Reveal>
-            </div>
+              </div>
+            </Reveal>
           </div>
         </section>
 
-        {/* ── The offer ────────────────────────────────────── */}
+        {/* ── The deal ─────────────────────────────────────── */}
         <section className="border-t border-border bg-surface" aria-labelledby="offer-title">
           <div className="mx-auto grid max-w-[1200px] gap-10 px-4 py-16 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-16 lg:px-8 lg:py-24">
             <Reveal className="lg:sticky lg:top-24 lg:self-start">
-              <SectionLabel number="05">The deal</SectionLabel>
+              <SectionLabel>The deal</SectionLabel>
               <h2 id="offer-title" className="mt-4">
                 <span className="display block text-[clamp(5rem,15vw,10rem)] leading-[0.8] text-text">₹0</span>
                 <span className="display mt-4 block text-3xl text-text sm:text-4xl">No card. No trial clock.</span>
@@ -594,12 +548,12 @@ export default function Home() {
                 ))}
               </ul>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Link href="/login" className="btn btn-primary btn-lg">
-                  Start a trip
+                <Link href="/demo" className="btn btn-primary btn-lg">
+                  Try the demo
                   <Icon name="arrow-right" className="h-4 w-4" />
                 </Link>
-                <Link href="/demo" className="btn btn-outline btn-lg">
-                  Try the demo first
+                <Link href="/login" className="btn btn-outline btn-lg">
+                  Start a trip
                 </Link>
               </div>
             </Reveal>
@@ -610,13 +564,13 @@ export default function Home() {
         <section className="border-t border-border" aria-labelledby="faq-title">
           <div className="mx-auto grid max-w-[1200px] gap-10 px-4 py-16 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-16 lg:px-8 lg:py-24">
             <Reveal className="lg:sticky lg:top-24 lg:self-start">
-              <SectionLabel number="06">Fair questions</SectionLabel>
-              <h2 id="faq-title" className="display mt-4 text-[clamp(2.25rem,5vw,3.75rem)]">
+              <SectionLabel>Fair questions</SectionLabel>
+              <h2 id="faq-title" className="headline mt-4 text-[clamp(2.25rem,5vw,3.75rem)]">
                 &ldquo;My group will never use this.&rdquo;
               </h2>
               <p className="mt-5 max-w-md text-lg leading-relaxed text-text-secondary">
-                It is the obvious objection, and a fair one. The answers below are how the product was shaped around
-                it.
+                The obvious objection, and a fair one. It is not an app: it is a link inside the chat they already use,
+                and each step is a few taps. The conversation stays in WhatsApp. Only the deciding moves here.
               </p>
             </Reveal>
             <div className="border-t border-border-strong">
@@ -651,12 +605,12 @@ export default function Home() {
               </p>
             </div>
             <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row lg:flex-col">
-              <Link href="/login" className="btn btn-lg bg-ink text-paper hover:opacity-90">
-                Start a trip
+              <Link href="/demo" className="btn btn-lg bg-ink text-paper hover:opacity-90">
+                Try the demo
                 <Icon name="arrow-right" className="h-4 w-4" />
               </Link>
-              <Link href="/demo" className="btn btn-lg border-ink bg-transparent text-on-brand hover:bg-brand-deep">
-                Try the demo
+              <Link href="/login" className="btn btn-lg border-ink bg-transparent text-on-brand hover:bg-brand-deep">
+                Start a trip
               </Link>
             </div>
           </div>
