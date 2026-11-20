@@ -83,7 +83,7 @@ A day is a `"YYYY-MM-DD"` string everywhere. Use `src/lib/dates.ts`. Never `new 
 `src/lib/demo/backend.ts` is an in-memory stand-in for the Supabase client. `createClient()` in `src/lib/supabase/client.ts` returns it for any path under `/demo`. If a screen starts using a new Supabase call, add it there too or the demo breaks. `src/lib/demo/script.ts` seeds the trip and plays the five friends.
 
 ### Database migration status
-`supabase/2026-11-20-hardening-and-advance.sql`: **Part A is on the live database** (run 20 November 2026, verified). **Part B is not**: run it only after the new app is deployed and a friend can join a trip from a private window. Part B before the deploy makes every shared link show "not found". The "no duplicate places" index is still off because of one existing duplicate (see `supabase/README.md`).
+`supabase/2026-11-20-hardening-and-advance.sql`: **Part A and Part B are both on the live database** (run 20 November 2026, verified), and so is the "no duplicate places" index. Trips are readable only by their organiser and members; everyone else opens a trip through `get_trip_by_slug()`. Any new code that reads `trips` directly as a visitor will get no rows. If shared links break, ROLLBACK B is at the end of the file.
 
 ## Scope boundaries
 
