@@ -22,6 +22,6 @@ export const site = {
   author: {
     name: "Prateek",
     /** Optional. Leave empty to hide the link. */
-    url: "",
+    url: "https://proisback.github.io/my-portfolio/",
   },
 } as const;

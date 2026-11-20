@@ -6,6 +6,7 @@ import { Reveal } from "@/components/landing/reveal";
 import { FlapText } from "@/components/landing/flap-text";
 import { HoldDemo } from "@/components/landing/hold-demo";
 import { WalkthroughVideo } from "@/components/landing/walkthrough-video";
+import { HeroFilm } from "@/components/landing/hero-film";
 import { site } from "@/lib/site";
 
 // Fully static: no cookies, no database. Sign-in state is handled on /login.
@@ -320,6 +321,10 @@ export default function Home() {
             <p className="mt-3 text-center font-mono text-[0.6875rem] uppercase tracking-[0.1em] text-text-tertiary">
               A sample ticket. Yours has your group on it.
             </p>
+          </div>
+
+          <div className="lg:col-span-2 lg:mt-4">
+            <HeroFilm />
           </div>
         </section>
 
