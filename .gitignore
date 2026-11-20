@@ -38,3 +38,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# launch video working files (the finished video is copied where it is used)
+/brag-output*/
+
+# local screenshots
+/.screenshots/
