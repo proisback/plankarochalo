@@ -32,9 +32,9 @@ export default function OgSource() {
             tripName="Goa, pakka this time"
             destination="Goa"
             destinationIcon="beach"
-            dates="23 – 26 Jan"
-            weekdays="Fri to Mon"
-            days={4}
+            dates="16 – 18 Jan"
+            weekdays="Fri to Sun"
+            days={3}
             budget="Up to ₹15K"
             pnr="K7X2"
             stamp="Confirmed"
