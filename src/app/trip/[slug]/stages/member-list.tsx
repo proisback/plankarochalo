@@ -3,7 +3,7 @@
 import { useId, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { DestinationOption, Member, Trip, TripStatus } from "@/lib/types";
-import { hasAnswered, stageProgress } from "@/lib/types";
+import { hasAnswered, stageProgress, findOrganiser } from "@/lib/types";
 import { advanceTrip } from "@/lib/advance";
 import { eachDay, memberDays } from "@/lib/dates";
 import { friendlyError, UserFacingError } from "@/lib/errors";
@@ -559,7 +559,7 @@ export function MemberList({
 
   const progress = stageProgress(trip, members);
   const waiting = members.filter((m) => !hasAnswered(m, stage)).length;
-  const organiser = members.find((m) => m.is_organizer);
+  const organiser = findOrganiser(trip, members);
   const answeredBy = isOrganizer ? "you" : organiser ? firstName(organiser.name) : "the organiser";
   const canAct = isOrganizer && stage !== "ready";
 

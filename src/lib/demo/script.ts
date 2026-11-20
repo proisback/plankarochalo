@@ -251,6 +251,7 @@ export class DemoDirector {
   private unsubscribe: (() => void) | null = null;
   private tick: ReturnType<typeof setInterval> | null = null;
   private eventSeq = 0;
+  private lastStatus: Trip["status"] | null = null;
   private fri: DayKey;
 
   constructor(
@@ -305,11 +306,31 @@ export class DemoDirector {
     this.store.update("members", (r) => r.id === `demo-member-${key}`, patch as Record<string, unknown>);
   }
 
+  /** True while the person at the keyboard is playing Riya. Her moves are then theirs to make. */
+  private get playingOrganiser() {
+    return this.store.userId === ORGANIZER_USER_ID;
+  }
+
   private plan() {
     const trip = this.trip;
     if (!trip) return;
     const visitor = this.visitor;
     const days = friendDays(this.fri);
+
+    // The organiser reopened a stage: let the friends answer it again.
+    const order: Trip["status"][] = ["dates_open", "destination_open", "commitment", "ready"];
+    if (this.lastStatus && order.indexOf(trip.status) < order.indexOf(this.lastStatus)) {
+      const replay =
+        trip.status === "dates_open"
+          ? ["dates:", "vote:", "commit:"]
+          : trip.status === "destination_open"
+            ? ["vote:", "commit:"]
+            : ["commit:"];
+      for (const key of Array.from(this.done)) {
+        if (replay.some((prefix) => key.startsWith(prefix))) this.done.delete(key);
+      }
+    }
+    this.lastStatus = trip.status;
 
     if (trip.status === "dates_open") {
       // Zoya answers while the visitor is still looking at the calendar.
@@ -334,23 +355,45 @@ export class DemoDirector {
     if (trip.status === "destination_open") {
       const vote = (key: Friend, optionId: string, label: string, delay: number) =>
         this.once(`vote:${key}`, delay, () => {
+          if (key === "riya" && this.playingOrganiser) return;
           if (this.member(key).destination_vote) return;
           this.patch(key, { destination_vote: optionId });
           this.say(FRIENDS[key].name, `voted ${label}`);
         });
-      vote("riya", "demo-opt-goa", "Goa", 2200);
+      if (!this.playingOrganiser) vote("riya", "demo-opt-goa", "Goa", 2200);
       vote("karthik", "demo-opt-gokarna", "Gokarna", 4400);
       vote("meher", "demo-opt-goa", "Goa", 6400);
       vote("zoya", "demo-opt-gokarna", "Gokarna", 8600);
 
       // Dev sides with the visitor, so the visitor's vote decides the trip.
+      // His choice is read when he votes, not when it was scheduled: the
+      // visitor may have changed their mind in between.
+      const sideWith = () =>
+        this.visitor?.destination_vote === "demo-opt-gokarna" ? "demo-opt-gokarna" : "demo-opt-goa";
       if (visitor?.destination_vote || (!visitor && this.done.has("vote:zoya"))) {
-        const pick = visitor?.destination_vote === "demo-opt-gokarna" ? "demo-opt-gokarna" : "demo-opt-goa";
         this.once("vote:dev", visitor ? 3200 : 11000, () => {
           if (this.member("dev").destination_vote) return;
+          const pick = sideWith();
           this.patch("dev", { destination_vote: pick });
-          this.say("Dev", `voted ${pick === "demo-opt-goa" ? "Goa" : "Gokarna"}. Tie broken.`);
+          this.say("Dev", `voted ${pick === "demo-opt-goa" ? "Goa" : "Gokarna"}.`);
         });
+      }
+
+      // If the visitor switches sides after Dev has voted, the count can end
+      // level with everyone in. Dev follows them so the demo cannot get stuck.
+      if (visitor?.destination_vote && this.member("dev").destination_vote) {
+        const members = this.store.tables.members.filter((m) => !m.is_proxy);
+        const options = this.store.tables.destination_options;
+        const top = Math.max(0, ...options.map((o) => o.vote_count));
+        const tied = options.filter((o) => o.vote_count === top && top > 0).length > 1;
+        if (tied && members.every((m) => m.destination_vote) && this.member("dev").destination_vote !== sideWith()) {
+          this.once(`vote:dev-follows:${visitor.destination_vote}`, 2200, () => {
+            const pick = sideWith();
+            if (this.member("dev").destination_vote === pick) return;
+            this.patch("dev", { destination_vote: pick });
+            this.say("Dev", `changed his vote to ${pick === "demo-opt-goa" ? "Goa" : "Gokarna"}.`);
+          });
+        }
       }
       return;
     }
@@ -358,11 +401,12 @@ export class DemoDirector {
     if (trip.status === "commitment") {
       const commit = (key: Friend, delay: number) =>
         this.once(`commit:${key}`, delay, () => {
+          if (key === "riya" && this.playingOrganiser) return;
           if (this.member(key).status === "confirmed_in") return;
           this.patch(key, { status: "confirmed_in" });
           this.say(FRIENDS[key].name, "is in");
         });
-      commit("riya", 1600);
+      if (!this.playingOrganiser) commit("riya", 1600);
       commit("meher", 3400);
       commit("karthik", 5200);
       commit("zoya", 7200);

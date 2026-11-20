@@ -3,12 +3,14 @@ import type { IconName } from "@/components/icons";
 /** "₹8K", "₹1.5L". Compact Indian notation for per-person budgets. */
 export function formatRupeesShort(amount: number): string {
   // 99,500 rounds to 100K, which is 1L: switch units just below the boundary.
-  if (amount >= 99_500) {
+  if (amount >= 99_950) {
     const lakhs = Math.round(amount / 10_000) / 10;
     return `₹${lakhs}L`;
   }
-  if (amount < 1000) return `₹${Math.round(amount)}`;
-  return `₹${Math.round(amount / 1000)}K`;
+  if (amount < 950) return `₹${Math.round(amount)}`;
+  // One decimal, so ₹12,500 reads ₹12.5K and never ₹13K.
+  const thousands = Math.round(amount / 100) / 10;
+  return `₹${thousands}K`;
 }
 
 /** "₹8K – ₹15K" */

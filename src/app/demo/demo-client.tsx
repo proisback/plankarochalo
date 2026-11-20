@@ -150,6 +150,11 @@ export function DemoClient() {
                 type="button"
                 onClick={() => {
                   window.history.replaceState(null, "", "/demo");
+                  // Take the dashboard down first. Otherwise the new one mounts
+                  // against the old trip before the effect has re-seeded.
+                  setTrip(null);
+                  setSnap(null);
+                  setToast(null);
                   setRun((n) => n + 1);
                 }}
                 aria-label="Restart the demo"

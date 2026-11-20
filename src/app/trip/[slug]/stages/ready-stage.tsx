@@ -55,7 +55,28 @@ function Confetti() {
 }
 
 function icsEscape(text: string) {
-  return text.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
+  return text.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r\n|\r|\n/g, "\\n");
+}
+
+/** Calendar files cap a line at 75 octets; longer ones continue on a line that starts with a space. */
+function icsFold(line: string): string {
+  const bytes = new TextEncoder().encode(line);
+  if (bytes.length <= 75) return line;
+  const parts: string[] = [];
+  let current = "";
+  let size = 0;
+  for (const ch of line) {
+    const n = new TextEncoder().encode(ch).length;
+    if (size + n > (parts.length === 0 ? 75 : 74)) {
+      parts.push(current);
+      current = "";
+      size = 0;
+    }
+    current += ch;
+    size += n;
+  }
+  parts.push(current);
+  return parts.join("\r\n ");
 }
 
 /** An all-day calendar event for the trip, as an .ics file. */
@@ -80,6 +101,7 @@ function buildIcs(trip: Trip, destination: string, going: string[], url: string)
     "END:VCALENDAR",
   ]
     .filter(Boolean)
+    .map(icsFold)
     .join("\r\n");
 }
 

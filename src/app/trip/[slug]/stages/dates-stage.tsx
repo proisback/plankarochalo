@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Member, Trip } from "@/lib/types";
-import { stageProgress } from "@/lib/types";
+import { stageProgress, findOrganiser } from "@/lib/types";
 import { advanceTrip } from "@/lib/advance";
 import { eachDay, formatDayLong, formatRange, memberDays } from "@/lib/dates";
 import { UserFacingError, friendlyError } from "@/lib/errors";
@@ -299,7 +299,7 @@ export function DatesStage({
     [members, currentMember.id, length],
   );
   const progress = stageProgress(trip, members);
-  const organiser = members.find((m) => m.is_organizer);
+  const organiser = findOrganiser(trip, members);
   const cannot = best ? best.missingNames.map(firstName).join(", ") : "";
   const notAnswered = progress.waiting.map((m) => firstName(m.name)).join(", ");
   const bestRange = best ? formatRange(best.start, best.end) : "";
@@ -413,6 +413,10 @@ export function DatesStage({
           best
             ? (emphasis) => (
                 <LockButton
+                  // Keyed on the range: if the best window changes while the
+                  // confirm sheet is open, the sheet closes instead of quietly
+                  // locking dates other than the ones it showed.
+                  key={bestRange}
                   variant={emphasis}
                   label={`Lock ${bestRange}`}
                   title="Lock these dates?"

@@ -66,13 +66,13 @@ export const metadata: Metadata = {
     type: "website",
     siteName: site.name,
     locale: "en_IN",
-    images: [{ url: "/og.png", width: 1200, height: 630, alt: "Plan Karo Chalo: a group trip ticket marked confirmed" }],
+    images: [site.ogImage],
   },
   twitter: {
     card: "summary_large_image",
     title,
     description: site.description,
-    images: ["/og.png"],
+    images: [site.ogImage.url],
   },
 };
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { findOrganiser } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import type { DestinationOption, Member, Trip } from "@/lib/types";
 import { advanceTrip } from "@/lib/advance";
@@ -743,7 +744,7 @@ export function DestinationStage({
     }
   }
 
-  const organiser = members.find((m) => m.is_organizer);
+  const organiser = findOrganiser(trip, members);
   const organiserName = organiser ? firstName(organiser.name) : null;
 
   async function handleUndo() {

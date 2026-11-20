@@ -4,8 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import type { Member, Trip, TripStatus } from "@/lib/types";
+import { findOrganiser } from "@/lib/types";
 import { formatRange } from "@/lib/dates";
-import { friendlyError } from "@/lib/errors";
+import { UserFacingError, friendlyError } from "@/lib/errors";
 import { firstName, parseDestination, people, plural } from "@/lib/format";
 import { Icon, Spinner, WhatsAppIcon } from "@/components/icons";
 import { Wordmark } from "@/components/brand";
@@ -51,17 +52,22 @@ function TripSkeleton() {
 
 /* ── Organiser: tell the group what just got locked ────────────── */
 
-function LockAnnouncement({ trip, url }: { trip: Trip; url: string }) {
-  const key = `pkc_told_${trip.id}_${trip.status}`;
+function LockAnnouncement({ trip, url, demo }: { trip: Trip; url: string; demo?: boolean }) {
+  const key = `pkc_told_${trip.id}_${trip.status}_${trip.locked_dates_start ?? ""}_${trip.locked_destination ?? ""}`;
   const [show, setShow] = useState(false);
 
   useEffect(() => {
+    // The demo trip is rebuilt on every visit, so nothing about it is remembered.
+    if (demo) {
+      setShow(true);
+      return;
+    }
     try {
       setShow(localStorage.getItem(key) !== "1");
     } catch {
       setShow(true);
     }
-  }, [key]);
+  }, [key, demo]);
 
   if (!show || !url || trip.status === "dates_open" || trip.status === "ready") return null;
 
@@ -74,6 +80,7 @@ function LockAnnouncement({ trip, url }: { trip: Trip; url: string }) {
 
   function dismiss() {
     setShow(false);
+    if (demo) return;
     try {
       localStorage.setItem(key, "1");
     } catch {
@@ -115,12 +122,12 @@ const REOPEN: Partial<Record<TripStatus, { label: string; title: string; body: s
   destination_open: {
     label: "Reopen dates",
     title: "Reopen dates?",
-    body: "The locked dates are cleared and everyone can change their days again. Votes on the place are kept.",
+    body: "The locked dates are cleared and everyone can change their days again. Votes on the place are kept. After a reopen, stages no longer lock by themselves: you lock when you are ready.",
   },
   commitment: {
     label: "Reopen the vote",
     title: "Reopen the vote on the place?",
-    body: "The locked place is cleared and voting opens again. Anyone who already said in or out will be asked again.",
+    body: "The locked place is cleared and voting opens again. Anyone who already said in or out will be asked again. After a reopen, stages no longer lock by themselves: you lock when you are ready.",
   },
   ready: {
     label: "Reopen commitments",
@@ -129,7 +136,7 @@ const REOPEN: Partial<Record<TripStatus, { label: string; title: string; body: s
   },
 };
 
-function OrganiserTools({ trip }: { trip: Trip }) {
+function OrganiserTools({ trip, onDone }: { trip: Trip; onDone: () => Promise<void> }) {
   const supabase = createClient();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -141,30 +148,41 @@ function OrganiserTools({ trip }: { trip: Trip }) {
     setBusy(true);
     setError("");
     try {
-      if (trip.status === "destination_open") {
-        const { error: e } = await supabase
-          .from("trips")
-          .update({ status: "dates_open", locked_dates_start: null, locked_dates_end: null })
-          .eq("id", trip.id);
-        if (e) throw e;
-      } else if (trip.status === "commitment") {
+      const back: Record<string, unknown> =
+        trip.status === "destination_open"
+          ? { status: "dates_open", locked_dates_start: null, locked_dates_end: null }
+          : trip.status === "commitment"
+            ? { status: "destination_open", locked_destination: null }
+            : { status: "commitment" };
+      // A reopened trip is locked by hand. With the group size still set, the
+      // first person to save would lock the stage again straight away.
+      if (trip.expected_size != null) back.expected_size = null;
+
+      // Move the trip first, guarded on the stage this screen is showing. If
+      // that fails, or the trip has already moved, nothing else is touched.
+      const { data, error: e } = await supabase
+        .from("trips")
+        .update(back)
+        .eq("id", trip.id)
+        .eq("status", trip.status)
+        .select("id");
+      if (e) throw e;
+      if (!data || data.length === 0) {
+        await onDone();
+        throw new UserFacingError("This trip has already moved on. The page has been refreshed.");
+      }
+
+      if (trip.status === "commitment") {
         for (const status of ["confirmed_in", "confirmed_out"]) {
-          const { error: e } = await supabase
+          const { error: memberError } = await supabase
             .from("members")
             .update({ status: "responded" })
             .eq("trip_id", trip.id)
             .eq("status", status);
-          if (e) throw e;
+          if (memberError) throw memberError;
         }
-        const { error: e } = await supabase
-          .from("trips")
-          .update({ status: "destination_open", locked_destination: null })
-          .eq("id", trip.id);
-        if (e) throw e;
-      } else {
-        const { error: e } = await supabase.from("trips").update({ status: "commitment" }).eq("id", trip.id);
-        if (e) throw e;
       }
+      await onDone();
       setOpen(false);
     } catch (e) {
       setError(friendlyError(e, "Couldn't reopen. Check your connection and try again."));
@@ -230,7 +248,14 @@ export function TripDashboard({ trip: initialTrip, demo = false }: { trip: Trip;
     const rows = data as Member[];
     setMembers(rows);
     const me = rows.find((m) => m.user_id && m.user_id === userIdRef.current);
-    if (me) setCurrentMember(me);
+    if (me) {
+      setCurrentMember(me);
+    } else if (userIdRef.current) {
+      // The organiser removed this person or took over their entry. Their old
+      // row is gone, so saves would silently do nothing. Back to the join screen.
+      setCurrentMember(null);
+      setPhase((p) => (p === "trip" ? "join" : p));
+    }
   }, [supabase, trip.id]);
 
   const loadTrip = useCallback(async () => {
@@ -248,7 +273,12 @@ export function TripDashboard({ trip: initialTrip, demo = false }: { trip: Trip;
     try {
       const {
         data: { user },
+        error: authError,
       } = await supabase.auth.getUser();
+      // "No session" is normal on a first visit. Anything else (offline, a
+      // timeout) must not be mistaken for it, or a returning member would be
+      // shown the join screen.
+      if (authError && authError.name !== "AuthSessionMissingError") throw authError;
 
       // A first-time visitor has no session yet. They get one when they submit
       // their name, not for merely opening the link.
@@ -295,6 +325,8 @@ export function TripDashboard({ trip: initialTrip, demo = false }: { trip: Trip;
       .on("postgres_changes", { event: "*", schema: "public", table: "members", filter: `trip_id=eq.${trip.id}` }, () =>
         loadMembers(),
       )
+      // Supabase cannot filter delete events by column, so listen for all of them.
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "members" }, () => loadMembers())
       // Anything that changed between the first fetch and the socket opening.
       .subscribe((status) => {
         if (status === "SUBSCRIBED") refresh();
@@ -337,7 +369,7 @@ export function TripDashboard({ trip: initialTrip, demo = false }: { trip: Trip;
     return <JoinScreen trip={trip} onJoined={handleJoined} demo={demo} />;
   }
 
-  const organiser = members.find((m) => m.is_organizer);
+  const organiser = findOrganiser(trip, members);
   const cannotMakeDates =
     trip.status !== "dates_open" ? members.filter((m) => m.constraint_note?.startsWith(LATE_NOTE)) : [];
   const stageProps = { trip, members, currentMember, isOrganizer, onMembersUpdated: refresh, demo };
@@ -386,13 +418,13 @@ export function TripDashboard({ trip: initialTrip, demo = false }: { trip: Trip;
           {isOrganizer && (
             <div className="mt-8 hidden space-y-6 lg:block">
               {trip.status !== "ready" && <ShareLink slug={trip.slug} tripName={trip.name} demo={demo} />}
-              <OrganiserTools trip={trip} />
+              <OrganiserTools trip={trip} onDone={refresh} />
             </div>
           )}
         </aside>
 
         <div className="mt-7 max-w-[560px] space-y-5 lg:mt-0">
-          {isOrganizer && <LockAnnouncement trip={trip} url={url} />}
+          {isOrganizer && <LockAnnouncement trip={trip} url={url} demo={demo} />}
 
           {isOrganizer && cannotMakeDates.length > 0 && (
             <div className="notice notice-wait">
@@ -426,7 +458,7 @@ export function TripDashboard({ trip: initialTrip, demo = false }: { trip: Trip;
               {trip.status !== "ready" && members.length > 1 && (
                 <ShareLink slug={trip.slug} tripName={trip.name} demo={demo} />
               )}
-              <OrganiserTools trip={trip} />
+              <OrganiserTools trip={trip} onDone={refresh} />
             </div>
           )}
         </div>

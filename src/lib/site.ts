@@ -17,6 +17,8 @@ export const site = {
    * research as anonymised, and the repository is one click away.
    */
   linkRepo: false as boolean,
+  /** Social preview image, shared by every page that sets its own title. */
+  ogImage: { url: "/og.png", width: 1200, height: 630, alt: "Plan Karo Chalo: a group trip ticket marked confirmed" },
   author: {
     name: "Prateek",
     /** Optional. Leave empty to hide the link. */

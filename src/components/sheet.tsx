@@ -73,6 +73,12 @@ export function Sheet({
       const first = items[0];
       const last = items[items.length - 1];
       const active = document.activeElement;
+      // The focused control was removed or disabled and focus fell to <body>.
+      if (!panel?.contains(active)) {
+        e.preventDefault();
+        (e.shiftKey ? last : first).focus();
+        return;
+      }
       if (e.shiftKey && (active === first || active === panel)) {
         e.preventDefault();
         last.focus();

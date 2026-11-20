@@ -81,6 +81,15 @@ export function stageInfo(status: TripStatus) {
   return STAGES.find((s) => s.key === status) ?? STAGES[0];
 }
 
+/**
+ * The organiser's member row. Identified by owning the trip, which the
+ * database enforces. The is_organizer flag is only a fallback for rows where
+ * the owner's user id is not visible.
+ */
+export function findOrganiser(trip: Pick<Trip, "organizer_id">, members: Member[]): Member | undefined {
+  return members.find((m) => !!m.user_id && m.user_id === trip.organizer_id) ?? members.find((m) => m.is_organizer);
+}
+
 /** Has this member answered the question the trip is currently asking? */
 export function hasAnswered(m: Member, stage: TripStatus): boolean {
   if (stage === "dates_open") return !!m.availability_start;

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Trip } from "@/lib/types";
 import { formatRange } from "@/lib/dates";
 import { parseDestination, plural } from "@/lib/format";
+import { site } from "@/lib/site";
 import { TripDashboard } from "./trip-dashboard";
 
 /**
@@ -73,8 +74,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     description,
     // Trip pages are private links. Keep them out of search results.
     robots: { index: false, follow: false },
-    openGraph: { title, description, type: "website" },
-    twitter: { card: "summary_large_image", title, description },
+    // Next replaces these objects rather than merging them with the root
+    // layout's, so the image and site name have to be repeated here.
+    openGraph: { title, description, type: "website", siteName: site.name, locale: "en_IN", images: [site.ogImage] },
+    twitter: { card: "summary_large_image", title, description, images: [site.ogImage.url] },
   };
 }
 

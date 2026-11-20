@@ -5,6 +5,7 @@ import { Icon } from "@/components/icons";
 
 type Theme = "light" | "dark" | "system";
 const ORDER: Theme[] = ["light", "dark", "system"];
+const THEME_EVENT = "pkc:theme";
 const LABEL: Record<Theme, string> = { light: "Light", dark: "Dark", system: "Match device" };
 
 function systemTheme(): "light" | "dark" {
@@ -20,15 +21,20 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
   const [theme, setTheme] = useState<Theme>("system");
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("theme") as Theme | null;
-      if (saved && ORDER.includes(saved)) {
-        setTheme(saved);
-        applyTheme(saved);
+    const read = () => {
+      try {
+        const saved = localStorage.getItem("theme") as Theme | null;
+        const next = saved && ORDER.includes(saved) ? saved : "system";
+        setTheme(next);
+        applyTheme(next);
+      } catch {
+        // Storage blocked (private mode). Stay on the device theme.
       }
-    } catch {
-      // Storage blocked (private mode). Stay on the device theme.
-    }
+    };
+    read();
+    // A page can show two toggles (header and footer). Keep them in step.
+    window.addEventListener(THEME_EVENT, read);
+    return () => window.removeEventListener(THEME_EVENT, read);
   }, []);
 
   useEffect(() => {
@@ -48,6 +54,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
     } catch {
       // Not persisted. Still applied for this visit.
     }
+    window.dispatchEvent(new Event(THEME_EVENT));
   }
 
   return (

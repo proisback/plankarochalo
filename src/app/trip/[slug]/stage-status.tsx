@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Member, Trip } from "@/lib/types";
-import { hasAnswered, stageInfo, stageProgress } from "@/lib/types";
+import { findOrganiser, hasAnswered, stageInfo, stageProgress } from "@/lib/types";
 import { copyText, firstName } from "@/lib/format";
 import { Sheet } from "@/components/sheet";
 import { Icon, WhatsAppIcon } from "@/components/icons";
@@ -42,7 +42,8 @@ function NudgeSheet({
   const progress = stageProgress(trip, members);
   const stage = stageInfo(trip.status);
   const names = listNames(progress.waiting.map((m) => firstName(m.name)));
-  const organiser = firstName(members.find((m) => m.is_organizer)?.name ?? "The organiser");
+  const organiserRow = findOrganiser(trip, members);
+  const organiser = organiserRow ? firstName(organiserRow.name) : "The organiser";
   const count = `${progress.answered} of ${progress.total}`;
 
   // These are messages for a WhatsApp group, so they are written the way people
@@ -131,8 +132,8 @@ export function StageStatus({
   const progress = stageProgress(trip, members);
   const stage = stageInfo(trip.status);
   const mine = hasAnswered(currentMember, trip.status);
-  const organiser = members.find((m) => m.is_organizer);
-  const organiserName = firstName(organiser?.name ?? "the organiser");
+  const organiser = findOrganiser(trip, members);
+  const organiserName = organiser ? firstName(organiser.name) : "the organiser";
   const others = progress.waiting.filter((m) => m.id !== currentMember.id);
   const otherNames = listNames(others.map((m) => firstName(m.name)));
   const iAmLast = !mine && others.length === 0 && members.length > 1;
@@ -175,7 +176,9 @@ export function StageStatus({
         <Icon name="check-circle" className="mt-0.5 h-4 w-4 shrink-0 text-status-confirmed" />
         <div className="min-w-0 flex-1">
           <p className="font-semibold">
-            {progress.notJoined > 0 ? `All ${progress.total} who've joined have ${stage.asked}.` : `Everyone has ${stage.asked}.`}
+            {trip.expected_size != null && progress.notJoined === 0
+              ? `Everyone has ${stage.asked}.`
+              : `All ${progress.total} who've joined so far have ${stage.asked}.`}
           </p>
           {isOrganizer ? (
             <>
@@ -248,7 +251,7 @@ export function StageStatus({
   return (
     <div aria-live="polite">
       {body}
-      {url && <NudgeSheet open={nudging} onClose={() => setNudging(false)} trip={trip} members={members} url={url} />}
+      {url && <NudgeSheet open={nudging && others.length > 0} onClose={() => setNudging(false)} trip={trip} members={members} url={url} />}
     </div>
   );
 }

@@ -46,10 +46,11 @@ function describe(trip: Trip, members: Member[]): Row {
   }
   const progress = stageProgress(trip, members);
   if (progress.allJoinedAnswered) {
+    // "Everyone" needs a known group size. Without one, it is only everyone so far.
     const standing =
-      progress.notJoined > 0
-        ? `All ${progress.total} who joined have ${stage.asked}`
-        : `Everyone has ${stage.asked}`;
+      trip.expected_size != null && progress.notJoined === 0
+        ? `Everyone has ${stage.asked}`
+        : `All ${progress.total} who joined so far have ${stage.asked}`;
     return { trip, facts, standing, readyToLock: true };
   }
   return { trip, facts, standing: `${progress.answered} of ${progress.total} have ${stage.asked}`, readyToLock: false };

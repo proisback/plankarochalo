@@ -81,7 +81,11 @@ export function JoinScreen({
       if (rpcError) throw rpcError;
       const member = data as Member;
 
-      if (pastDates && datesWork !== null && trip.locked_dates_start && trip.locked_dates_end) {
+      // join_trip returns the existing row for someone who had already joined.
+      // Only a brand-new row gets the late-joiner answer written, or it would
+      // overwrite the dates and the in/out a returning member already gave.
+      const fresh = member.status === "invited" && !member.availability_start && !member.constraint_note;
+      if (fresh && pastDates && datesWork !== null && trip.locked_dates_start && trip.locked_dates_end) {
         const patch = datesWork
           ? { availability_start: trip.locked_dates_start, availability_end: trip.locked_dates_end, status: "responded" }
           : { constraint_note: `Can't make locked dates ${lockedDates}`, status: "responded" };

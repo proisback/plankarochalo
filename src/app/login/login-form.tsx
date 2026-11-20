@@ -43,6 +43,16 @@ export function LoginForm() {
     else if (refocus.current) inputRef.current?.focus();
   }, [sentTo]);
 
+  // Coming back from Google with the Back button can restore this page from
+  // the browser's cache with the buttons still disabled.
+  useEffect(() => {
+    const onShow = (e: PageTransitionEvent) => {
+      if (e.persisted) setBusy(null);
+    };
+    window.addEventListener("pageshow", onShow);
+    return () => window.removeEventListener("pageshow", onShow);
+  }, []);
+
   function callbackUrl() {
     // Where to go after sign-in travels in a short-lived cookie, not in this
     // URL. Supabase only redirects to URLs on the project's allow-list, and an
