@@ -84,7 +84,7 @@ A day is a `"YYYY-MM-DD"` string everywhere. Use `src/lib/dates.ts`. Never `new 
 `src/lib/demo/backend.ts` is an in-memory stand-in for the Supabase client. `createClient()` in `src/lib/supabase/client.ts` returns it for any path under `/demo`. If a screen starts using a new Supabase call, add it there too or the demo breaks. `src/lib/demo/script.ts` seeds the trip and plays the five friends.
 
 ### Database migration status
-`supabase/2026-11-20-hardening-and-advance.sql` is written and tested locally but **must be run by the owner** on the live project (Part A, then deploy, then Part B). Until Part A runs, the client degrades on purpose: no automatic locking, no "who is already in" on the join screen, and group size is not stored.
+`supabase/2026-11-20-hardening-and-advance.sql`: **Part A is on the live database** (run 20 November 2026, verified). **Part B is not**: run it only after the new app is deployed and a friend can join a trip from a private window. Part B before the deploy makes every shared link show "not found". The "no duplicate places" index is still off because of one existing duplicate (see `supabase/README.md`).
 
 ## Scope boundaries
 

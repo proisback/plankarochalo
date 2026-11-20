@@ -88,7 +88,7 @@ A few decisions worth knowing:
 
 SQL lives in [`supabase/`](supabase/), listed in order in [`supabase/README.md`](supabase/README.md).
 
-`supabase/2026-11-20-hardening-and-advance.sql` closes several row-level-security gaps and moves stage advancement into the database. It is tested locally but has to be run on the live project by its owner, in two parts. Until Part A runs, the app degrades on purpose: stages do not lock by themselves, the join screen does not show who is already in, and group size is not stored.
+`supabase/2026-11-20-hardening-and-advance.sql` closes several row-level-security gaps and moves stage advancement into the database. It runs in two parts. Part A works with any version of the app. Part B stops anyone with the public key from listing every trip, and must run only after this version of the app is deployed. Without Part A the app degrades on purpose: stages do not lock by themselves, the join screen does not show who is already in, and group size is not stored.
 
 ## Design
 

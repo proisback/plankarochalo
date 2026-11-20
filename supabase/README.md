@@ -1,6 +1,8 @@
 # Supabase SQL
 
-These files are run by hand in the Supabase dashboard (SQL Editor). They are listed in the order they were applied. Files 1 to 4 are already on the live database. File 5 is new and has not been run yet.
+These files are run by hand in the Supabase dashboard (SQL Editor). They are listed in the order they were applied. Files 1 to 4 are already on the live database. File 5: Part A was run on the live database on 20 November 2026; Part B has not been run yet.
+
+The "no duplicate places" rule from Part A is not on yet: one trip has "Wayanad" twice (both with 0 votes). Delete one copy, then run the file again to switch the rule on.
 
 | # | File | What it does |
 |---|------|--------------|
