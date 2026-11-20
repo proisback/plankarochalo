@@ -82,6 +82,16 @@ export function plural(n: number, one: string, many = `${one}s`): string {
   return `${n} ${n === 1 ? one : many}`;
 }
 
+/**
+ * A link that opens WhatsApp with `text` ready to send. It points straight at
+ * api.whatsapp.com/send/ rather than wa.me: wa.me redirects there, and emoji
+ * were reported to come out as question-mark boxes after that redirect,
+ * notably in WhatsApp on a computer.
+ */
+export function whatsappLink(text: string): string {
+  return `https://api.whatsapp.com/send/?text=${encodeURIComponent(text)}`;
+}
+
 /** Copy text with a fallback for browsers or contexts without the Clipboard API. */
 export async function copyText(text: string): Promise<boolean> {
   try {

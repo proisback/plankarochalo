@@ -20,7 +20,7 @@ Use the metaphor in type, layout and the two or three signature moments (route l
 
 1. **Tokens only.** Never write a hex colour or a Tailwind palette class (`stone-*`, `emerald-*`, `amber-*`, `white`, `black`). Use the tokens in `src/app/globals.css`.
 2. **Every filled surface pairs with its `on-*` text token.** `bg-primary text-on-primary`, `bg-accent text-on-accent`, `bg-brand text-on-brand`, `bg-whatsapp text-on-whatsapp`. Never `text-white`. In dark mode primary is yellow, so white text on it is unreadable.
-3. **No emoji in the interface.** Icons come from `<Icon name="..." />` in `src/components/icons.tsx`. If one is missing, add it there (24px grid, 1.75 stroke). Emoji are not used in text sent to WhatsApp either: opened through a `wa.me` link, WhatsApp on a computer turns them into question-mark boxes. Use plain words and WhatsApp's `*bold*`. The only emoji left are stored destination data (see "Destination icons"), which is never sent.
+3. **No emoji in the interface.** Icons come from `<Icon name="..." />` in `src/components/icons.tsx`. If one is missing, add it there (24px grid, 1.75 stroke). Emoji are allowed only inside text that will be pasted into WhatsApp, and as stored destination data (see "Destination icons").
 4. **No gradients, no blurred blobs, no glass, no glow.** Depth is a 1px hairline (`border-border`). Shadows (`shadow-lg`, `shadow-xl`) are for overlays only.
 5. **Small radii.** `rounded-xl` is 6px, `rounded-2xl` 8px, `rounded-3xl` 10px here (overridden in `@theme`). `rounded-full` is for people (avatars) and dots only. No pill buttons, no pill badges.
 6. **Not everything is a card.** Group with spacing, a `label-mono` caption, and hairline rules (`border-t border-border`, `divide-y divide-border`). Use `.panel` only when a block is a distinct object.
@@ -28,7 +28,7 @@ Use the metaphor in type, layout and the two or three signature moments (route l
 8. **44px touch targets.** `.btn`, `.btn-sm` and `.icon-btn` already are (`btn-sm` is smaller in type and padding, not in height). A standalone text link gets `inline-flex min-h-11 items-center`. Inputs are 16px text so iOS does not zoom.
 9. **Every state exists.** Loading (`.skeleton`, not a lone spinner), empty (say what to do next), error (`friendlyError()` from `src/lib/errors.ts`, never a raw database string), success, disabled, focus-visible.
 10. **Dates are day keys.** Use `src/lib/dates.ts` (`formatDay`, `formatRange`, `formatDayLong`, `parseDay`, `toDayKey`, `eachDay`, `memberDays`). Never `new Date("YYYY-MM-DD")`, never `toISOString().split("T")[0]`.
-11. **Copy on the clipboard goes through `copyText()`** in `src/lib/format.ts`. Anything meant for the group offers WhatsApp first: `https://wa.me/?text=${encodeURIComponent(text)}`.
+11. **Copy on the clipboard goes through `copyText()`** in `src/lib/format.ts`. Anything meant for the group offers WhatsApp first, through `whatsappLink(text)` in the same file. Never build a `wa.me` link: its redirect garbles emoji.
 12. **Dialogs use `<Sheet>`** from `src/components/sheet.tsx` (bottom sheet on phones, dialog on desktop, focus trap, Escape, portal). Never a hand-rolled `fixed inset-0` div.
 13. **Motion is CSS only.** `animate-in`, `animate-pop`, `animate-stamp`, `.stagger`, `.reveal`. Animate `transform` and `opacity` only. `prefers-reduced-motion` is already handled globally.
 14. JSX text cannot contain a raw `'` or `"` (lint error). Write `&apos;` / `&quot;` or put the string in `{"..."}`.

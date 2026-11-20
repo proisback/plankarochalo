@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import type { Member, Trip } from "@/lib/types";
 import { findOrganiser, hasAnswered, stageInfo, stageProgress } from "@/lib/types";
-import { copyText, firstName } from "@/lib/format";
+import { copyText, firstName, whatsappLink } from "@/lib/format";
 import { Sheet } from "@/components/sheet";
 import { Icon, WhatsAppIcon } from "@/components/icons";
 
@@ -21,7 +21,7 @@ function useTripUrl(slug: string, demo?: boolean) {
   return url;
 }
 
-const wa = (text: string) => `https://wa.me/?text=${encodeURIComponent(text)}`;
+const wa = whatsappLink;
 
 /* ── Nudge sheet ───────────────────────────────────────────────── */
 
@@ -50,7 +50,7 @@ function NudgeSheet({
   // text there. Whole sentences, never an English verb wedged into a template.
   const tones: { label: string; text: string }[] = [
     { label: "Friendly", text: `${names}, we're waiting on you for ${trip.name}. ${count} have ${stage.asked}. It takes 30 seconds.` },
-    { label: "Cheeky", text: `${count} have ${stage.asked} for ${trip.name}. Still missing: ${names}. We see you.` },
+    { label: "Cheeky", text: `${count} have ${stage.asked} for ${trip.name}. Still missing: ${names}. We see you 👀` },
     { label: "Quick", text: `${names}, 2 minute ka kaam hai. ${trip.name} ke liye bas aap reh gaye ho.` },
     { label: "Guilt trip", text: `${names}: the rest of us have ${stage.asked}. ${trip.name} is stuck until you do.` },
     { label: "Filmy", text: `${names}, jaldi karo yaar. Warna yeh plan bhi group chat mein hi reh jaayega.` },

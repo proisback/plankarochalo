@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Icon, WhatsAppIcon } from "@/components/icons";
-import { copyText } from "@/lib/format";
+import { copyText, whatsappLink } from "@/lib/format";
 
 function useTripUrl(slug: string, demo?: boolean) {
   // Resolved after mount so server and client render the same markup.
@@ -65,7 +65,7 @@ export function ShareLink({
 }) {
   const url = useTripUrl(slug, demo);
   const { state, copy } = useCopied();
-  const waHref = url ? `https://wa.me/?text=${encodeURIComponent(inviteMessage(tripName, url))}` : undefined;
+  const waHref = url ? whatsappLink(inviteMessage(tripName, url)) : undefined;
 
   return (
     <section aria-label="Invite the group" className="panel p-4">

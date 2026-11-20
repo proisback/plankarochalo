@@ -7,7 +7,7 @@ import type { Member, Trip } from "@/lib/types";
 import { addDays, diffDays, formatDayLong, formatRange, formatWeekday, todayKey } from "@/lib/dates";
 import { budgetAnswers, findBudgetOverlap } from "@/lib/overlap";
 import { friendlyError } from "@/lib/errors";
-import { copyText, firstName, formatBudgetRange, formatRupeesShort, parseDestination, plural } from "@/lib/format";
+import { copyText, firstName, formatBudgetRange, formatRupeesShort, parseDestination, plural, whatsappLink } from "@/lib/format";
 import { Icon, Spinner, WhatsAppIcon } from "@/components/icons";
 import { TripTicket, type TicketPassenger } from "@/components/trip-ticket";
 
@@ -187,17 +187,16 @@ export function ReadyStage({
   const pnr = (trip.slug.split("-").pop() || trip.id.slice(0, 6)).toUpperCase().slice(0, 8);
   const left = countdown(trip.locked_dates_start, trip.locked_dates_end);
 
-  // Plain words, no emoji. Opened through a wa.me link, WhatsApp on a computer
-  // turns emoji into question-mark boxes. *...* is WhatsApp's own bold.
+  // This text is pasted into WhatsApp, where emoji are the native punctuation.
   const summary = [
-    `*${trip.name}* is confirmed.`,
+    `*${trip.name}* is confirmed ✅`,
     "",
-    destination.name ? `*Where:* ${destination.name}` : null,
+    destination.name ? `📍 ${destination.name}` : null,
     trip.locked_dates_start && trip.locked_dates_end
-      ? `*When:* ${formatDayLong(trip.locked_dates_start)} to ${formatDayLong(trip.locked_dates_end)} (${plural(trip.trip_days, "day")})`
+      ? `🗓 ${formatDayLong(trip.locked_dates_start)} to ${formatDayLong(trip.locked_dates_end)} (${plural(trip.trip_days, "day")})`
       : null,
-    budget ? `*Budget:* ${budget.charAt(0).toLowerCase()}${budget.slice(1)} per person` : null,
-    `*Going (${going.length}):* ${going.map((m) => firstName(m.name)).join(", ")}`,
+    budget ? `💰 ${budget} per person` : null,
+    `👥 Going (${going.length}): ${going.map((m) => firstName(m.name)).join(", ")}`,
     "",
     url,
   ]
@@ -308,7 +307,7 @@ export function ReadyStage({
       {/* On a phone the one action stays on screen while the ticket scrolls under it. */}
       <div className="sticky bottom-0 z-20 -mx-4 border-t border-border bg-background px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:static sm:mx-0 sm:border-t-0 sm:bg-transparent sm:p-0">
         <a
-          href={url ? `https://wa.me/?text=${encodeURIComponent(summary)}` : undefined}
+          href={url ? whatsappLink(summary) : undefined}
           target="_blank"
           rel="noopener noreferrer"
           aria-disabled={!url}

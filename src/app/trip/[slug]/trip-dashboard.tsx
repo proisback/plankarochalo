@@ -7,7 +7,7 @@ import type { Member, Trip, TripStatus } from "@/lib/types";
 import { findOrganiser } from "@/lib/types";
 import { formatRange } from "@/lib/dates";
 import { UserFacingError, friendlyError } from "@/lib/errors";
-import { firstName, parseDestination, people, plural } from "@/lib/format";
+import { firstName, parseDestination, people, plural, whatsappLink } from "@/lib/format";
 import { Icon, Spinner, WhatsAppIcon } from "@/components/icons";
 import { Wordmark } from "@/components/brand";
 import { Sheet } from "@/components/sheet";
@@ -98,7 +98,7 @@ function LockAnnouncement({ trip, url, demo }: { trip: Trip; url: string; demo?:
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <a
-            href={`https://wa.me/?text=${encodeURIComponent(`${copy.text}\n${url}`)}`}
+            href={whatsappLink(`${copy.text}\n${url}`)}
             target="_blank"
             rel="noopener noreferrer"
             onClick={dismiss}
