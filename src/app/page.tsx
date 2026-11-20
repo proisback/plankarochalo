@@ -19,8 +19,8 @@ export const dynamic = "force-static";
    · 67%: PlanKaroChalo_Discovery_Document.md (55% "1-2 people did most of
      it" plus 12% "one person did literally everything", 49-person survey).
    · 27 interviews, 105 survey responses: same document.
-   · 91.7%, 85.2%: the author's measurement from the first test groups,
-     April 2026. Not recorded in a file in this repository.
+   No usage metrics are published: the April 2026 measurements are not
+   recorded in a file in this repository.
    Nothing here is invented, and nobody who took part in the research is
    named. The trips on the departures board and the names on the sample
    ticket are illustrative. Change a number only with its source. */
@@ -373,7 +373,7 @@ export default function Home() {
                 It doesn&apos;t get cancelled. It just dies.
               </h2>
               <p className="mt-5 max-w-md text-lg leading-relaxed text-text-secondary">
-                Before building anything we asked how group trips fall apart: 27 interviews and 105 survey responses.
+                The research behind it: 27 interviews and 105 survey responses on how group trips fall apart.
                 Nobody described a fight. They described silence.
               </p>
             </Reveal>
@@ -479,45 +479,6 @@ export default function Home() {
                 no bookings, no chat. Those have good tools already. This one gets a group from &ldquo;we should go
                 somewhere&rdquo; to &ldquo;we&apos;re going&rdquo;.
               </p>
-            </Reveal>
-          </div>
-        </section>
-
-        {/* ── Evidence: two numbers, stated plainly ─────────── */}
-        <section className="border-t border-border" aria-labelledby="proof-title">
-          <div className="mx-auto max-w-[1200px] px-4 py-16 lg:px-8 lg:py-24">
-            <Reveal>
-              <SectionLabel>Evidence</SectionLabel>
-              <h2 id="proof-title" className="headline mt-4 max-w-3xl text-[clamp(2.25rem,5vw,3.75rem)]">
-                When the link went out, people answered.
-              </h2>
-              <p className="mt-5 max-w-xl text-lg leading-relaxed text-text-secondary">
-                Two numbers from the first test groups. A small sample, measured from the product&apos;s own data.
-              </p>
-            </Reveal>
-
-            <Reveal delay={100}>
-              <dl className="mt-10 grid border-y border-border-strong sm:grid-cols-2 sm:divide-x sm:divide-border">
-                <div className="flex flex-col border-b border-border py-8 sm:border-b-0 sm:pr-8">
-                  <dt className="order-2 mt-3 max-w-xs text-lg text-text">
-                    of friends who joined a trip went on to answer.
-                  </dt>
-                  <dd className="display text-[clamp(4.5rem,13vw,9rem)] leading-[0.85] text-text">91.7%</dd>
-                </div>
-                <div className="flex flex-col py-8 sm:pl-8">
-                  <dt className="order-2 mt-3 max-w-xs text-lg text-text">answered within 48 hours of joining.</dt>
-                  <dd className="display text-[clamp(4.5rem,13vw,9rem)] leading-[0.85] text-text">85.2%</dd>
-                </div>
-              </dl>
-              <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="font-mono text-[0.6875rem] uppercase leading-relaxed tracking-[0.08em] text-text-tertiary">
-                  First test groups, April 2026. Not an independent study.
-                </p>
-                <Link href="/story" className="link inline-flex min-h-11 items-center gap-1.5">
-                  Read the case study
-                  <Icon name="arrow-right" className="h-4 w-4" />
-                </Link>
-              </div>
             </Reveal>
           </div>
         </section>

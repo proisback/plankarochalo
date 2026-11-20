@@ -8,17 +8,18 @@ import { site } from "@/lib/site";
 export const dynamic = "force-static";
 
 export const metadata: Metadata = {
-  title: "Case study: what 132 people told us about group trips",
+  title: "Case study: what 132 people said about group trips",
   description:
     "The research, the wrong first assumption, the decisions and the results behind Plan Karo Chalo, a group trip coordinator for Indian friend groups.",
 };
 
 /* Everything on this page is taken from the project's own documents:
    PlanKaroChalo_Discovery_Document.md, PlanKaroChalo_Research_Appendix.md and
-   PlanKaroChalo_PRD_v2.html. The two measured results (91.7%, 85.2%) are the
-   author's measurement from the first test groups and are not recorded in a
-   file in this repository. Research participants are never named. Survey
-   percentages are shares of respondents. Change a number only with its source. */
+   PlanKaroChalo_PRD_v2.html. No usage metrics are published here: the April
+   2026 measurements are not recorded in a file in this repository. The page is
+   written in a neutral voice, not the first person. Research participants are
+   never named. Survey percentages are shares of respondents. Change a number
+   only with its source. */
 
 const JOURNEY: { name: string; note: string; kill?: boolean }[] = [
   { name: "Spark", note: "“Let's go somewhere!” Twelve ideas across three conversations." },
@@ -108,19 +109,19 @@ export default function Story() {
         <header className="mx-auto max-w-[1200px] px-4 pb-12 pt-10 lg:px-8 lg:pb-16 lg:pt-16">
           <p className="label-mono">Case study · Plan Karo Chalo</p>
           <h1 className="display mt-4 max-w-5xl text-balance text-[clamp(2.75rem,7.4vw,5.5rem)] text-text">
-            What 132 people told us about group trips, in <span className="marker">four screens</span>.
+            What 132 people said about group trips, in <span className="marker">four screens</span>.
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-relaxed text-text-secondary">
-            I set out to fix itinerary planning. 27 interviews and 105 survey responses said trips die earlier, at the
-            dates. So I built the smallest thing that gets a group to commit, in 8 days. In the first test groups,
-            91.7% of friends who joined went on to answer.
+            The brief was to fix itinerary planning. 27 interviews and 105 survey responses said trips die earlier, at
+            the dates. So the product became the smallest thing that gets a group to commit: one link, four decisions,
+            and no sign-up for friends.
           </p>
           <dl className="mt-10 grid gap-px overflow-hidden rounded-2xl border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
             {[
               ["Product, design and build", site.author.name],
               ["Research", "27 interviews and 105 survey responses, gathered with a product cohort"],
-              ["First version", "8 days, April 2026"],
-              ["First test", "91.7% of friends who joined answered"],
+              ["First version", "April 2026, in a product cohort"],
+              ["Redesign", "November 2026"],
             ].map(([k, v]) => (
               <div key={k} className="bg-background p-4">
                 <dt className="label-mono">{k}</dt>
@@ -134,12 +135,12 @@ export default function Story() {
         <section className="border-t border-border">
           <div className="mx-auto grid max-w-[1200px] gap-8 px-4 py-14 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-16 lg:px-8 lg:py-20">
             <div className="lg:sticky lg:top-24 lg:self-start">
-              <Heading part={1}>I was wrong about the problem.</Heading>
+              <Heading part={1}>The first assumption was wrong.</Heading>
             </div>
             <div className="space-y-5 text-lg leading-relaxed text-text-secondary">
               <p>
-                I started from an assumption: the painful part of a group trip is building the itinerary. I planned to
-                make that easier.
+                The starting assumption: the painful part of a group trip is building the itinerary, so the product
+                should make that easier.
               </p>
               <p>
                 <span className="font-semibold text-text">It was the wrong problem.</span> Across 27 interviews and 105
@@ -275,33 +276,7 @@ export default function Story() {
           <div className="mx-auto max-w-[1200px] px-4 py-14 lg:px-8 lg:py-20">
             <Heading part={5}>What happened when groups used it.</Heading>
             <p className="mt-5 max-w-2xl text-lg leading-relaxed text-text-secondary">
-              I set five targets before launch. Two have been measured so far, from the product&apos;s own data after
-              the first test groups had planned on it.
-            </p>
-
-            <dl className="mt-10 grid border-y border-border-strong sm:grid-cols-2 sm:divide-x sm:divide-border">
-              <div className="flex flex-col border-b border-border py-8 sm:border-b-0 sm:pr-8">
-                <dt className="order-2 mt-3 max-w-sm text-lg text-text">
-                  of friends who joined a trip went on to answer.
-                  <span className="mt-1 block font-mono text-xs uppercase tracking-[0.08em] text-text-tertiary">
-                    Target: over 70%
-                  </span>
-                </dt>
-                <dd className="display text-6xl text-text sm:text-7xl">91.7%</dd>
-              </div>
-              <div className="flex flex-col py-8 sm:pl-8">
-                <dt className="order-2 mt-3 max-w-sm text-lg text-text">
-                  answered within 48 hours of joining.
-                  <span className="mt-1 block font-mono text-xs uppercase tracking-[0.08em] text-text-tertiary">
-                    Target: over 70%
-                  </span>
-                </dt>
-                <dd className="display text-6xl text-text sm:text-7xl">85.2%</dd>
-              </div>
-            </dl>
-            <p className="mt-3 font-mono text-[0.6875rem] uppercase leading-relaxed tracking-[0.08em] text-text-tertiary">
-              First test groups, April 2026. A small sample, not an independent study. Not yet measured: how many trips
-              reach a ticket, how long dates take to lock, how many friends come back.
+              Early test groups planned real trips on the first version. Three things stood out.
             </p>
 
             <ul className="mt-10 grid gap-x-12 gap-y-4 text-lg leading-relaxed text-text-secondary md:grid-cols-3">
@@ -326,9 +301,9 @@ export default function Story() {
           <div className="mx-auto max-w-[1200px] px-4 py-14 lg:px-8 lg:py-20">
             <Heading part={6}>Seven months later: a hard second look.</Heading>
             <p className="mt-5 max-w-2xl text-lg leading-relaxed text-text-secondary">
-              The first version shipped in eight days and it showed. In November 2026 I put the product, the flows and
-              the code through a line-by-line review with one instruction: find what a stranger would trip over. These
-              are the six findings that mattered most, and what changed.
+              The first version was built fast, during a product cohort, and it showed. In November 2026 the product,
+              the flows and the code went through a line-by-line review with one instruction: find what a stranger
+              would trip over. These are the six findings that mattered most, and what changed.
             </p>
 
             <div className="mt-10 grid max-w-3xl grid-cols-2 gap-4 sm:gap-8">
@@ -390,7 +365,7 @@ export default function Story() {
                 is a patch, not a fix.
               </li>
               <li className="py-4">
-                <span className="font-semibold text-text">The evidence is thin.</span> The numbers above come from a
+                <span className="font-semibold text-text">The evidence is thin.</span> What is above comes from a
                 handful of test groups. The next honest step is more groups, and counting how many trips actually
                 happen.
               </li>

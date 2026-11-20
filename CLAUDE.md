@@ -6,16 +6,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Plan Karo Chalo** is a link-based group trip coordinator for Indian friend groups and families of 4 to 10 people. It replaces weeks of WhatsApp back-and-forth with four gated decisions: dates, place, commitment, go. Friends take part from a link with no account.
 
-First version shipped April 2026 (8-day build in a PM cohort). Redesigned and hardened November 2026 ("Chart Prepared").
+First version shipped April 2026, built during a PM cohort. Redesigned and hardened November 2026 ("Chart Prepared").
 
 ## Read before building
 
 - `.claude/skills/pkc-design/SKILL.md`: **the design system, vocabulary and build rules. Binding for any UI or copy.**
 - `memory.md`: original product context and decisions from April 2026. Its design-system, data-model and algorithm sections are superseded by this file and the skill above.
-- `PlanKaroChalo_PRD_v2.html`: the PRD, with shipped features, decisions and the success-metric targets. The measured 91.7% and 85.2% are not in it: they are the owner's April 2026 measurement and are not recorded in any tracked file.
+- `PlanKaroChalo_PRD_v2.html`: the PRD, with shipped features, decisions and the success-metric targets.
 - `PlanKaroChalo_Discovery_Document.md`: primary research (27 interviews, 105 survey responses). The only allowed source for research numbers on public pages.
 - `supabase/README.md`: SQL files in the order they were applied, and the pending migration.
-- `docs/overnight-revival-prompt.md`: the brief the November 2026 redesign was run from.
 
 ## Tech stack (locked)
 
@@ -93,6 +92,8 @@ A day is a `"YYYY-MM-DD"` string everywhere. Use `src/lib/dates.ts`. Never `new 
 ## Content rules for public pages
 
 - Every number must come from the research or PRD files in this repo. No invented testimonials, user counts or logos.
+- No usage metrics (activation, response rates) and no build-duration claims on public pages. The owner decided this on 2026-11-20.
+- Public pages use a neutral voice, never the first person ("I built", "we asked").
 - Research participants are never named.
 - The product has no notifications. Never write that it will notify anyone.
 - Survey percentages are shares of respondents ("35% said a trip of theirs never happened because..."), never shares of trips.
