@@ -187,16 +187,17 @@ export function ReadyStage({
   const pnr = (trip.slug.split("-").pop() || trip.id.slice(0, 6)).toUpperCase().slice(0, 8);
   const left = countdown(trip.locked_dates_start, trip.locked_dates_end);
 
-  // This text is pasted into WhatsApp, where emoji are the native punctuation.
+  // Plain words, no emoji. Opened through a wa.me link, WhatsApp on a computer
+  // turns emoji into question-mark boxes. *...* is WhatsApp's own bold.
   const summary = [
-    `*${trip.name}* is confirmed ✅`,
+    `*${trip.name}* is confirmed.`,
     "",
-    destination.name ? `📍 ${destination.name}` : null,
+    destination.name ? `*Where:* ${destination.name}` : null,
     trip.locked_dates_start && trip.locked_dates_end
-      ? `🗓 ${formatDayLong(trip.locked_dates_start)} to ${formatDayLong(trip.locked_dates_end)} (${plural(trip.trip_days, "day")})`
+      ? `*When:* ${formatDayLong(trip.locked_dates_start)} to ${formatDayLong(trip.locked_dates_end)} (${plural(trip.trip_days, "day")})`
       : null,
-    budget ? `💰 ${budget} per person` : null,
-    `👥 Going (${going.length}): ${going.map((m) => firstName(m.name)).join(", ")}`,
+    budget ? `*Budget:* ${budget.charAt(0).toLowerCase()}${budget.slice(1)} per person` : null,
+    `*Going (${going.length}):* ${going.map((m) => firstName(m.name)).join(", ")}`,
     "",
     url,
   ]
