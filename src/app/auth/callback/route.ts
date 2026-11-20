@@ -16,16 +16,10 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
 
   const cookieStore = await cookies();
+  // cookies() has already URL-decoded the value. Decoding it again would let a
+  // doubly-encoded path slip past the check below.
   const remembered = cookieStore.get(NEXT_COOKIE)?.value;
-  let fromCookie: string | null = null;
-  if (remembered) {
-    try {
-      fromCookie = decodeURIComponent(remembered);
-    } catch {
-      fromCookie = null;
-    }
-  }
-  const next = safeNext(searchParams.get("next") ?? fromCookie, origin);
+  const next = safeNext(searchParams.get("next") ?? remembered ?? null, origin);
 
   const finish = (path: string) => {
     const response = NextResponse.redirect(new URL(path, origin));

@@ -18,7 +18,12 @@ export function safeNext(raw: string | null | undefined, origin: string = PLACEH
     if (url.origin !== origin) return DEFAULT_NEXT;
     // Sending a signed-in person back to sign-in would loop.
     if (url.pathname === "/login" || url.pathname.startsWith("/auth/")) return DEFAULT_NEXT;
-    return `${url.pathname}${url.search}${url.hash}`;
+    // Check the path the parser produced, not the one that came in: "/.//host"
+    // and "/%2e//host" both normalise to "//host", which a browser treats as
+    // another site.
+    const out = `${url.pathname}${url.search}${url.hash}`;
+    if (out.startsWith("//") || out.startsWith("/\\")) return DEFAULT_NEXT;
+    return out;
   } catch {
     return DEFAULT_NEXT;
   }
