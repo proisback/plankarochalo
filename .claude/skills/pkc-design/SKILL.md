@@ -25,13 +25,17 @@ Use the metaphor in type, layout and the two or three signature moments (route l
 5. **Small radii.** `rounded-xl` is 6px, `rounded-2xl` 8px, `rounded-3xl` 10px here (overridden in `@theme`). `rounded-full` is for people (avatars) and dots only. No pill buttons, no pill badges.
 6. **Not everything is a card.** Group with spacing, a `label-mono` caption, and hairline rules (`border-t border-border`, `divide-y divide-border`). Use `.panel` only when a block is a distinct object.
 7. **Three type voices.** Display: `font-heading` (condensed, heavy; add `.display` for uppercase signage). Text: default sans. Data: `font-mono` for numbers, dates in tables, codes, and every small caption (`.label-mono`).
-8. **44px touch targets.** `.btn` and `.icon-btn` already are. Inputs are 16px text so iOS does not zoom.
+8. **44px touch targets.** `.btn`, `.btn-sm` and `.icon-btn` already are (`btn-sm` is smaller in type and padding, not in height). A standalone text link gets `inline-flex min-h-11 items-center`. Inputs are 16px text so iOS does not zoom.
 9. **Every state exists.** Loading (`.skeleton`, not a lone spinner), empty (say what to do next), error (`friendlyError()` from `src/lib/errors.ts`, never a raw database string), success, disabled, focus-visible.
 10. **Dates are day keys.** Use `src/lib/dates.ts` (`formatDay`, `formatRange`, `formatDayLong`, `parseDay`, `toDayKey`, `eachDay`, `memberDays`). Never `new Date("YYYY-MM-DD")`, never `toISOString().split("T")[0]`.
 11. **Copy on the clipboard goes through `copyText()`** in `src/lib/format.ts`. Anything meant for the group offers WhatsApp first: `https://wa.me/?text=${encodeURIComponent(text)}`.
 12. **Dialogs use `<Sheet>`** from `src/components/sheet.tsx` (bottom sheet on phones, dialog on desktop, focus trap, Escape, portal). Never a hand-rolled `fixed inset-0` div.
 13. **Motion is CSS only.** `animate-in`, `animate-pop`, `animate-stamp`, `.stagger`, `.reveal`. Animate `transform` and `opacity` only. `prefers-reduced-motion` is already handled globally.
 14. JSX text cannot contain a raw `'` or `"` (lint error). Write `&apos;` / `&quot;` or put the string in `{"..."}`.
+15. **On a stage screen the answer comes first.** Order: the question, the control that answers it (or the member's own answer once given), then `<StageStatus>`, then lists. The exception is when everyone has answered: then the status carries the next action (lock, or ping the organiser) and leads.
+16. **Amber means something needs attention**: a tie, a deadline, a conflict. Having answered is not a problem, so "You're done" is a plain `notice`. Do not stack more than two notices above the thing the screen is for.
+17. **Say a fact once per screen.** If the ticket, the roll call or the route line already shows it, do not repeat it in a caption or a sentence. On Go, a phone shows the ticket on the first screen with "Send to the group" pinned.
+18. **A picked day never shares a colour with the heat scale.** Picked is `bg-text text-background`; heat is the yellow scale. In dark mode `primary` is yellow, so `bg-primary` would make the two look the same.
 
 ## Tokens (Tailwind utility names)
 
@@ -97,4 +101,4 @@ The database stores an emoji per destination and the locked destination as `"<em
 
 ## Before calling a screen done
 
-Open it at 390, 768 and 1440 px in light and dark. Check: no horizontal scroll, the primary action is on screen, no emoji, no `text-white`, no raw error strings, keyboard focus is visible, and it reads as part of the same printed system as the ticket.
+Open it at 360, 390, 768 and 1440 px in light and dark. Check: no horizontal scroll, the primary action is on the first screen of a 360 x 640 phone, no emoji, no `text-white`, no raw error strings, keyboard focus is visible, and it reads as part of the same printed system as the ticket.

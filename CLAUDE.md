@@ -12,7 +12,7 @@ First version shipped April 2026 (8-day build in a PM cohort). Redesigned and ha
 
 - `.claude/skills/pkc-design/SKILL.md`: **the design system, vocabulary and build rules. Binding for any UI or copy.**
 - `memory.md`: original product context and decisions from April 2026. Its design-system, data-model and algorithm sections are superseded by this file and the skill above.
-- `PlanKaroChalo_PRD_v2.html`: the PRD, with shipped features, decisions and measured results.
+- `PlanKaroChalo_PRD_v2.html`: the PRD, with shipped features, decisions and the success-metric targets. The measured 91.7% and 85.2% are not in it: they are the owner's April 2026 measurement and are not recorded in any tracked file.
 - `PlanKaroChalo_Discovery_Document.md`: primary research (27 interviews, 105 survey responses). The only allowed source for research numbers on public pages.
 - `supabase/README.md`: SQL files in the order they were applied, and the pending migration.
 - `docs/overnight-revival-prompt.md`: the brief the November 2026 redesign was run from.
