@@ -33,19 +33,23 @@ export default async function LoginPage({
 }) {
   const params = await searchParams;
   const next = safeNext(Array.isArray(params.next) ? params.next[0] : params.next);
+  const linkFailed = params.error === "auth_failed";
 
   // redirect() works by throwing, so it has to stay outside the try.
-  let signedIn = false;
+  let signedInAs: string | null = null;
   try {
     const supabase = await createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    signedIn = !!user && !user.is_anonymous;
+    if (user && !user.is_anonymous) signedInAs = user.email || String(user.user_metadata?.full_name || "another account");
   } catch {
     // Supabase unreachable or not configured. Show the page anyway.
   }
-  if (signedIn) redirect(next);
+  // A failed link must not slip someone into the account this browser already
+  // holds: a link opened in another browser lands here, and forwarding them on
+  // would show another account's trips as if the link had worked.
+  if (signedInAs && !linkFailed) redirect(next);
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -58,7 +62,7 @@ export default async function LoginPage({
 
       <main id="main" className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 pb-16 pt-6">
         <Suspense fallback={<LoginSkeleton />}>
-          <LoginForm />
+          <LoginForm signedInAs={signedInAs} />
         </Suspense>
       </main>
     </div>

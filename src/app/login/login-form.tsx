@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { friendlyError } from "@/lib/errors";
 import { GoogleIcon, Icon, Spinner } from "@/components/icons";
-import { rememberNext, safeNext } from "./safe-next";
+import { loginPath, rememberNext, safeNext } from "./safe-next";
 
 const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -21,14 +21,14 @@ function checkEmail(value: string): string {
  * password. `next` rides along through the provider and back to
  * /auth/callback so the organiser lands where they were going.
  */
-export function LoginForm() {
+export function LoginForm({ signedInAs = null }: { signedInAs?: string | null }) {
   const searchParams = useSearchParams();
   const next = safeNext(searchParams.get("next"));
   const linkFailed = searchParams.get("error") === "auth_failed";
 
   const [email, setEmail] = useState("");
   const [fieldError, setFieldError] = useState("");
-  const [busy, setBusy] = useState<"email" | "google" | null>(null);
+  const [busy, setBusy] = useState<"email" | "google" | "signout" | null>(null);
   const [sentTo, setSentTo] = useState("");
   const [error, setError] = useState("");
   const emailId = useId();
@@ -106,6 +106,21 @@ export function LoginForm() {
     }
   }
 
+  async function handleSignOut() {
+    if (busy) return;
+    setBusy("signout");
+    setError("");
+    try {
+      // This device only, as on My trips.
+      const { error: signOutError } = await createClient().auth.signOut({ scope: "local" });
+      if (signOutError) throw signOutError;
+      window.location.assign(loginPath(next));
+    } catch (err) {
+      setError(friendlyError(err, "We couldn't sign you out. Check your connection and try again."));
+      setBusy(null);
+    }
+  }
+
   if (sentTo) {
     return (
       <div className="animate-in">
@@ -148,7 +163,30 @@ export function LoginForm() {
       </p>
 
       <div className="mt-7">
-        {linkFailed && !error && (
+        {linkFailed && !error && signedInAs && (
+          <div role="alert" className="notice notice-stop mb-4">
+            <Icon name="alert" className="mt-0.5 h-4 w-4 shrink-0 text-status-out" />
+            <div className="min-w-0 flex-1">
+              <p>
+                That sign-in link didn&apos;t work, so this browser is still signed in as{" "}
+                <span className="font-semibold [overflow-wrap:anywhere]">{signedInAs}</span>.
+              </p>
+              <p className="mt-0.5 text-text-secondary">
+                Links expire, and they only open in the browser you requested them from.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Link href={next} className="btn btn-outline btn-sm">
+                  Continue with this account
+                </Link>
+                <button type="button" onClick={handleSignOut} disabled={busy !== null} className="btn btn-quiet btn-sm">
+                  {busy === "signout" ? <Spinner /> : <Icon name="logout" className="h-4 w-4" />}
+                  Sign out
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        {linkFailed && !error && !signedInAs && (
           <p role="alert" className="notice notice-stop mb-4">
             <Icon name="alert" className="mt-0.5 h-4 w-4 shrink-0 text-status-out" />
             <span>
