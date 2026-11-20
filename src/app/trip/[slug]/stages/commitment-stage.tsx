@@ -377,7 +377,7 @@ export function CommitmentStage({
       ? (emphasis: "primary" | "outline") => (
           <LockButton
             variant={emphasis}
-            label={`Lock the trip with ${going.length} going`}
+            label={`Lock the trip with ${going.length} in`}
             title="Lock the trip?"
             confirmMessage={`The trip is confirmed with ${people(going.length)} and everyone gets the ticket. Nobody is notified automatically, so tell the group after.`}
             details={lockDetails}
@@ -398,36 +398,7 @@ export function CommitmentStage({
 
       <PlanSummary trip={trip} members={members} />
 
-      {nobodyIn ? (
-        <div className="notice notice-stop">
-          <Icon name="ban" className="mt-0.5 h-4 w-4 shrink-0 text-status-out" />
-          <div>
-            <p className="font-semibold">Nobody can make these dates.</p>
-            <p className="mt-0.5 text-text-secondary">
-              {isOrganizer ? (
-                <>
-                  Use Organiser tools<span className="lg:hidden"> below</span> to reopen the vote, and from there the
-                  dates, one step at a time.
-                </>
-              ) : (
-                <>This one isn&apos;t happening on these dates.</>
-              )}
-            </p>
-          </div>
-        </div>
-      ) : (
-        <StageStatus
-          trip={trip}
-          members={members}
-          currentMember={currentMember}
-          isOrganizer={isOrganizer}
-          done={iAmOut ? "You said you're out." : "You said you're in."}
-          next="Once the trip is locked, everyone gets the ticket."
-          lock={lock}
-          demo={demo}
-        />
-      )}
-
+      {/* The answer comes first: the hold, or what you said. The group's status follows it. */}
       <p className="sr-only" role="status" aria-live="polite">
         {announcement}
       </p>
@@ -435,7 +406,10 @@ export function CommitmentStage({
       {iAmIn ? (
         <div ref={resultRef} tabIndex={-1} className="space-y-3" style={NO_OUTLINE}>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-            <span className={`stamp shrink-0 ${stampFresh ? "animate-stamp" : ""}`} aria-hidden="true">
+            <span
+              className={`stamp shrink-0 px-4 py-2 text-[2rem] ${stampFresh ? "animate-stamp" : ""}`}
+              aria-hidden="true"
+            >
               In
             </span>
             <p className="min-w-0 flex-1 font-heading text-[1.375rem] font-bold leading-tight text-text">
@@ -473,20 +447,54 @@ export function CommitmentStage({
         </div>
       )}
 
+      {nobodyIn ? (
+        <div className="notice notice-stop">
+          <Icon name="ban" className="mt-0.5 h-4 w-4 shrink-0 text-status-out" />
+          <div>
+            <p className="font-semibold">Nobody can make these dates.</p>
+            <p className="mt-0.5 text-text-secondary">
+              {isOrganizer ? (
+                <>
+                  Use Organiser tools<span className="lg:hidden"> below</span> to reopen the vote, and from there the
+                  dates, one step at a time.
+                </>
+              ) : (
+                <>This one isn&apos;t happening on these dates.</>
+              )}
+            </p>
+          </div>
+        </div>
+      ) : (
+        <StageStatus
+          trip={trip}
+          members={members}
+          currentMember={currentMember}
+          isOrganizer={isOrganizer}
+          // The answer is shown right above, at full size. No need to repeat it here.
+          done=""
+          next="Once the trip is locked, everyone gets the ticket."
+          lock={lock}
+          demo={demo}
+        />
+      )}
+
       <RollCall members={members} currentMember={currentMember} />
 
-      <MemberList
-        trip={trip}
-        members={members}
-        currentMember={currentMember}
-        isOrganizer={isOrganizer}
-        onMembersUpdated={onMembersUpdated}
-      />
+      {/* The roll call above already lists everyone. The full list is the organiser's tool for answering for people. */}
+      {isOrganizer && (
+        <MemberList
+          trip={trip}
+          members={members}
+          currentMember={currentMember}
+          isOrganizer={isOrganizer}
+          onMembersUpdated={onMembersUpdated}
+        />
+      )}
 
       <Sheet
         open={outOpen}
         onClose={() => setOutOpen(false)}
-        title="Tell the group you're out?"
+        title="Mark yourself out?"
         description="You can change your mind until the trip is locked."
         dismissible={!saving}
       >

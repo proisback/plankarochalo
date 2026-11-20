@@ -370,6 +370,7 @@ export function TripDashboard({ trip: initialTrip, demo = false }: { trip: Trip;
   }
 
   const organiser = findOrganiser(trip, members);
+  const confirmed = trip.status === "ready";
   const cannotMakeDates =
     trip.status !== "dates_open" ? members.filter((m) => m.constraint_note?.startsWith(LATE_NOTE)) : [];
   const stageProps = { trip, members, currentMember, isOrganizer, onMembersUpdated: refresh, demo };
@@ -404,15 +405,21 @@ export function TripDashboard({ trip: initialTrip, demo = false }: { trip: Trip;
         id="main"
         className="mx-auto w-full max-w-[1040px] px-4 pb-16 pt-5 lg:grid lg:grid-cols-[300px_minmax(0,1fr)] lg:gap-12 lg:px-8 lg:pt-10"
       >
+        {/* Once the trip is confirmed the ticket carries the name, the dates and the
+            place. On a phone, repeating them here pushed the ticket off the first screen. */}
         <aside className="lg:sticky lg:top-20 lg:self-start">
-          <p className="label-mono">
+          <p className={`label-mono ${confirmed ? "hidden lg:block" : ""}`}>
             {plural(trip.trip_days, "day")} · {people(members.length)}
             {organiser && !isOrganizer ? ` · by ${firstName(organiser.name)}` : ""}
           </p>
-          <h1 className="mt-1.5 font-heading text-[1.75rem] font-extrabold leading-[1.05] text-text lg:text-[2.25rem]">
+          <h1
+            className={`mt-1.5 font-heading text-[1.75rem] font-extrabold leading-[1.05] text-text lg:text-[2.25rem] ${
+              confirmed ? "sr-only lg:not-sr-only" : ""
+            }`}
+          >
             {trip.name}
           </h1>
-          <div className="mt-5">
+          <div className={`mt-5 ${confirmed ? "hidden lg:block" : ""}`}>
             <RouteLine trip={trip} members={members} />
           </div>
           {isOrganizer && (
@@ -423,7 +430,7 @@ export function TripDashboard({ trip: initialTrip, demo = false }: { trip: Trip;
           )}
         </aside>
 
-        <div className="mt-7 max-w-[560px] space-y-5 lg:mt-0">
+        <div className={`max-w-[560px] space-y-5 lg:mt-0 ${confirmed ? "" : "mt-7"}`}>
           {isOrganizer && <LockAnnouncement trip={trip} url={url} demo={demo} />}
 
           {isOrganizer && cannotMakeDates.length > 0 && (

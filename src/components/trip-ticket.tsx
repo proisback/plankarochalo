@@ -80,7 +80,10 @@ export function TripTicket({
         )}
 
         <p className="ticket-key">Trip</p>
-        <p className="mt-0.5 max-w-[78%] font-heading text-xl font-bold leading-tight text-text">{tripName}</p>
+        {/* The stamp sits top right. Padding, not a width cap, keeps every line of a long name clear of it. */}
+        <p className={`mt-0.5 font-heading text-xl font-bold leading-tight text-text ${stamp ? "pr-[7.75rem]" : ""}`}>
+          {tripName}
+        </p>
 
         <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3.5">
           <div>

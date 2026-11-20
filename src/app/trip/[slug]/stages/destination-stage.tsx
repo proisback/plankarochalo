@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
-import { findOrganiser } from "@/lib/types";
+import { findOrganiser, stageProgress } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import type { DestinationOption, Member, Trip } from "@/lib/types";
 import { advanceTrip } from "@/lib/advance";
@@ -872,7 +872,7 @@ export function DestinationStage({
       className={className}
       label={`Lock ${row.opt.name}`}
       title={`Lock ${row.opt.name}?`}
-      confirmMessage={`${row.opt.name} becomes the destination and everyone is asked to commit. Nobody is notified automatically, so tell the group after.`}
+      confirmMessage={`${row.opt.name} becomes the place and everyone is asked to commit. Nobody is notified automatically, so tell the group after.`}
       details={lockDetails(row)}
       onLock={() => lockPlace(row.opt)}
     />
@@ -885,6 +885,22 @@ export function DestinationStage({
   const roomForRemove = rows.some(canRemove);
   const picks = options ? POPULAR.filter((p) => !options.some((o) => sameName(o.name, p.name))) : [];
 
+  // While people are still voting, the list is the task and the status follows it.
+  // Once everyone has voted, the status carries the next action (lock, or ping the organiser), so it leads.
+  const statusFirst = stageProgress(trip, members).allJoinedAnswered;
+  const status = (
+    <StageStatus
+      trip={trip}
+      members={members}
+      currentMember={currentMember}
+      isOrganizer={isOrganizer}
+      done={myRow ? `Your vote is on ${myRow.opt.name}.` : "Your vote is in."}
+      next="Once a place is locked, everyone says if they're in."
+      lock={isOrganizer && leader ? (emphasis) => lockButton(leader, emphasis) : null}
+      demo={demo}
+    />
+  );
+
   return (
     <section aria-labelledby={headingId} className="space-y-4">
       <div>
@@ -892,20 +908,11 @@ export function DestinationStage({
           {firstName(currentMember.name)}, where to?
         </h2>
         <p className="mt-1 text-[0.9375rem] leading-snug text-text-secondary">
-          One vote each. Tap again to change it. Add a place if yours is missing.
+          Tap a place to vote. Tap another to change your vote. Add one if yours is missing.
         </p>
       </div>
 
-      <StageStatus
-        trip={trip}
-        members={members}
-        currentMember={currentMember}
-        isOrganizer={isOrganizer}
-        done={myRow ? `Your vote is on ${myRow.opt.name}.` : "Your vote is in."}
-        next="Once a place is locked, everyone says if they're in."
-        lock={isOrganizer && leader ? (emphasis) => lockButton(leader, emphasis) : null}
-        demo={demo}
-      />
+      {statusFirst && status}
 
       {tied.length > 0 &&
         (isOrganizer ? (
@@ -1004,6 +1011,8 @@ export function DestinationStage({
           ) : null}
         </div>
       </div>
+
+      {!statusFirst && status}
 
       {picks.length > 0 && (
         <div className="pt-1">

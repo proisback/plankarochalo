@@ -14,7 +14,7 @@ function stationValue(key: TripStatus, trip: Trip, members: Member[]): string | 
     return parseDestination(trip.locked_destination).name;
   }
   if (key === "commitment" && trip.status === "ready") {
-    return `${members.filter((m) => m.status === "confirmed_in").length} going`;
+    return `${members.filter((m) => m.status === "confirmed_in").length} in`;
   }
   return null;
 }
@@ -117,7 +117,7 @@ export function RouteLine({ trip, members }: { trip: Trip; members: Member[] }) 
                   {s.label}
                 </p>
                 <p className="mt-0.5 text-sm leading-snug text-text-secondary">
-                  {s.value ?? (s.state === "here" ? "Happening now" : s.state === "ahead" ? "Not open yet" : "Done")}
+                  {s.value ?? (s.state === "here" ? "Happening now" : s.state === "ahead" ? "Not open yet" : "Locked")}
                 </p>
               </div>
             </li>

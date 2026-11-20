@@ -116,7 +116,10 @@ export function StageStatus({
   members: Member[];
   currentMember: Member;
   isOrganizer: boolean;
-  /** What I have done on this stage, once I have. "Your 6 dates are in." */
+  /**
+   * What I have done on this stage, once I have. "Your 6 dates are in."
+   * Pass "" when the stage shows the member's own answer itself (Commit does).
+   */
   done: string;
   /** What happens after this stage. "Once everyone answers, the dates lock and you vote on a place." */
   next: string;
@@ -206,15 +209,22 @@ export function StageStatus({
       </div>
     );
   } else if (mine) {
+    // Neutral, not amber: having answered is not a problem. Amber stays for ties,
+    // deadlines and conflicts. A stage that shows its own result passes done="".
     body = (
-      <div className="notice notice-wait">
-        <Icon name="clock" className="mt-0.5 h-4 w-4 shrink-0 text-status-waiting" />
+      <div className="notice">
+        <Icon
+          name={done ? "check-circle" : "clock"}
+          className={`mt-0.5 h-4 w-4 shrink-0 ${done ? "text-status-confirmed" : "text-text-secondary"}`}
+        />
         <div className="min-w-0 flex-1">
-          <p>
-            <span className="font-semibold">You&apos;re done.</span> {done}
-          </p>
-          <p className="mt-0.5 text-text-secondary">
-            {others.length > 0 ? `Waiting on ${otherNames}. ` : ""}
+          {done && (
+            <p>
+              <span className="font-semibold">You&apos;re done.</span> {done}
+            </p>
+          )}
+          <p className={done ? "mt-0.5 text-text-secondary" : ""}>
+            {others.length > 0 && <span className={done ? "" : "font-semibold"}>Waiting on {otherNames}. </span>}
             {next}
           </p>
           {proxyLine}
@@ -239,6 +249,9 @@ export function StageStatus({
         </p>
       </div>
     );
+  } else if (trip.status === "commitment") {
+    // Commit shows its own roll call with the same count, so there is no tally here.
+    body = isOrganizer && lock ? <div>{lock("outline")}</div> : null;
   } else {
     body = (
       <div>
@@ -247,6 +260,8 @@ export function StageStatus({
       </div>
     );
   }
+
+  if (!body) return null;
 
   return (
     <div aria-live="polite">

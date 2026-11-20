@@ -50,7 +50,7 @@ function describe(trip: Trip, members: Member[]): Row {
     const standing =
       trip.expected_size != null && progress.notJoined === 0
         ? `Everyone has ${stage.asked}`
-        : `All ${progress.total} who joined so far have ${stage.asked}`;
+        : `All ${progress.total} who've joined so far have ${stage.asked}`;
     return { trip, facts, standing, readyToLock: true };
   }
   return { trip, facts, standing: `${progress.answered} of ${progress.total} have ${stage.asked}`, readyToLock: false };
@@ -249,7 +249,7 @@ export function MyTripsClient({ userId, signedInAs = "" }: { userId: string; sig
                 <p className="mt-0.5 text-text-secondary">{load.message}</p>
                 <button type="button" onClick={() => fetchTrips()} className="btn btn-outline btn-sm mt-3">
                   <Icon name="refresh" className="h-4 w-4" />
-                  Retry
+                  Try again
                 </button>
               </div>
             </div>
@@ -270,7 +270,7 @@ export function MyTripsClient({ userId, signedInAs = "" }: { userId: string; sig
                   Start a trip
                   <Icon name="arrow-right" className="h-4 w-4" />
                 </Link>
-                <Link href="/demo" className="link text-sm">
+                <Link href="/demo" className="link inline-flex min-h-11 items-center text-sm">
                   See how it works first
                 </Link>
               </div>

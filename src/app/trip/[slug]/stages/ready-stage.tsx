@@ -7,7 +7,7 @@ import type { Member, Trip } from "@/lib/types";
 import { addDays, diffDays, formatDayLong, formatRange, formatWeekday, todayKey } from "@/lib/dates";
 import { budgetAnswers, findBudgetOverlap } from "@/lib/overlap";
 import { friendlyError } from "@/lib/errors";
-import { copyText, firstName, formatBudgetRange, formatRupeesShort, parseDestination, people, plural } from "@/lib/format";
+import { copyText, firstName, formatBudgetRange, formatRupeesShort, parseDestination, plural } from "@/lib/format";
 import { Icon, Spinner, WhatsAppIcon } from "@/components/icons";
 import { TripTicket, type TicketPassenger } from "@/components/trip-ticket";
 
@@ -254,9 +254,7 @@ export function ReadyStage({
         <p className="label-mono">Chart prepared{left ? ` · ${left}` : ""}</p>
         <h2 className="mt-1.5 font-heading text-[2rem] font-extrabold leading-[1.05] text-text">{headline}</h2>
         <p className="mt-2 text-text-secondary">
-          {people(going.length)} going
-          {destination.name ? ` to ${destination.name}` : ""}
-          {range ? `, ${range}` : ""}. Send the ticket to the group so nobody can say they didn&apos;t know.
+          Send the ticket to the group so nobody can say they didn&apos;t know.
         </p>
       </div>
 
@@ -306,17 +304,21 @@ export function ReadyStage({
         className={celebrate ? "animate-print" : ""}
       />
 
-      <div className="grid gap-2 sm:grid-cols-2">
+      {/* On a phone the one action stays on screen while the ticket scrolls under it. */}
+      <div className="sticky bottom-0 z-20 -mx-4 border-t border-border bg-background px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:static sm:mx-0 sm:border-t-0 sm:bg-transparent sm:p-0">
         <a
           href={url ? `https://wa.me/?text=${encodeURIComponent(summary)}` : undefined}
           target="_blank"
           rel="noopener noreferrer"
           aria-disabled={!url}
-          className="btn btn-whatsapp btn-lg sm:col-span-2"
+          className="btn btn-whatsapp btn-lg btn-block"
         >
           <WhatsAppIcon />
           Send to the group
         </a>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
         <button type="button" onClick={handleCalendar} className="btn btn-outline">
           <Icon name="calendar" className="h-4 w-4" />
           Add to calendar

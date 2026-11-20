@@ -149,7 +149,7 @@ function AddPersonSheet({
               <Spinner /> Adding
             </>
           ) : (
-            "Save"
+            "Add to the group"
           )}
         </button>
       </form>
@@ -159,7 +159,7 @@ function AddPersonSheet({
 
 /* ── Organiser: take over an entry nobody is answering ─────────── */
 
-const NEEDS_DATABASE_UPDATE = "This needs the latest database update. Ask them to open the link again instead.";
+const NEEDS_DATABASE_UPDATE = "Couldn't take over this entry. Ask them to open the link again instead.";
 
 function TakeOverSheet({
   member,
@@ -647,7 +647,7 @@ export function MemberList({
                         `Answer for ${first}`
                       ) : (
                         <>
-                          Answer for them<span className="sr-only"> ({m.name})</span>
+                          Take over {first}&apos;s entry<span className="sr-only"> ({m.name})</span>
                         </>
                       )}
                     </button>

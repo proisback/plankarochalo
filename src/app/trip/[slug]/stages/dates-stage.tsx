@@ -535,7 +535,7 @@ export function DatesStage({
           <div className="flex gap-2">
             {hasSaved && (
               <button type="button" onClick={undo} disabled={saving} className="btn btn-outline btn-lg">
-                Undo
+                Discard
               </button>
             )}
             <button type="button" onClick={saveDates} disabled={saving} className="btn btn-primary btn-lg min-w-0 flex-1">

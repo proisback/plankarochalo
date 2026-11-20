@@ -222,7 +222,7 @@ export function LoginForm() {
 
       <p className="mt-8 border-t border-border pt-5 text-[0.8125rem] text-text-tertiary">
         Just here to look?{" "}
-        <Link href="/demo" className="link">
+        <Link href="/demo" className="link inline-flex min-h-11 items-center">
           Try the live demo
         </Link>
       </p>

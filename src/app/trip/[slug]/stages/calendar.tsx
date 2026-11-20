@@ -242,12 +242,12 @@ export default function Calendar({
 
           const tile = off
             ? mine
-              ? "bg-primary text-on-primary opacity-40"
+              ? "bg-text text-background opacity-40"
               : "text-text-tertiary opacity-45"
             : anchor
               ? "bg-primary-light text-text ring-2 ring-inset ring-primary"
               : mine
-                ? "bg-primary text-on-primary"
+                ? "bg-text text-background"
                 : heat
                   ? HEAT[heat]
                   : "text-text group-hover:bg-subtle";
@@ -276,7 +276,7 @@ export default function Calendar({
                   <span className="absolute bottom-[7px] left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-current" />
                 )}
                 {others > 0 && (
-                  <span className="absolute bottom-[3px] right-[5px] font-mono text-[0.625rem] font-medium leading-none">
+                  <span className="absolute bottom-[3px] right-[5px] font-mono text-[0.6875rem] font-semibold leading-none">
                     {others}
                   </span>
                 )}
@@ -385,7 +385,7 @@ export default function Calendar({
         className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-2 pl-1 font-mono text-[0.6875rem] leading-none text-text-secondary"
       >
         <li className="flex items-center gap-1.5">
-          <span className="h-3.5 w-3.5 rounded-sm bg-primary" />
+          <span className="h-3.5 w-3.5 rounded-sm bg-text" />
           Picked
         </li>
         <li className="flex items-center gap-1.5">
